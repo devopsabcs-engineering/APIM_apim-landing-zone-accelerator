@@ -306,5 +306,16 @@ stages :
           #  -TrustedRootCertificate $trustedRootCert -PickHostNameFromBackendAddress -RequestTimeout 180
           #$originalAppGw = Set-AzApplicationGateway -ApplicationGateway $originalAppGw
 
+          Write-Host ----------- add gateway listeners once only
+          $gatewayListener = Add-AzApplicationGatewayHttpListener -ApplicationGateway $originalAppGw -Name "gatewaylistener" `
+            -Protocol "Https" -FrontendIPConfiguration $fipconfig01 -FrontendPort $fp01 `
+            -SslCertificate $certGateway -HostName $gatewayHostname -RequireServerNameIndication true
+          $portalListener = Add-AzApplicationGatewayHttpListener -ApplicationGateway $originalAppGw -Name "portallistener" `
+            -Protocol "Https" -FrontendIPConfiguration $fipconfig01 -FrontendPort $fp01 `
+            -SslCertificate $certPortal -HostName $portalHostname -RequireServerNameIndication true
+          $managementListener = Add-AzApplicationGatewayHttpListener -ApplicationGateway $originalAppGw -Name "managementlistener" `
+            -Protocol "Https" -FrontendIPConfiguration $fipconfig01 -FrontendPort $fp01 `
+            -SslCertificate $certManagement -HostName $managementHostname -RequireServerNameIndication true
+
         azurePowerShellVersion: 'LatestVersion'
         pwsh: true
