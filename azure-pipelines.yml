@@ -268,7 +268,7 @@ stages :
           $MoreBackEndPools = $apimGatewayBackendPool,$apimPortalBackendPool,$apimManagementBackendPool
           echo $MoreBackEndPools
           
-          Write-Host -------------  add one at a time          
+          Write-Host ------backend address pool-------  add one at a time          
           
           $originalAppGw = Get-AzApplicationGateway -Name $appGatewayName
           echo $apimGatewayBackendPool
@@ -288,7 +288,20 @@ stages :
           #$Probe3 = Add-AzApplicationGatewayProbeConfig -ApplicationGateway $originalAppGw -Name "apimmanagementprobe" `
           #  -Protocol "Https" -HostName $managementHostname -Path "/ServiceStatus" `
           #  -Interval 60 -Timeout 300 -UnhealthyThreshold 8
-          #$originalAppGw = Set-AzApplicationGateway -ApplicationGateway $originalAppGw            
+          #$originalAppGw = Set-AzApplicationGateway -ApplicationGateway $originalAppGw
+          
+          Write-Host -------- add backend settings  -- do once
+          $originalAppGw = Get-AzApplicationGateway -Name $appGatewayName 
+          $apimPoolGatewaySetting = Add-AzApplicationGatewayBackendHttpSettings -ApplicationGateway $originalAppGw -Name "apimPoolGatewaySetting" `
+            -Port 443 -Protocol "Https" -CookieBasedAffinity "Disabled" -Probe $apimGatewayProbe `
+            -TrustedRootCertificate $trustedRootCert -PickHostNameFromBackendAddress -RequestTimeout 180
+          $apimPoolPortalSetting = Add-AzApplicationGatewayBackendHttpSettings -ApplicationGateway $originalAppGw -Name "apimPoolPortalSetting" `
+            -Port 443 -Protocol "Https" -CookieBasedAffinity "Disabled" -Probe $apimPortalProbe `
+            -TrustedRootCertificate $trustedRootCert -PickHostNameFromBackendAddress -RequestTimeout 180
+          $apimPoolManagementSetting = Add-AzApplicationGatewayBackendHttpSettings -ApplicationGateway $originalAppGw -Name "apimPoolManagementSetting" `
+            -Port 443 -Protocol "Https" -CookieBasedAffinity "Disabled" -Probe $apimManagementProbe `
+            -TrustedRootCertificate $trustedRootCert -PickHostNameFromBackendAddress -RequestTimeout 180
+          $originalAppGw = Set-AzApplicationGateway -ApplicationGateway $originalAppGw
 
         azurePowerShellVersion: 'LatestVersion'
         pwsh: true
