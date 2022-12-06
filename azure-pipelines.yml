@@ -270,6 +270,7 @@ stages :
           $BackEndPools = $BackEndPools,$MoreBackEndPools
           Write-Host -------------  now for all 4
           echo $BackEndPools
+          $originalAppGw = Set-AzApplicationGateway -ApplicationGateway $originalAppGw
 
 
         azurePowerShellVersion: 'LatestVersion'
