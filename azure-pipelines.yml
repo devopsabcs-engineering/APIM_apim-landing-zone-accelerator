@@ -318,5 +318,9 @@ stages :
           #  -SslCertificate $certManagement -HostName $managementHostname -RequireServerNameIndication true
           #$originalAppGw = Set-AzApplicationGateway -ApplicationGateway $originalAppGw
 
+          Write-Host ---------- FINALLY Ready for routing rules and health check
+          Write-Host confirm the health status of the API Management back ends AFTER updating gateway
+          Get-AzApplicationGatewayBackendHealth -Name $(appGatewayName) -ResourceGroupName $(ResourceGroupNameApim)
+
         azurePowerShellVersion: 'LatestVersion'
         pwsh: true
