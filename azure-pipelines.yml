@@ -262,11 +262,14 @@ stages :
           $originalAppGw = Set-AzApplicationGateway -ApplicationGateway $originalAppGw
 
           Write-Host round 2
-          #backendpools
+          #backendpools -- need to append 3 ONLY ONCE
           $BackEndPools = Get-AzApplicationGatewayBackendAddressPool -ApplicationGateway $originalAppGw
           echo $BackEndPools
           $MoreBackEndPools = $apimGatewayBackendPool,$apimPortalBackendPool,$apimManagementBackendPool
           echo $MoreBackEndPools
+          $BackEndPools = $BackEndPools,$MoreBackEndPools
+          Write-Host -------------  now for all 4
+          echo $BackEndPools
 
 
         azurePowerShellVersion: 'LatestVersion'
