@@ -264,6 +264,9 @@ stages :
           Write-Host round 2
           #backendpools
           $BackEndPools = Get-AzApplicationGatewayBackendAddressPool -ApplicationGateway $originalAppGw
+          echo $BackEndPools
+          $MoreBackEndPools = $apimGatewayBackendPool,$apimPortalBackendPool,$apimManagementBackendPool
+          echo $MoreBackEndPools
 
 
         azurePowerShellVersion: 'LatestVersion'
