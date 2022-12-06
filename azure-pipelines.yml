@@ -267,9 +267,10 @@ stages :
           echo $BackEndPools
           $MoreBackEndPools = $apimGatewayBackendPool,$apimPortalBackendPool,$apimManagementBackendPool
           echo $MoreBackEndPools
-          $BackEndPools = $BackEndPools,$MoreBackEndPools
+          #$BackEndPools = $BackEndPools,$MoreBackEndPools
           Write-Host -------------  now for all 4
-          echo $BackEndPools
+          #echo $BackEndPools
+          $BackEndPools = $MoreBackEndPools
           $originalAppGw = Set-AzApplicationGateway -ApplicationGateway $originalAppGw
 
 
