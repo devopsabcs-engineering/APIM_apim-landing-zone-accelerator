@@ -259,7 +259,12 @@ stages :
           # fix issue All request routing rules should have a priority defined starting from api-version 2021-08-01
           $Rules = Get-AzApplicationGatewayRequestRoutingRule -Name "apim" -ApplicationGateway $originalAppGw
           $Rules.Priority = 10011 #Rule is still a pointer
-          $updatedAppGw = Set-AzApplicationGateway -ApplicationGateway $originalAppGw
+          $originalAppGw = Set-AzApplicationGateway -ApplicationGateway $originalAppGw
+
+          Write-Host round 2
+          #backendpools
+          $BackEndPools = Get-AzApplicationGatewayBackendAddressPool -ApplicationGateway $originalAppGw
+
 
         azurePowerShellVersion: 'LatestVersion'
         pwsh: true
