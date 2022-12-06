@@ -267,14 +267,16 @@ stages :
           echo $BackEndPools
           $MoreBackEndPools = $apimGatewayBackendPool,$apimPortalBackendPool,$apimManagementBackendPool
           echo $MoreBackEndPools
-          #$BackEndPools = $BackEndPools,$MoreBackEndPools
+          
           Write-Host -------------  add one at a time          
           
           $originalAppGw = Get-AzApplicationGateway -Name $appGatewayName
           echo $apimGatewayBackendPool
           echo $apimGatewayBackendPool.Name
-          echo $apimGatewayBackendPool.BackendFqdns
-          #$originalAppGw = Add-AzApplicationGatewayBackendAddressPool -ApplicationGateway $originalAppGw -Name $apimGatewayBackendPool.Name -BackendFqdns $apimGatewayBackendPool.BackendFqdns
+          echo $apimGatewayBackendPool.BackendAddresses.Fqdn
+          $originalAppGw = Add-AzApplicationGatewayBackendAddressPool -ApplicationGateway $originalAppGw -Name $apimGatewayBackendPool.Name -BackendFqdns $apimGatewayBackendPool.BackendAddresses.Fqdn
+          $originalAppGw = Add-AzApplicationGatewayBackendAddressPool -ApplicationGateway $originalAppGw -Name $apimPortalBackendPool.Name -BackendFqdns $apimPortalBackendPool.BackendAddresses.Fqdn
+          $originalAppGw = Add-AzApplicationGatewayBackendAddressPool -ApplicationGateway $originalAppGw -Name $apimManagementBackendPool.Name -BackendFqdns $apimManagementBackendPool.BackendAddresses.Fqdn
 
 
         azurePowerShellVersion: 'LatestVersion'
