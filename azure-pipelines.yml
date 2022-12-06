@@ -316,6 +316,7 @@ stages :
           $managementListener = Add-AzApplicationGatewayHttpListener -ApplicationGateway $originalAppGw -Name "managementlistener" `
             -Protocol "Https" -FrontendIPConfiguration $fipconfig01 -FrontendPort $fp01 `
             -SslCertificate $certManagement -HostName $managementHostname -RequireServerNameIndication true
+          $originalAppGw = Set-AzApplicationGateway -ApplicationGateway $originalAppGw
 
         azurePowerShellVersion: 'LatestVersion'
         pwsh: true
