@@ -278,6 +278,16 @@ stages :
           #$originalAppGw = Add-AzApplicationGatewayBackendAddressPool -ApplicationGateway $originalAppGw -Name $apimPortalBackendPool.Name -BackendFqdns $apimPortalBackendPool.BackendAddresses.Fqdn
           #$originalAppGw = Add-AzApplicationGatewayBackendAddressPool -ApplicationGateway $originalAppGw -Name $apimManagementBackendPool.Name -BackendFqdns $apimManagementBackendPool.BackendAddresses.Fqdn
 
+          Write-Host -------- add gateway probes
+          $Probe1 = Add-AzApplicationGatewayProbeConfig -ApplicationGateway $originalAppGw -Name "apimgatewayprobe" `
+            -Protocol "Https" -HostName $gatewayHostname -Path "/status-0123456789abcdef" `
+            -Interval 30 -Timeout 120 -UnhealthyThreshold 8
+          $Probe2 = Add-AzApplicationGatewayProbeConfig -ApplicationGateway $originalAppGw -Name "apimportalprobe" `
+            -Protocol "Https" -HostName $portalHostname -Path "/signin" `
+            -Interval 60 -Timeout 300 -UnhealthyThreshold 8
+          $Probe3 = Add-AzApplicationGatewayProbeConfig -ApplicationGateway $originalAppGw -Name "apimmanagementprobe" `
+            -Protocol "Https" -HostName $managementHostname -Path "/ServiceStatus" `
+            -Interval 60 -Timeout 300 -UnhealthyThreshold 8            
 
         azurePowerShellVersion: 'LatestVersion'
         pwsh: true
