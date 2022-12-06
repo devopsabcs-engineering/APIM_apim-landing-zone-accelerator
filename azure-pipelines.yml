@@ -274,9 +274,9 @@ stages :
           echo $apimGatewayBackendPool
           echo $apimGatewayBackendPool.Name
           echo $apimGatewayBackendPool.BackendAddresses.Fqdn
-          $originalAppGw = Add-AzApplicationGatewayBackendAddressPool -ApplicationGateway $originalAppGw -Name $apimGatewayBackendPool.Name -BackendFqdns $apimGatewayBackendPool.BackendAddresses.Fqdn
-          $originalAppGw = Add-AzApplicationGatewayBackendAddressPool -ApplicationGateway $originalAppGw -Name $apimPortalBackendPool.Name -BackendFqdns $apimPortalBackendPool.BackendAddresses.Fqdn
-          $originalAppGw = Add-AzApplicationGatewayBackendAddressPool -ApplicationGateway $originalAppGw -Name $apimManagementBackendPool.Name -BackendFqdns $apimManagementBackendPool.BackendAddresses.Fqdn
+          #$originalAppGw = Add-AzApplicationGatewayBackendAddressPool -ApplicationGateway $originalAppGw -Name $apimGatewayBackendPool.Name -BackendFqdns $apimGatewayBackendPool.BackendAddresses.Fqdn
+          #$originalAppGw = Add-AzApplicationGatewayBackendAddressPool -ApplicationGateway $originalAppGw -Name $apimPortalBackendPool.Name -BackendFqdns $apimPortalBackendPool.BackendAddresses.Fqdn
+          #$originalAppGw = Add-AzApplicationGatewayBackendAddressPool -ApplicationGateway $originalAppGw -Name $apimManagementBackendPool.Name -BackendFqdns $apimManagementBackendPool.BackendAddresses.Fqdn
 
 
         azurePowerShellVersion: 'LatestVersion'
