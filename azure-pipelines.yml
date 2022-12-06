@@ -1,0 +1,265 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- none
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+- name: resGroupNameShared
+  value: rg-shared-apimeslz-dev-canadacentral-001
+- name: resGroupNameNetworking
+  value: rg-networking-ApimESLZ-dev-canadacentral-001
+- name: internalVnetName
+  value: vnet-apim-cs-ApimESLZ-dev-canadacentral
+- name: zoneName
+  value: MngEnv019702.onmicrosoft.com
+- name: ResourceGroupNameApim 
+  value: rg-apim-ApimESLZ-dev-canadacentral-001 
+- name: apimServiceName
+  value: apim-ApimESLZ-dev-canadacentral-001
+- group: APIM_apim-landing-zone-accelerator_common
+- name: appGatewayName
+  value: appgw-ApimESLZ-dev-canadacentral-001
+
+stages :
+- stage: get_and_set_version
+  dependsOn: []
+  jobs:
+  - job: Set_tag_for_version
+    displayName: set version once
+    steps:
+    - checkout: self
+      persistCredentials: true
+    - task: gitversion/setup@0
+      enabled: true
+      displayName: 'Install GitTools'
+      inputs:
+        versionSpec: '5.x'
+    - task: gitversion/execute@0
+      enabled: true
+      displayName: 'Calculate SemVer'
+    - script: echo current version is $(GitVersion.SemVer)
+      displayName: 'Display calculated version'
+    - task: CmdLine@2
+      enabled: true
+      displayName: Init git global config
+      inputs:
+        script: |
+          git config --global user.email $(Build.RequestedForEmail)
+          git config --global user.name $(Build.RequestedFor)
+    - task: CmdLine@2
+      enabled: true
+      displayName: Create Git tag for current version
+      inputs:
+        script: |
+          git tag -a $(GitVersion.SemVer) -m "Main version $(GitVersion.SemVer)"
+          git push origin $(GitVersion.SemVer) 
+- stage: privateDNS
+  dependsOn: get_and_set_version
+  jobs:
+  - job: privateDnsJob
+    steps:
+    - task: AzurePowerShell@5
+      enabled: false
+      displayName: Configure a private zone for DNS resolution in the virtual network
+      inputs:
+        azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+        ScriptType: 'InlineScript'
+        Inline: |
+          # You can write your azure powershell scripts inline here. 
+          # You can also pass predefined and custom variables to this script using arguments
+          
+          Write-Host "Hello World"
+          $vnet = Get-AzVirtualNetwork -ResourceGroup $(resGroupNameNetworking) -Name $(internalVnetName)
+          $myZone = New-AzPrivateDnsZone -Name "MngEnv019702.onmicrosoft.com" -ResourceGroupName $(resGroupNameShared) 
+          $link = New-AzPrivateDnsVirtualNetworkLink -ZoneName $(zoneName) -ResourceGroupName $(resGroupNameShared) -Name "mylink" -VirtualNetworkId $vnet.id
+
+          $apimService = Get-AzApiManagement -ResourceGroupName $(ResourceGroupNameApim) -Name $(apimServiceName)
+
+          $apimIP = $apimService.PrivateIPAddresses[0]
+          Write-Host do this -- add A records in private dns
+          New-AzPrivateDnsRecordSet -Name api -RecordType A -ZoneName $(zoneName) -ResourceGroupName $(resGroupNameShared)  -Ttl 3600 -PrivateDnsRecords (New-AzPrivateDnsRecordConfig -IPv4Address $apimIP)
+          New-AzPrivateDnsRecordSet -Name portal -RecordType A -ZoneName $(zoneName) -ResourceGroupName $(resGroupNameShared) -Ttl 3600 -PrivateDnsRecords (New-AzPrivateDnsRecordConfig -IPv4Address $apimIP)
+          New-AzPrivateDnsRecordSet -Name management -RecordType A -ZoneName $(zoneName) -ResourceGroupName $(resGroupNameShared) -Ttl 3600 -PrivateDnsRecords (New-AzPrivateDnsRecordConfig -IPv4Address $apimIP)
+          Write-Host setting apim service... this may take a while so be patient...      
+        azurePowerShellVersion: 'LatestVersion'
+        pwsh: true
+- stage: appGateway
+  dependsOn: privateDNS
+  jobs:
+  - job: appGatewayJob
+    steps:
+    - checkout: self
+      persistCredentials: true
+    - task: gitversion/setup@0
+      enabled: true
+      displayName: 'Install GitTools'
+      inputs:
+        versionSpec: '5.x'
+    - task: gitversion/execute@0
+      enabled: true
+      displayName: 'Calculate SemVer'
+    - script: echo current version is $(GitVersion.SemVer)
+      displayName: 'Display calculated version'
+    - task: DownloadSecureFile@1
+      name: pfxApiTask
+      inputs:
+        secureFile: 'APIM_apim-landing-zone-accelerator_api.pfx'
+    - task: DownloadSecureFile@1
+      name: pfxManagementTask
+      inputs:
+        secureFile: 'APIM_apim-landing-zone-accelerator_management.pfx'
+    - task: DownloadSecureFile@1
+      name: pfxPortalTask
+      inputs:
+        secureFile: 'APIM_apim-landing-zone-accelerator_portal.pfx'
+    - task: DownloadSecureFile@1
+      name: trustedrootcert
+      inputs:
+        secureFile: 'APIM_apim-landing-zone-accelerator_cacert.pem'
+    - task: AzurePowerShell@5
+      enabled: true
+      displayName: Configure listeners and health probes for app gateway
+      inputs:
+        azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+        ScriptType: 'InlineScript'
+        Inline: |
+          # You can write your azure powershell scripts inline here. 
+          # You can also pass predefined and custom variables to this script using arguments
+          
+          Write-Host "let us configure an app gateway for external access"
+
+          $gatewayCertPfxPath = "$(pfxApiTask.secureFIlePath)"
+          $portalCertPfxPath = "$(pfxPortalTask.secureFIlePath)"
+          $managementCertPfxPath = "$(pfxManagementTask.secureFIlePath)"
+          
+          # should use seperate pws
+          $pw = "$(pfxPassword)"
+          $certGatewayPwd = ConvertTo-SecureString -String $pw  -AsPlainText -Force
+          $certPortalPwd = ConvertTo-SecureString -String $pw -AsPlainText -Force
+          $certManagementPwd = ConvertTo-SecureString -String $pw -AsPlainText -Force
+          
+          $certGateway = New-AzApplicationGatewaySslCertificate -Name "gatewaycert" -CertificateFile "$gatewayCertPfxPath" -Password $certGatewayPwd
+          
+          Write-Host $certGateway
+          
+          $certPortal = New-AzApplicationGatewaySslCertificate -Name "portalcert" -CertificateFile "$portalCertPfxPath" -Password $certPortalPwd
+          $certManagement = New-AzApplicationGatewaySslCertificate -Name "managementcert" -CertificateFile "$managementCertPfxPath" -Password $certManagementPwd
+
+          $appGw = Get-AzApplicationGateway -Name $(appGatewayName)
+          Get-AzApplicationGateway -Name $(appGatewayName)
+
+          $vnet = Get-AzVirtualNetwork -Name $(internalVnetName) -ResourceGroupName $(resGroupNameNetworking)
+
+          Write-Host ----------------------------------------------------------------
+          $vnet.Subnets | Where-Object { $_.Name -eq "snet-apgw-ApimESLZ-dev-canadacentral-001"}
+          $appGatewaySubnetData = $vnet.Subnets | Where-Object { $_.Name -eq "snet-apgw-ApimESLZ-dev-canadacentral-001"}
+          
+          Write-Host ----------------------------------------------------------------
+          $vnet.Subnets | Where-Object { $_.Name -eq "snet-apim-ApimESLZ-dev-canadacentral-001"}
+          $apimSubnetData =  $vnet.Subnets | Where-Object { $_.Name -eq "snet-apim-ApimESLZ-dev-canadacentral-001"}
+          Write-Host ----------------------------------------------------------------
+          
+          $gipconfig = Get-AzApplicationGatewayIPConfiguration -ApplicationGateway $appGw -Name "appGatewayIpConfig"
+
+          $fipconfig01 = Get-AzApplicationGatewayFrontendIPConfig -ApplicationGateway $appGw
+          Get-AzApplicationGatewayFrontendIPConfig -ApplicationGateway $appGw
+
+          $gatewayHostname = "api.MngEnv019702.onmicrosoft.com"                 # API gateway host
+          $portalHostname = "portal.MngEnv019702.onmicrosoft.com"               # API developer portal host
+          $managementHostname = "management.MngEnv019702.onmicrosoft.com"               # API management endpoint host
+
+          Get-AzApplicationGatewayFrontendPort -ApplicationGateway $appGw
+
+          $fp01 = Get-AzApplicationGatewayFrontendPort -ApplicationGateway $appGw -Name port_443
+
+          Write-Host create http listeners...      
+          $gatewayListener = New-AzApplicationGatewayHttpListener -Name "gatewaylistener" `
+            -Protocol "Https" -FrontendIPConfiguration $fipconfig01 -FrontendPort $fp01 `
+            -SslCertificate $certGateway -HostName $gatewayHostname -RequireServerNameIndication true
+          $portalListener = New-AzApplicationGatewayHttpListener -Name "portallistener" `
+            -Protocol "Https" -FrontendIPConfiguration $fipconfig01 -FrontendPort $fp01 `
+            -SslCertificate $certPortal -HostName $portalHostname -RequireServerNameIndication true
+          $managementListener = New-AzApplicationGatewayHttpListener -Name "managementlistener" `
+            -Protocol "Https" -FrontendIPConfiguration $fipconfig01 -FrontendPort $fp01 `
+            -SslCertificate $certManagement -HostName $managementHostname -RequireServerNameIndication true
+          
+          Write-Host create health probes...
+          $apimGatewayProbe = New-AzApplicationGatewayProbeConfig -Name "apimgatewayprobe" `
+            -Protocol "Https" -HostName $gatewayHostname -Path "/status-0123456789abcdef" `
+            -Interval 30 -Timeout 120 -UnhealthyThreshold 8
+          $apimPortalProbe = New-AzApplicationGatewayProbeConfig -Name "apimportalprobe" `
+            -Protocol "Https" -HostName $portalHostname -Path "/signin" `
+            -Interval 60 -Timeout 300 -UnhealthyThreshold 8
+          $apimManagementProbe = New-AzApplicationGatewayProbeConfig -Name "apimmanagementprobe" `
+            -Protocol "Https" -HostName $managementHostname -Path "/ServiceStatus" `
+            -Interval 60 -Timeout 300 -UnhealthyThreshold 8
+
+          Write-Host upload trusted root cert
+          $trustedRootCertCerPath =  "$(trustedrootcert.secureFIlePath)"
+          cat $trustedRootCertCerPath
+          $trustedRootCert = New-AzApplicationGatewayTrustedRootCertificate -Name "whitelistcert1" -CertificateFile $trustedRootCertCerPath
+
+          Write-Host Configure HTTP back-end settings for the application gateway, including a timeout limit for back-end requests, after which they are canceled. This value is different from the probe timeout
+          $apimPoolGatewaySetting = New-AzApplicationGatewayBackendHttpSettings -Name "apimPoolGatewaySetting" `
+            -Port 443 -Protocol "Https" -CookieBasedAffinity "Disabled" -Probe $apimGatewayProbe `
+            -TrustedRootCertificate $trustedRootCert -PickHostNameFromBackendAddress -RequestTimeout 180
+          $apimPoolPortalSetting = New-AzApplicationGatewayBackendHttpSettings -Name "apimPoolPortalSetting" `
+            -Port 443 -Protocol "Https" -CookieBasedAffinity "Disabled" -Probe $apimPortalProbe `
+            -TrustedRootCertificate $trustedRootCert -PickHostNameFromBackendAddress -RequestTimeout 180
+          $apimPoolManagementSetting = New-AzApplicationGatewayBackendHttpSettings -Name "apimPoolManagementSetting" `
+            -Port 443 -Protocol "Https" -CookieBasedAffinity "Disabled" -Probe $apimManagementProbe `
+            -TrustedRootCertificate $trustedRootCert -PickHostNameFromBackendAddress -RequestTimeout 180
+
+          Write-Host Configure a back-end IP address pool for each API Management endpoint by using its respective domain name
+          $apimGatewayBackendPool = New-AzApplicationGatewayBackendAddressPool -Name "gatewaybackend" `
+            -BackendFqdns $gatewayHostname
+          $apimPortalBackendPool = New-AzApplicationGatewayBackendAddressPool -Name "portalbackend" `
+            -BackendFqdns $portalHostname
+          $apimManagementBackendPool = New-AzApplicationGatewayBackendAddressPool -Name "managementbackend" `
+            -BackendFqdns $managementHostname
+          
+          Write-Host Create rules for the application gateway to use basic routing.
+          $gatewayRule = New-AzApplicationGatewayRequestRoutingRule -Name "gatewayrule" `
+            -RuleType Basic -HttpListener $gatewayListener -BackendAddressPool $apimGatewayBackendPool `
+            -BackendHttpSettings $apimPoolGatewaySetting
+          $portalRule = New-AzApplicationGatewayRequestRoutingRule -Name "portalrule" `
+            -RuleType Basic -HttpListener $portalListener -BackendAddressPool $apimPortalBackendPool `
+            -BackendHttpSettings $apimPoolPortalSetting
+          $managementRule = New-AzApplicationGatewayRequestRoutingRule -Name "managementrule" `
+            -RuleType Basic -HttpListener $managementListener -BackendAddressPool $apimManagementBackendPool `
+            -BackendHttpSettings $apimPoolManagementSetting
+
+          Write-Host get current waf 
+          Get-AzApplicationGatewaySku -ApplicationGateway $appGw
+          $sku = Get-AzApplicationGatewaySku -ApplicationGateway $appGw
+          
+          Write-Host get current waf config v2
+          Get-AzApplicationGatewayWebApplicationFirewallConfiguration -ApplicationGateway $appGw
+          $config = Get-AzApplicationGatewayWebApplicationFirewallConfiguration -ApplicationGateway $appGw
+
+          Write-Host verify ssl policy
+          Get-AzApplicationGatewaySslPolicy -ApplicationGateway $appGw
+          $policy = Get-AzApplicationGatewaySslPolicy -ApplicationGateway $appGw
+          
+          Write-Host ----------------------------------------------------------------
+          Write-Host confirm the health status of the API Management back ends BEFORE updating gateway
+          Get-AzApplicationGatewayBackendHealth -Name $(appGatewayName) -ResourceGroupName $(ResourceGroupNameApim)
+
+          Write-Host ----------------------------------------------------------------
+          $appGatewayName = "$(appGatewayName)"
+          Write-Host UPDATE APP GATEWAY!!!
+          $originalAppGw = Get-AzApplicationGateway -Name $appGatewayName
+          $originalAppGw.Tag = @{"infraVersionFromPipeline"="v $(GitVersion.SemVer)"}
+          # fix issue All request routing rules should have a priority defined starting from api-version 2021-08-01
+          $Rules = Get-AzApplicationGatewayRequestRoutingRule -Name "apim" -ApplicationGateway $originalAppGw
+          $Rules.Priority = 10011 #Rule is still a pointer
+          $updatedAppGw = Set-AzApplicationGateway -ApplicationGateway $originalAppGw
+
+        azurePowerShellVersion: 'LatestVersion'
+        pwsh: true

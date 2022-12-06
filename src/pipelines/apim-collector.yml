@@ -1,0 +1,101 @@
+trigger: none
+
+pool: $(poolName)
+
+variables:
+- name: teamOneProjectGuid
+  value: $(System.TeamProjectId)
+- name: poolName
+  value: Default
+- name: apimResourceGroup
+  value: rg-apim-ApimESLZ-dev-canadacentral-001
+- name: apimName
+  value: apim-ApimESLZ-dev-canadacentral-001
+- name: artifacts-feed
+  value: APIM_todo-apis
+- name: todoServiceUrl
+  value: https://func-code-be-apimeslz-dev-canadacentral.azurewebsites.net/api
+- name: armServiceConnection
+  value: APIM_MicrosoftAzureExternal_multitenant
+- name: applicationGatewayHostname
+  value: apim-apimeslz-dev-canadacentral-001.azure-api.net
+
+stages:
+  - stage: deployStage
+    displayName: 'deploy api'
+    jobs:
+      - job: deploy_api
+        displayName: 'Publish api'
+        steps:
+        - task: UniversalPackages@0
+          displayName: Download extractor
+          inputs:
+            downloadDirectory: $(Build.SourcesDirectory)/bin/teamone
+            vstsFeed: $(System.TeamProject)/$(artifacts-feed)
+            vstsFeedPackage: 'todo-apis'
+            vstsPackageVersion: '*'
+        - script: |
+            echo Validating Tempaltes for each team
+            echo For ex. Path should be of a specific format
+            dir $(Build.SourcesDirectory)
+            dir "$(Build.SourcesDirectory)/bin"
+            dir "$(Build.SourcesDirectory)/bin/teamone"
+            dir "$(Build.SourcesDirectory)/bin/teamone/src"
+            dir "$(Build.SourcesDirectory)/bin/teamone/src/definitions"
+          displayName: 'Validate the templates'
+        - script: |
+            echo Injecting Org Policies for each team
+            echo For ex. All apis require subscription
+          displayName: 'Inject policies'
+        - task: AzureCLI@2
+          displayName: 'Deploy to APIM'
+          inputs:
+            azureSubscription: $(armServiceConnection)
+            scriptType: ps
+            scriptLocation: inlineScript
+            inlineScript: |
+              az deployment group create --resource-group $(apimResourceGroup) --name teamone  --template-file $(Build.SourcesDirectory)/bin/teamone/src/definitions/Templates/todo.api.template.json --parameters apimServiceName=$(apimName)  --parameters todo-ServiceUrl=$(todoServiceUrl)
+  - stage: testStage
+    dependsOn: deployStage
+    displayName: 'test api'
+    jobs:
+      - job: test_api
+        steps:
+        - checkout: none
+        - task: CmdLine@2
+          enabled: false
+          inputs:
+            script: |
+              echo Write your commands here              
+              echo Hello world
+              $Response = Invoke-WebRequest -URI https://$(applicationGatewayHostname)/todo/todo | ConvertFrom-Json
+              Write-Host $Response
+        - task: PowerShell@2
+          enabled: true
+          displayName: Do a bunch of web requests with internal access
+          inputs:
+            targetType: 'inline'
+            script: |
+              # Write your PowerShell commands here.
+              
+              Write-Host "Create a task"
+
+              $dateTime = Get-Date
+
+              $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+              $headers.Add("Content-Type", "application/json")
+
+              $body = "{
+              `n    `"taskDescription`": `"task description $dateTime`"
+              `n}"
+
+              $response = Invoke-RestMethod 'https://$(applicationGatewayHostname)/todo/todo' -Method 'POST' -Headers $headers -Body $body
+              $response | ConvertTo-Json
+
+              Write-Host "Get Tasks"
+              $response = Invoke-RestMethod 'https://$(applicationGatewayHostname)/todo/todo' -Method 'GET' -Headers $headers
+              $response | ConvertTo-Json
+              
+              #$Response = Invoke-WebRequest -URI https://$(applicationGatewayHostname)/todo/todo | ConvertFrom-Json
+              #Write-Host $Response
+            pwsh: true

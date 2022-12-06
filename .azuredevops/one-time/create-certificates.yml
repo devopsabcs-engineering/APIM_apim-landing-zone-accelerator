@@ -1,0 +1,161 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- none
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+- name: certGenFolder
+  value: $(System.DefaultWorkingDirectory)/infra/certificates
+- name: certGenFolderOutput
+  value: $(System.DefaultWorkingDirectory)/infra/certificates/cert
+- name: pfxFolder
+  value: $(System.DefaultWorkingDirectory)/infra/certificates/cert/pfx
+#- name: pfxPassword
+#  value: Test12345!
+- group: APIM_apim-landing-zone-accelerator_common
+- name: ResourceGroupName 
+  value: rg-apim-ApimESLZ-dev-canadacentral-001 
+- name: apimServiceName
+  value: apim-ApimESLZ-dev-canadacentral-001
+
+stages:
+- stage: gencerts
+  jobs:
+  - job: docerts
+    
+    steps:
+    - task: CmdLine@2
+      displayName: verify openssl is installed
+      inputs:
+        script: |
+          echo Write your commands here
+          
+          echo Hello world
+          
+          openssl help
+    - task: DownloadSecureFile@1
+      name: caKeyTask
+      inputs:
+        secureFile: 'APIM_apim-landing-zone-accelerator_ca.key'
+    - task: DownloadSecureFile@1
+      name: caCertTask
+      inputs:
+        secureFile: 'APIM_apim-landing-zone-accelerator_cacert.pem'
+    - task: CmdLine@2
+      displayName: Grab the Ca Root Cert and Key
+      inputs:
+        script: |
+          echo Write your commands here
+          
+          echo Hello world
+          
+          cp $(caKeyTask.secureFIlePath) $(System.DefaultWorkingDirectory)/infra/certificates/cert/ca.key
+          cp $(caCertTask.secureFIlePath) $(System.DefaultWorkingDirectory)/infra/certificates/cert/cacert.pem
+          ls "$(certGenFolderOutput)"
+    - task: CmdLine@2
+      displayName: Create a root CA certificate and 3 custom certs for management dev portal and api gateway
+      inputs:
+        script: |      
+          cd $(certGenFolder)
+          ls
+          echo running certification generation script...
+          chmod u+x ./gen_certificates.sh
+          ./gen_certificates.sh
+          ls
+          echo here are the certs generated
+          ls ./cert
+          echo copy pem to cer
+          cp ./cert/cacert.pem ./cert/cacert.cer
+    - task: CmdLine@2
+      displayName: convert to pfx
+      inputs:
+        script: |
+          echo Write your commands here
+          
+          echo Hello world
+          cd $(System.DefaultWorkingDirectory)/infra/certificates/cert
+          mkdir pfx
+          openssl pkcs12 -password pass:$(pfxPassword) -export -out ./pfx/api.pfx -inkey api.key -in api.crt
+          openssl pkcs12 -password pass:$(pfxPassword) -export -out ./pfx/portal.pfx -inkey portal.key -in portal.crt
+          openssl pkcs12 -password pass:$(pfxPassword) -export -out ./pfx/management.pfx -inkey management.key -in management.crt
+    - task: CopyFiles@2
+      inputs:
+        SourceFolder: '$(System.DefaultWorkingDirectory)/infra/certificates/cert'
+        Contents: '**'
+        TargetFolder: '$(build.artifactstagingdirectory)'
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: '$(build.artifactstagingdirectory)'
+        artifact: 'cert'
+        publishLocation: 'pipeline'
+- stage: deploy
+  dependsOn: gencerts
+  pool:
+   #name: Default
+   vmImage: ubuntu-latest
+  jobs:
+  - job: deployjob
+    steps:
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        artifactName: 'cert'
+        targetPath: '$(System.DefaultWorkingDirectory)/infra/certificates/cert'
+    - task: CmdLine@2
+      inputs:
+        script: |
+          echo Write your commands here
+          
+          echo Hello world
+          
+          dir
+          dir "$(System.DefaultWorkingDirectory)/infra/certificates"
+          dir "$(pfxFolder)"
+    - task: AzurePowerShell@5
+      enabled: true
+      displayName: Set up custom domain names in API Management
+      inputs:
+        azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+        ScriptType: 'InlineScript'
+        Inline: |
+          # You can write your azure powershell scripts inline here. 
+          # You can also pass predefined and custom variables to this script using arguments
+          
+          Write-Host "Hello World"
+          $gatewayHostname = "api.MngEnv019702.onmicrosoft.com"                 # API gateway host
+          $portalHostname = "portal.MngEnv019702.onmicrosoft.com"               # API developer portal host
+          $managementHostname = "management.MngEnv019702.onmicrosoft.com"               # API management endpoint host
+          $gatewayCertPfxPath = "$(pfxFolder)/api.pfx" # Full path to api.contoso.net .pfx file
+          $portalCertPfxPath = "$(pfxFolder)/portal.pfx"   # Full path to portal.contoso.net .pfx file
+          $managementCertPfxPath = "$(pfxFolder)/management.pfx"   # Full path to management.contoso.net .pfx file
+          $gatewayCertPfxPassword = "$(pfxPassword)"   # Password for api.contoso.net pfx certificate
+          $portalCertPfxPassword = "$(pfxPassword)"    # Password for portal.contoso.net pfx certificate
+          $managementCertPfxPassword = "$(pfxPassword)"    # Password for management.contoso.net pfx certificate
+          # Path to trusted root CER file used in Application Gateway HTTP settings
+          $trustedRootCertCerPath = "$(certGenFolderOutput)/cacert.cer" # Full path to contoso.net trusted root .cer file
+
+          $certGatewayPwd = ConvertTo-SecureString -String $gatewayCertPfxPassword -AsPlainText -Force
+          $certPortalPwd = ConvertTo-SecureString -String $portalCertPfxPassword -AsPlainText -Force
+          $certManagementPwd = ConvertTo-SecureString -String $managementCertPfxPassword -AsPlainText -Force
+
+          Write-Host creating hostnames
+          $gatewayHostnameConfig = New-AzApiManagementCustomHostnameConfiguration -Hostname $gatewayHostname -HostnameType Proxy -PfxPath $gatewayCertPfxPath -PfxPassword $certGatewayPwd
+          $portalHostnameConfig = New-AzApiManagementCustomHostnameConfiguration -Hostname $portalHostname -HostnameType DeveloperPortal -PfxPath $portalCertPfxPath -PfxPassword $certPortalPwd
+          $managementHostnameConfig = New-AzApiManagementCustomHostnameConfiguration -Hostname $managementHostname -HostnameType Management -PfxPath $managementCertPfxPath -PfxPassword $certManagementPwd
+
+          $apimService = Get-AzApiManagement -ResourceGroupName $(ResourceGroupName) -Name $(apimServiceName)
+          
+          $apimService.ProxyCustomHostnameConfiguration = $gatewayHostnameConfig
+          $apimService.PortalCustomHostnameConfiguration = $portalHostnameConfig
+          $apimService.ManagementCustomHostnameConfiguration = $managementHostnameConfig
+          Write-Host setting apim service... this may take a while so be patient...
+          Set-AzApiManagement -InputObject $apimService
+        azurePowerShellVersion: 'LatestVersion'
+        pwsh: true
+
