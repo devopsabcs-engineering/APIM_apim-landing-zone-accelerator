@@ -292,14 +292,17 @@ stages :
           
           Write-Host -------- add backend settings  -- do once
           $originalAppGw = Get-AzApplicationGateway -Name $appGatewayName 
+          $apimGatewayProbeId = "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-ApimESLZ-dev-canadacentral-001/providers/Microsoft.Network/applicationGateways/appgw-ApimESLZ-dev-canadacentral-001/probes/apimgatewayprobe"
+          $apimPortalProbeId = "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-ApimESLZ-dev-canadacentral-001/providers/Microsoft.Network/applicationGateways/appgw-ApimESLZ-dev-canadacentral-001/probes/apimportalprobe"
+          $apimManagementProbeId = "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-ApimESLZ-dev-canadacentral-001/providers/Microsoft.Network/applicationGateways/appgw-ApimESLZ-dev-canadacentral-001/probes/apimmanagementprobe"
           $apimPoolGatewaySetting = Add-AzApplicationGatewayBackendHttpSettings -ApplicationGateway $originalAppGw -Name "apimPoolGatewaySetting" `
-            -Port 443 -Protocol "Https" -CookieBasedAffinity "Disabled" -Probe $apimGatewayProbe `
+            -Port 443 -Protocol "Https" -CookieBasedAffinity "Disabled" -ProbeId $apimGatewayProbeId `
             -TrustedRootCertificate $trustedRootCert -PickHostNameFromBackendAddress -RequestTimeout 180
           $apimPoolPortalSetting = Add-AzApplicationGatewayBackendHttpSettings -ApplicationGateway $originalAppGw -Name "apimPoolPortalSetting" `
-            -Port 443 -Protocol "Https" -CookieBasedAffinity "Disabled" -Probe $apimPortalProbe `
+            -Port 443 -Protocol "Https" -CookieBasedAffinity "Disabled" -ProbeId $apimPortalProbeId `
             -TrustedRootCertificate $trustedRootCert -PickHostNameFromBackendAddress -RequestTimeout 180
           $apimPoolManagementSetting = Add-AzApplicationGatewayBackendHttpSettings -ApplicationGateway $originalAppGw -Name "apimPoolManagementSetting" `
-            -Port 443 -Protocol "Https" -CookieBasedAffinity "Disabled" -Probe $apimManagementProbe `
+            -Port 443 -Protocol "Https" -CookieBasedAffinity "Disabled" -ProbeId $apimManagementProbeId `
             -TrustedRootCertificate $trustedRootCert -PickHostNameFromBackendAddress -RequestTimeout 180
           $originalAppGw = Set-AzApplicationGateway -ApplicationGateway $originalAppGw
 
