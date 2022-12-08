@@ -23,6 +23,10 @@ variables:
   value: appgw-ApimESLZ-dev-canadacentral-002
 - name: Location
   value: canadacentral
+- name: apimOrganization
+  value: "Contoso MngEnv019702"
+- name: apimAdminEmail
+  value: "admin@MngEnv019702.onmicrosoft.com" # Administrator's email address
 
 stages :
 - stage: get_and_set_version
@@ -126,6 +130,13 @@ stages :
             -Location $(Location) -AddressPrefix "10.0.0.0/16" -Subnet $appGatewaySubnet,$apimSubnet -Force
           $appGatewaySubnetData = $vnet.Subnets[0]
           $apimSubnetData = $vnet.Subnets[1]
+
+          #Create an API Management instance inside a virtual network
+
+          $apimVirtualNetwork = New-AzApiManagementVirtualNetwork -SubnetResourceId $apimSubnetData.Id          
+          $apimService = New-AzApiManagement -ResourceGroupName $(ResourceGroupNameApim) -Location $(Location) -Name $(apimServiceName) `
+           -Organization $(apimOrganization) -AdminEmail $(apimAdminEmail) -VirtualNetwork $apimVirtualNetwork `
+           -VpnType "Internal" -Sku "Developer"
 
           Write-Host "let us configure an app gateway for external access"
 
