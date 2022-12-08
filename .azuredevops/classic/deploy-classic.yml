@@ -29,6 +29,7 @@ variables:
   value: "Contoso MngEnv019702"
 - name: apimAdminEmail
   value: "admin@MngEnv019702.onmicrosoft.com" # Administrator's email address
+- group: APIM_apim-landing-zone-accelerator_common
 
 stages :
 - stage: get_and_set_version
