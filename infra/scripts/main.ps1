@@ -47,6 +47,8 @@ Param(
 
 Write-Host create rg
 
+Install-Module -Name Az -AllowClobber
+
 New-AzResourceGroup -Name $ResourceGroupNameApim -Location $location -Tag @{"infraVersionFromPipeline" = "v $GitVersionSemVer" } -Force
 
 # Write-Host Create a virtual network and a subnet for the application gateway
