@@ -76,6 +76,6 @@ $appGw = Get-AzApplicationGateway -Name $appGatewayName -ResourceGroupName $Reso
 
 echo $appGw
 
-$apimService = Get-AzApiManagement -ResourceGroupName $ResourceGroupNameApim $location -Name $apimServiceName 
+$apimService = Get-AzApiManagement -ResourceGroupName $ResourceGroupNameApim -Name $apimServiceName 
 
 echo $apimService
