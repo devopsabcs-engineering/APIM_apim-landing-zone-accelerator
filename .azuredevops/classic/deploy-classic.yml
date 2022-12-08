@@ -106,24 +106,24 @@ stages :
           #Create a virtual network and a subnet for the application gateway
           $appGwRule1 = New-AzNetworkSecurityRuleConfig -Name appgw-in -Description "AppGw inbound" `
               -Access Allow -Protocol * -Direction Inbound -Priority 100 -SourceAddressPrefix `
-              GatewayManager -SourcePortRange * -DestinationAddressPrefix * -DestinationPortRange 65200-65535
+              GatewayManager -SourcePortRange * -DestinationAddressPrefix * -DestinationPortRange 65200-65535 -Force
           $appGwRule2 = New-AzNetworkSecurityRuleConfig -Name appgw-in-internet -Description "AppGw inbound Internet" `
               -Access Allow -Protocol "TCP" -Direction Inbound -Priority 110 -SourceAddressPrefix `
-              Internet -SourcePortRange * -DestinationAddressPrefix * -DestinationPortRange 443
+              Internet -SourcePortRange * -DestinationAddressPrefix * -DestinationPortRange 443 -Force
           $appGwNsg = New-AzNetworkSecurityGroup -ResourceGroupName $(ResourceGroupNameApim) -Location $(Location) -Name `
-              "NSG-APPGW" -SecurityRules $appGwRule1, $appGwRule2
+              "NSG-APPGW" -SecurityRules $appGwRule1, $appGwRule2 -Force
 
           $apimRule1 = New-AzNetworkSecurityRuleConfig -Name apim-in -Description "APIM inbound" `
               -Access Allow -Protocol Tcp -Direction Inbound -Priority 100 -SourceAddressPrefix `
-              ApiManagement -SourcePortRange * -DestinationAddressPrefix VirtualNetwork -DestinationPortRange 3443
+              ApiManagement -SourcePortRange * -DestinationAddressPrefix VirtualNetwork -DestinationPortRange 3443 -Force
           $apimNsg = New-AzNetworkSecurityGroup -ResourceGroupName $(ResourceGroupNameApim) -Location $(Location) -Name `
-              "NSG-APIM" -SecurityRules $apimRule1
+              "NSG-APIM" -SecurityRules $apimRule1 -Force
 
           Write-Host new onward
-          $appGatewaySubnet = New-AzVirtualNetworkSubnetConfig -Name "appGatewaySubnet" -NetworkSecurityGroup $appGwNsg -AddressPrefix "10.0.0.0/24"
-          $apimSubnet = New-AzVirtualNetworkSubnetConfig -Name "apimSubnet" -NetworkSecurityGroup $apimNsg -AddressPrefix "10.0.1.0/24"
+          $appGatewaySubnet = New-AzVirtualNetworkSubnetConfig -Name "appGatewaySubnet" -NetworkSecurityGroup $appGwNsg -AddressPrefix "10.0.0.0/24" -Force
+          $apimSubnet = New-AzVirtualNetworkSubnetConfig -Name "apimSubnet" -NetworkSecurityGroup $apimNsg -AddressPrefix "10.0.1.0/24" -Force
           $vnet = New-AzVirtualNetwork -Name "appgwvnet" -ResourceGroupName $(ResourceGroupNameApim) `
-            -Location $(Location) -AddressPrefix "10.0.0.0/16" -Subnet $appGatewaySubnet,$apimSubnet
+            -Location $(Location) -AddressPrefix "10.0.0.0/16" -Subnet $appGatewaySubnet,$apimSubnet -Force
           $appGatewaySubnetData = $vnet.Subnets[0]
           $apimSubnetData = $vnet.Subnets[1]
 
