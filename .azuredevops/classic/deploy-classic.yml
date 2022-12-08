@@ -118,7 +118,7 @@ stages :
     #- checkout: self
     #  persistCredentials: true
     - task: AzureCLI@2
-      enabled: false
+      enabled: true
       inputs:
         azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
         scriptType: 'pscore'
@@ -138,7 +138,7 @@ stages :
           
           Get-AzApplicationGatewayBackendHealth -Name $(appGatewayName) -ResourceGroupName $(ResourceGroupNameApim)
     - task: PowerShell@2
-      enabled: true
+      enabled: false
       displayName: Health Check
       env:
         azureClientSecret: $(azureClientSecret)
@@ -162,7 +162,7 @@ stages :
           Install-Module -Name Az -AllowClobber -Scope CurrentUser -Force
           $azurePassword = ConvertTo-SecureString "$azureClientSecret" -AsPlainText -Force
           $psCred = New-Object System.Management.Automation.PSCredential($azureApplicationId , $azurePassword)
-          Connect-AzAccount -Credential $psCred -TenantId $azureTenantId  -ServicePrincipal $azureApplicationId
+          Connect-AzAccount -Credential $psCred -TenantId $azureTenantId  -ServicePrincipal
           
           Write-Host After the application gateway deploys, confirm the health status of the API Management back ends in the portal or by running the following command
           
