@@ -120,8 +120,8 @@ stages :
               "NSG-APIM" -SecurityRules $apimRule1 -Force
 
           Write-Host new onward
-          $appGatewaySubnet = New-AzVirtualNetworkSubnetConfig -Name "appGatewaySubnet" -NetworkSecurityGroup $appGwNsg -AddressPrefix "10.0.0.0/24" -Force
-          $apimSubnet = New-AzVirtualNetworkSubnetConfig -Name "apimSubnet" -NetworkSecurityGroup $apimNsg -AddressPrefix "10.0.1.0/24" -Force
+          $appGatewaySubnet = New-AzVirtualNetworkSubnetConfig -Name "appGatewaySubnet" -NetworkSecurityGroup $appGwNsg -AddressPrefix "10.0.0.0/24"
+          $apimSubnet = New-AzVirtualNetworkSubnetConfig -Name "apimSubnet" -NetworkSecurityGroup $apimNsg -AddressPrefix "10.0.1.0/24"
           $vnet = New-AzVirtualNetwork -Name "appgwvnet" -ResourceGroupName $(ResourceGroupNameApim) `
             -Location $(Location) -AddressPrefix "10.0.0.0/16" -Subnet $appGatewaySubnet,$apimSubnet -Force
           $appGatewaySubnetData = $vnet.Subnets[0]
