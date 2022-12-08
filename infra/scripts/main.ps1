@@ -47,7 +47,7 @@ Param(
 
 Write-Host create rg
 
-Install-Module -Name Az -AllowClobber
+Install-Module -Name Az -AllowClobber -Scope CurrentUser -Force
 
 New-AzResourceGroup -Name $ResourceGroupNameApim -Location $location -Tag @{"infraVersionFromPipeline" = "v $GitVersionSemVer" } -Force
 
