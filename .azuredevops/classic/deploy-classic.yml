@@ -119,6 +119,16 @@ stages :
     #  persistCredentials: true
     - task: AzureCLI@2
       enabled: true
+      displayName: Do the Dew - Idempotent
+      inputs:
+        azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+        scriptType: 'pscore'
+        scriptLocation: 'scriptPath'
+        scriptPath: '$(System.DefaultWorkingDirectory)/infra/scripts/health-test.ps1'
+        arguments: '-Location $(Location) -ResourceGroupNameApim $(ResourceGroupNameApim) -zoneName $(zoneName) -appGatewayName $(appGatewayName) -GitVersionSemVer $(GitVersion.SemVer) -apimServiceName $(apimServiceName) -domainName $(domainName) -apimOrganization "$(apimOrganization)" -apimAdminEmail $(apimAdminEmail) -pfxPassword $(pfxPassword) -trustedrootcertsecureFIlePath $(trustedrootcert.secureFIlePath) -pfxApiTasksecureFIlePath $(pfxApiTask.secureFIlePath) -pfxPortalTasksecureFIlePath $(pfxPortalTask.secureFIlePath) -pfxManagementTasksecureFIlePath $(pfxManagementTask.secureFIlePath) -azureApplicationId $(azureApplicationId) -azureTenantId $(azureTenantId) -azureClientSecret $(azureClientSecret)'
+
+    - task: AzureCLI@2
+      enabled: false
       env:
         azureClientSecret: $(azureClientSecret)
         azureApplicationId: $(azureApplicationId)
