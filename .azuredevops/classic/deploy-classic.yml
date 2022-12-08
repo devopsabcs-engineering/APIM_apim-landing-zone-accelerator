@@ -115,7 +115,7 @@ stages :
 
           $apimRule1 = New-AzNetworkSecurityRuleConfig -Name apim-in -Description "APIM inbound" `
               -Access Allow -Protocol Tcp -Direction Inbound -Priority 100 -SourceAddressPrefix `
-              ApiManagement -SourcePortRange * -DestinationAddressPrefix VirtualNetwork -DestinationPortRange 3443 -Force
+              ApiManagement -SourcePortRange * -DestinationAddressPrefix VirtualNetwork -DestinationPortRange 3443 
           $apimNsg = New-AzNetworkSecurityGroup -ResourceGroupName $(ResourceGroupNameApim) -Location $(Location) -Name `
               "NSG-APIM" -SecurityRules $apimRule1 -Force
 
