@@ -44,8 +44,8 @@ Param(
     [PARAMETER(Mandatory = $True, Position = 13, HelpMessage = "pfxManagementTasksecureFIlePath")]
     [String]$pfxManagementTasksecureFIlePath,
 
-    [PARAMETER(Mandatory = $True, Position = 14, HelpMessage = "azureAplicationId")]
-    [String]$azureAplicationId,
+    [PARAMETER(Mandatory = $True, Position = 14, HelpMessage = "azureApplicationId")]
+    [String]$azureApplicationId,
 
     [PARAMETER(Mandatory = $True, Position = 15, HelpMessage = "azureTenantId")]
     [String]$azureTenantId,
@@ -59,7 +59,7 @@ Write-Host create rg
 Install-Module -Name Az -AllowClobber -Scope CurrentUser -Force
 
 $azurePassword = ConvertTo-SecureString "$azureClientSecret" -AsPlainText -Force
-$psCred = New-Object System.Management.Automation.PSCredential($azureAplicationId , $azurePassword)
+$psCred = New-Object System.Management.Automation.PSCredential($azureApplicationId , $azurePassword)
 Connect-AzAccount -Credential $psCred -TenantId $azureTenantId  -ServicePrincipal 
 
 New-AzResourceGroup -Name $ResourceGroupNameApim -Location $location -Tag @{"infraVersionFromPipeline" = "v $GitVersionSemVer" } -Force
