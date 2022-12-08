@@ -99,7 +99,7 @@ stages :
         secureFile: 'APIM_apim-landing-zone-accelerator_cacert.pem'
     
     - task: AzureCLI@2
-      enabled: false
+      enabled: true
       displayName: Do the Dew - Idempotent
       inputs:
         azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
@@ -119,7 +119,7 @@ stages :
     #  persistCredentials: true
     - task: AzureCLI@2
       enabled: true
-      displayName: Do the Dew - Idempotent
+      displayName: Perform the Backend Health Tests
       inputs:
         azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
         scriptType: 'pscore'
