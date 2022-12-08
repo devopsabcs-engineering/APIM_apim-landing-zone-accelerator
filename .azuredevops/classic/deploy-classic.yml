@@ -12,6 +12,8 @@ pool:
 variables:
 - name: internalVnetName
   value: vnet-apim-cs-ApimESLZ-dev-canadacentral-002
+- name: domainName
+  value: MngEnv019702.onmicrosoft.com
 - name: zoneName
   value: MngEnv019702.onmicrosoft.com
 - name: ResourceGroupNameApim 
@@ -140,6 +142,10 @@ stages :
 
           Write-Host "let us configure an app gateway for external access"
 
+          $gatewayHostname = "api.$(domainName)"                 # API gateway host
+          $portalHostname = "portal.$(domainName)"               # API developer portal host
+          $managementHostname = "management.$(domainName)"               # API management endpoint host
+
           $gatewayCertPfxPath = "$(pfxApiTask.secureFIlePath)"
           $portalCertPfxPath = "$(pfxPortalTask.secureFIlePath)"
           $managementCertPfxPath = "$(pfxManagementTask.secureFIlePath)"
@@ -149,6 +155,10 @@ stages :
           $certGatewayPwd = ConvertTo-SecureString -String $pw  -AsPlainText -Force
           $certPortalPwd = ConvertTo-SecureString -String $pw -AsPlainText -Force
           $certManagementPwd = ConvertTo-SecureString -String $pw -AsPlainText -Force
+          
+          # Path to trusted root CER file used in Application Gateway HTTP settings           
+          $trustedRootCertCerPath =  "$(trustedrootcert.secureFIlePath)" # Full path to contoso.net trusted root .cer file
+          cat $trustedRootCertCerPath
 
         azurePowerShellVersion: 'LatestVersion'
         pwsh: true
