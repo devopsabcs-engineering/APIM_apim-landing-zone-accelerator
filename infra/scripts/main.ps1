@@ -1,11 +1,53 @@
 # You can write your azure powershell scripts inline here. 
 # You can also pass predefined and custom variables to this script using arguments
-          
-Write-Host create rg
-$location = Get-ChildItem Env:Location
-$ResourceGroupNameApim = Get-ChildItem Env:ResourceGroupNameApim
+Param( 
 
-# New-AzResourceGroup -Name $ResourceGroupNameApim -Location $location -Tag @{"infraVersionFromPipeline" = "v $(GitVersion.SemVer)" } -Force
+    [PARAMETER(Mandatory = $True, Position = 0, HelpMessage = "location")]        
+    [String]$location,
+    
+    [PARAMETER(Mandatory = $True, Position = 1, HelpMessage = "ResourceGroupNameApim")]
+    [String]$ResourceGroupNameApim,
+
+    [PARAMETER(Mandatory = $True, Position = 2, HelpMessage = "zoneName")]
+    [String]$zoneName,
+
+    [PARAMETER(Mandatory = $True, Position = 3, HelpMessage = "appGatewayName")]        
+    [String]$appGatewayName,
+    
+    [PARAMETER(Mandatory = $True, Position = 4, HelpMessage = "GitVersion.SemVer")]
+    [String]$GitVersionSemVer,
+
+    [PARAMETER(Mandatory = $True, Position = 5, HelpMessage = "apimServiceName")]
+    [String]$apimServiceName,
+
+    [PARAMETER(Mandatory = $True, Position = 6, HelpMessage = "domainName")]        
+    [String]$domainName,
+    
+    [PARAMETER(Mandatory = $True, Position = 7, HelpMessage = "apimOrganization")]
+    [String]$apimOrganization,
+
+    [PARAMETER(Mandatory = $True, Position = 8, HelpMessage = "apimAdminEmail")]
+    [String]$apimAdminEmail,
+
+    [PARAMETER(Mandatory = $True, Position = 9, HelpMessage = "pfxPassword")]        
+    [String]$pfxPassword,
+    
+    [PARAMETER(Mandatory = $True, Position = 10, HelpMessage = "trustedrootcertsecureFIlePath")]
+    [String]$trustedrootcertsecureFIlePath,
+
+    [PARAMETER(Mandatory = $True, Position = 11, HelpMessage = "pfxApiTasksecureFIlePath")]
+    [String]$pfxApiTasksecureFIlePath,
+
+    [PARAMETER(Mandatory = $True, Position = 12, HelpMessage = "pfxPortalTasksecureFIlePath")]
+    [String]$pfxPortalTasksecureFIlePath,
+
+    [PARAMETER(Mandatory = $True, Position = 13, HelpMessage = "pfxManagementTasksecureFIlePath")]
+    [String]$pfxManagementTasksecureFIlePath
+)     
+
+Write-Host create rg
+
+New-AzResourceGroup -Name $ResourceGroupNameApim -Location $location -Tag @{"infraVersionFromPipeline" = "v $GitVersionSemVer" } -Force
 
 # Write-Host Create a virtual network and a subnet for the application gateway
 # $appGwRule1 = New-AzNetworkSecurityRuleConfig -Name appgw-in -Description "AppGw inbound" `
@@ -34,28 +76,28 @@ $ResourceGroupNameApim = Get-ChildItem Env:ResourceGroupNameApim
 # Write-Host Create an API Management instance inside a virtual network
 
 # $apimVirtualNetwork = New-AzApiManagementVirtualNetwork -SubnetResourceId $apimSubnetData.Id          
-# $apimService = New-AzApiManagement -ResourceGroupName $ResourceGroupNameApim -Location $location -Name $(apimServiceName) `
-#     -Organization "$(apimOrganization)" -AdminEmail $(apimAdminEmail) -VirtualNetwork $apimVirtualNetwork `
+# $apimService = New-AzApiManagement -ResourceGroupName $ResourceGroupNameApim -Location $location -Name $apimServiceName `
+#     -Organization "$apimOrganization" -AdminEmail $apimAdminEmail -VirtualNetwork $apimVirtualNetwork `
 #     -VpnType "Internal" -Sku "Developer"
 
 # Write-Host "let us configure an app gateway for external access"
 
-# $gatewayHostname = "api.$(domainName)"                 # API gateway host
-# $portalHostname = "portal.$(domainName)"               # API developer portal host
-# $managementHostname = "management.$(domainName)"               # API management endpoint host
+# $gatewayHostname = "api.$domainName"                 # API gateway host
+# $portalHostname = "portal.$domainName"               # API developer portal host
+# $managementHostname = "management.$domainName"               # API management endpoint host
 
-# $gatewayCertPfxPath = "$(pfxApiTask.secureFIlePath)"
-# $portalCertPfxPath = "$(pfxPortalTask.secureFIlePath)"
-# $managementCertPfxPath = "$(pfxManagementTask.secureFIlePath)"
+# $gatewayCertPfxPath = "$pfxApiTasksecureFIlePath"
+# $portalCertPfxPath = "$pfxPortalTasksecureFIlePath"
+# $managementCertPfxPath = "$pfxManagementTasksecureFIlePath"
           
 # # should use seperate pws
-# $pw = "$(pfxPassword)"
+# $pw = "$pfxPassword"
 # $certGatewayPwd = ConvertTo-SecureString -String $pw  -AsPlainText -Force
 # $certPortalPwd = ConvertTo-SecureString -String $pw -AsPlainText -Force
 # $certManagementPwd = ConvertTo-SecureString -String $pw -AsPlainText -Force
           
 # # Path to trusted root CER file used in Application Gateway HTTP settings           
-# $trustedRootCertCerPath = "$(trustedrootcert.secureFIlePath)" # Full path to contoso.net trusted root .cer file
+# $trustedRootCertCerPath = "$trustedrootcertsecureFIlePath" # Full path to contoso.net trusted root .cer file
 # Get-Content $trustedRootCertCerPath
 
 # $gatewayHostnameConfig = New-AzApiManagementCustomHostnameConfiguration -Hostname $gatewayHostname `
@@ -75,8 +117,8 @@ Write-Host Configure a private zone for DNS resolution in the virtual network
 $existingZonesJson = az network private-dns zone list -g $ResourceGroupNameApim
 $existingZones = $existingZonesJson | ConvertFrom-Json
 if ( $existingZones.count -eq 0 ) {
-    $myZone = New-AzPrivateDnsZone -Name "$(zoneName)" -ResourceGroupName $ResourceGroupNameApim 
-    $link = New-AzPrivateDnsVirtualNetworkLink -ZoneName $(zoneName) `
+    $myZone = New-AzPrivateDnsZone -Name "$zoneName" -ResourceGroupName $ResourceGroupNameApim 
+    $link = New-AzPrivateDnsVirtualNetworkLink -ZoneName $zoneName `
         -ResourceGroupName $ResourceGroupNameApim -Name "mylink" `
         -VirtualNetworkId $vnet.id
 
@@ -84,13 +126,13 @@ if ( $existingZones.count -eq 0 ) {
 
     $apimIP = $apimService.PrivateIPAddresses[0]
 
-    New-AzPrivateDnsRecordSet -Name api -RecordType A -ZoneName $(zoneName) `
+    New-AzPrivateDnsRecordSet -Name api -RecordType A -ZoneName $zoneName `
         -ResourceGroupName $ResourceGroupNameApim -Ttl 3600 `
         -PrivateDnsRecords (New-AzPrivateDnsRecordConfig -IPv4Address $apimIP)
-    New-AzPrivateDnsRecordSet -Name portal -RecordType A -ZoneName $(zoneName) `
+    New-AzPrivateDnsRecordSet -Name portal -RecordType A -ZoneName $zoneName `
         -ResourceGroupName $ResourceGroupNameApim -Ttl 3600 `
         -PrivateDnsRecords (New-AzPrivateDnsRecordConfig -IPv4Address $apimIP)
-    New-AzPrivateDnsRecordSet -Name management -RecordType A -ZoneName $(zoneName) `
+    New-AzPrivateDnsRecordSet -Name management -RecordType A -ZoneName $zoneName `
         -ResourceGroupName $ResourceGroupNameApim -Ttl 3600 `
         -PrivateDnsRecords (New-AzPrivateDnsRecordConfig -IPv4Address $apimIP)
 }
@@ -178,7 +220,7 @@ $policy = New-AzApplicationGatewaySslPolicy -PolicyType Predefined -PolicyName A
 Write-Host Create an application gateway
 
 $appgwName = "apim-app-gw"
-$appgw = New-AzApplicationGateway -Name $(appGatewayName) -ResourceGroupName $ResourceGroupNameApim -Location $location `
+$appgw = New-AzApplicationGateway -Name $appGatewayName -ResourceGroupName $ResourceGroupNameApim -Location $location `
     -BackendAddressPools $apimGatewayBackendPool, $apimPortalBackendPool, $apimManagementBackendPool `
     -BackendHttpSettingsCollection $apimPoolGatewaySetting, $apimPoolPortalSetting, $apimPoolManagementSetting `
     -FrontendIpConfigurations $fipconfig01 -GatewayIpConfigurations $gipconfig -FrontendPorts $fp01 `
@@ -190,4 +232,4 @@ $appgw = New-AzApplicationGateway -Name $(appGatewayName) -ResourceGroupName $Re
 
 Write-Host After the application gateway deploys, confirm the health status of the API Management back ends in the portal or by running the following command
 
-Get-AzApplicationGatewayBackendHealth -Name $(appGatewayName) -ResourceGroupName $ResourceGroupNameApim
+Get-AzApplicationGatewayBackendHealth -Name $appGatewayName -ResourceGroupName $ResourceGroupNameApim
