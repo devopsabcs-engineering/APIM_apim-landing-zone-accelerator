@@ -153,6 +153,9 @@ stages :
           $azureApplicationId = Get-ChildItem Env:azureApplicationId
           $azureTenantId = Get-ChildItem Env:azureTenantId
 
+          echo $azureApplicationId
+          echo $azureTenantId
+
           Write-Host "Hello World"
           Write-Host "install az module"
 
