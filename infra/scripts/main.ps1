@@ -5,71 +5,71 @@ Write-Host create rg
 $location = $(Location)
 $ResourceGroupNameApim = $(ResourceGroupNameApim)
 
-New-AzResourceGroup -Name $ResourceGroupNameApim -Location $location -Tag @{"infraVersionFromPipeline" = "v $(GitVersion.SemVer)" } -Force
+# New-AzResourceGroup -Name $ResourceGroupNameApim -Location $location -Tag @{"infraVersionFromPipeline" = "v $(GitVersion.SemVer)" } -Force
 
-Write-Host Create a virtual network and a subnet for the application gateway
-$appGwRule1 = New-AzNetworkSecurityRuleConfig -Name appgw-in -Description "AppGw inbound" `
-    -Access Allow -Protocol * -Direction Inbound -Priority 100 -SourceAddressPrefix `
-    GatewayManager -SourcePortRange * -DestinationAddressPrefix * -DestinationPortRange 65200-65535
-$appGwRule2 = New-AzNetworkSecurityRuleConfig -Name appgw-in-internet -Description "AppGw inbound Internet" `
-    -Access Allow -Protocol "TCP" -Direction Inbound -Priority 110 -SourceAddressPrefix `
-    Internet -SourcePortRange * -DestinationAddressPrefix * -DestinationPortRange 443
-$appGwNsg = New-AzNetworkSecurityGroup -ResourceGroupName $ResourceGroupNameApim -Location $location -Name `
-    "NSG-APPGW" -SecurityRules $appGwRule1, $appGwRule2 -Force
+# Write-Host Create a virtual network and a subnet for the application gateway
+# $appGwRule1 = New-AzNetworkSecurityRuleConfig -Name appgw-in -Description "AppGw inbound" `
+#     -Access Allow -Protocol * -Direction Inbound -Priority 100 -SourceAddressPrefix `
+#     GatewayManager -SourcePortRange * -DestinationAddressPrefix * -DestinationPortRange 65200-65535
+# $appGwRule2 = New-AzNetworkSecurityRuleConfig -Name appgw-in-internet -Description "AppGw inbound Internet" `
+#     -Access Allow -Protocol "TCP" -Direction Inbound -Priority 110 -SourceAddressPrefix `
+#     Internet -SourcePortRange * -DestinationAddressPrefix * -DestinationPortRange 443
+# $appGwNsg = New-AzNetworkSecurityGroup -ResourceGroupName $ResourceGroupNameApim -Location $location -Name `
+#     "NSG-APPGW" -SecurityRules $appGwRule1, $appGwRule2 -Force
 
-$apimRule1 = New-AzNetworkSecurityRuleConfig -Name apim-in -Description "APIM inbound" `
-    -Access Allow -Protocol Tcp -Direction Inbound -Priority 100 -SourceAddressPrefix `
-    ApiManagement -SourcePortRange * -DestinationAddressPrefix VirtualNetwork -DestinationPortRange 3443 
-$apimNsg = New-AzNetworkSecurityGroup -ResourceGroupName $ResourceGroupNameApim -Location $location -Name `
-    "NSG-APIM" -SecurityRules $apimRule1 -Force
+# $apimRule1 = New-AzNetworkSecurityRuleConfig -Name apim-in -Description "APIM inbound" `
+#     -Access Allow -Protocol Tcp -Direction Inbound -Priority 100 -SourceAddressPrefix `
+#     ApiManagement -SourcePortRange * -DestinationAddressPrefix VirtualNetwork -DestinationPortRange 3443 
+# $apimNsg = New-AzNetworkSecurityGroup -ResourceGroupName $ResourceGroupNameApim -Location $location -Name `
+#     "NSG-APIM" -SecurityRules $apimRule1 -Force
 
-Write-Host new onward
-$appGatewaySubnet = New-AzVirtualNetworkSubnetConfig -Name "appGatewaySubnet" -NetworkSecurityGroup $appGwNsg -AddressPrefix "10.0.0.0/24"
-$apimSubnet = New-AzVirtualNetworkSubnetConfig -Name "apimSubnet" -NetworkSecurityGroup $apimNsg -AddressPrefix "10.0.1.0/24"
-$vnet = New-AzVirtualNetwork -Name "appgwvnet" -ResourceGroupName $ResourceGroupNameApim `
-    -Location $location -AddressPrefix "10.0.0.0/16" -Subnet $appGatewaySubnet, $apimSubnet -Force
-$appGatewaySubnetData = $vnet.Subnets[0]
-$apimSubnetData = $vnet.Subnets[1]
+# Write-Host new onward
+# $appGatewaySubnet = New-AzVirtualNetworkSubnetConfig -Name "appGatewaySubnet" -NetworkSecurityGroup $appGwNsg -AddressPrefix "10.0.0.0/24"
+# $apimSubnet = New-AzVirtualNetworkSubnetConfig -Name "apimSubnet" -NetworkSecurityGroup $apimNsg -AddressPrefix "10.0.1.0/24"
+# $vnet = New-AzVirtualNetwork -Name "appgwvnet" -ResourceGroupName $ResourceGroupNameApim `
+#     -Location $location -AddressPrefix "10.0.0.0/16" -Subnet $appGatewaySubnet, $apimSubnet -Force
+# $appGatewaySubnetData = $vnet.Subnets[0]
+# $apimSubnetData = $vnet.Subnets[1]
 
-Write-Host Create an API Management instance inside a virtual network
+# Write-Host Create an API Management instance inside a virtual network
 
-$apimVirtualNetwork = New-AzApiManagementVirtualNetwork -SubnetResourceId $apimSubnetData.Id          
-$apimService = New-AzApiManagement -ResourceGroupName $ResourceGroupNameApim -Location $location -Name $(apimServiceName) `
-    -Organization "$(apimOrganization)" -AdminEmail $(apimAdminEmail) -VirtualNetwork $apimVirtualNetwork `
-    -VpnType "Internal" -Sku "Developer"
+# $apimVirtualNetwork = New-AzApiManagementVirtualNetwork -SubnetResourceId $apimSubnetData.Id          
+# $apimService = New-AzApiManagement -ResourceGroupName $ResourceGroupNameApim -Location $location -Name $(apimServiceName) `
+#     -Organization "$(apimOrganization)" -AdminEmail $(apimAdminEmail) -VirtualNetwork $apimVirtualNetwork `
+#     -VpnType "Internal" -Sku "Developer"
 
-Write-Host "let us configure an app gateway for external access"
+# Write-Host "let us configure an app gateway for external access"
 
-$gatewayHostname = "api.$(domainName)"                 # API gateway host
-$portalHostname = "portal.$(domainName)"               # API developer portal host
-$managementHostname = "management.$(domainName)"               # API management endpoint host
+# $gatewayHostname = "api.$(domainName)"                 # API gateway host
+# $portalHostname = "portal.$(domainName)"               # API developer portal host
+# $managementHostname = "management.$(domainName)"               # API management endpoint host
 
-$gatewayCertPfxPath = "$(pfxApiTask.secureFIlePath)"
-$portalCertPfxPath = "$(pfxPortalTask.secureFIlePath)"
-$managementCertPfxPath = "$(pfxManagementTask.secureFIlePath)"
+# $gatewayCertPfxPath = "$(pfxApiTask.secureFIlePath)"
+# $portalCertPfxPath = "$(pfxPortalTask.secureFIlePath)"
+# $managementCertPfxPath = "$(pfxManagementTask.secureFIlePath)"
           
-# should use seperate pws
-$pw = "$(pfxPassword)"
-$certGatewayPwd = ConvertTo-SecureString -String $pw  -AsPlainText -Force
-$certPortalPwd = ConvertTo-SecureString -String $pw -AsPlainText -Force
-$certManagementPwd = ConvertTo-SecureString -String $pw -AsPlainText -Force
+# # should use seperate pws
+# $pw = "$(pfxPassword)"
+# $certGatewayPwd = ConvertTo-SecureString -String $pw  -AsPlainText -Force
+# $certPortalPwd = ConvertTo-SecureString -String $pw -AsPlainText -Force
+# $certManagementPwd = ConvertTo-SecureString -String $pw -AsPlainText -Force
           
-# Path to trusted root CER file used in Application Gateway HTTP settings           
-$trustedRootCertCerPath = "$(trustedrootcert.secureFIlePath)" # Full path to contoso.net trusted root .cer file
-Get-Content $trustedRootCertCerPath
+# # Path to trusted root CER file used in Application Gateway HTTP settings           
+# $trustedRootCertCerPath = "$(trustedrootcert.secureFIlePath)" # Full path to contoso.net trusted root .cer file
+# Get-Content $trustedRootCertCerPath
 
-$gatewayHostnameConfig = New-AzApiManagementCustomHostnameConfiguration -Hostname $gatewayHostname `
-    -HostnameType Proxy -PfxPath $gatewayCertPfxPath -PfxPassword $certGatewayPwd
-$portalHostnameConfig = New-AzApiManagementCustomHostnameConfiguration -Hostname $portalHostname `
-    -HostnameType DeveloperPortal -PfxPath $portalCertPfxPath -PfxPassword $certPortalPwd
-$managementHostnameConfig = New-AzApiManagementCustomHostnameConfiguration -Hostname $managementHostname `
-    -HostnameType Management -PfxPath $managementCertPfxPath -PfxPassword $certManagementPwd
+# $gatewayHostnameConfig = New-AzApiManagementCustomHostnameConfiguration -Hostname $gatewayHostname `
+#     -HostnameType Proxy -PfxPath $gatewayCertPfxPath -PfxPassword $certGatewayPwd
+# $portalHostnameConfig = New-AzApiManagementCustomHostnameConfiguration -Hostname $portalHostname `
+#     -HostnameType DeveloperPortal -PfxPath $portalCertPfxPath -PfxPassword $certPortalPwd
+# $managementHostnameConfig = New-AzApiManagementCustomHostnameConfiguration -Hostname $managementHostname `
+#     -HostnameType Management -PfxPath $managementCertPfxPath -PfxPassword $certManagementPwd
 
-$apimService.ProxyCustomHostnameConfiguration = $gatewayHostnameConfig
-$apimService.PortalCustomHostnameConfiguration = $portalHostnameConfig
-$apimService.ManagementCustomHostnameConfiguration = $managementHostnameConfig
+# $apimService.ProxyCustomHostnameConfiguration = $gatewayHostnameConfig
+# $apimService.PortalCustomHostnameConfiguration = $portalHostnameConfig
+# $apimService.ManagementCustomHostnameConfiguration = $managementHostnameConfig
 
-Set-AzApiManagement -InputObject $apimService
+# Set-AzApiManagement -InputObject $apimService
 
 Write-Host Configure a private zone for DNS resolution in the virtual network
 $existingZonesJson = az network private-dns zone list -g $ResourceGroupNameApim
