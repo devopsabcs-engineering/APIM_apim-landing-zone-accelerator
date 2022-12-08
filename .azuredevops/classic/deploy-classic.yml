@@ -162,7 +162,7 @@ stages :
           Install-Module -Name Az -AllowClobber -Scope CurrentUser -Force
           $azurePassword = ConvertTo-SecureString "$azureClientSecret" -AsPlainText -Force
           $psCred = New-Object System.Management.Automation.PSCredential($azureApplicationId , $azurePassword)
-          Connect-AzAccount -Credential $psCred -TenantId $azureTenantId  -ServicePrincipal 
+          Connect-AzAccount -Credential $psCred -TenantId $azureTenantId  -ServicePrincipal $azureApplicationId
           
           Write-Host After the application gateway deploys, confirm the health status of the API Management back ends in the portal or by running the following command
           
