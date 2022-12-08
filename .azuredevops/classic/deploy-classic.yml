@@ -125,6 +125,9 @@ stages :
           # Write your PowerShell commands here.
           
           Write-Host "Hello World"
+          Write-Host "install az module"
+
+          Install-Module -Name Az -AllowClobber -Scope CurrentUser -Force
           
           Write-Host After the application gateway deploys, confirm the health status of the API Management back ends in the portal or by running the following command
           
