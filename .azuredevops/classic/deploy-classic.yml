@@ -253,6 +253,16 @@ stages :
           $apimManagementBackendPool = New-AzApplicationGatewayBackendAddressPool -Name "managementbackend" `
             -BackendFqdns $managementHostname
 
+          $gatewayRule = New-AzApplicationGatewayRequestRoutingRule -Name "gatewayrule" `
+            -RuleType Basic -HttpListener $gatewayListener -BackendAddressPool $apimGatewayBackendPool `
+            -BackendHttpSettings $apimPoolGatewaySetting
+          $portalRule = New-AzApplicationGatewayRequestRoutingRule -Name "portalrule" `
+            -RuleType Basic -HttpListener $portalListener -BackendAddressPool $apimPortalBackendPool `
+            -BackendHttpSettings $apimPoolPortalSetting
+          $managementRule = New-AzApplicationGatewayRequestRoutingRule -Name "managementrule" `
+            -RuleType Basic -HttpListener $managementListener -BackendAddressPool $apimManagementBackendPool `
+            -BackendHttpSettings $apimPoolManagementSetting
+
           $sku = New-AzApplicationGatewaySku -Name "WAF_v2" -Tier "WAF_v2" -Capacity 2
 
           $config = New-AzApplicationGatewayWebApplicationFirewallConfiguration -Enabled $true -FirewallMode "Prevention"
