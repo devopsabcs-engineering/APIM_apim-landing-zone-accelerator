@@ -119,12 +119,24 @@ stages :
     #  persistCredentials: true
     - task: AzureCLI@2
       enabled: true
+      env:
+        azureClientSecret: $(azureClientSecret)
+        azureApplicationId: $(azureApplicationId)
+        azureTenantId: $(azureTenantId)
       inputs:
         azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
         scriptType: 'pscore'
         scriptLocation: 'inlineScript'
         inlineScript: |
           # Write your PowerShell commands here.
+
+          $azureClientSecret = Get-ChildItem Env:azureClientSecret
+          $azureApplicationId = Get-ChildItem Env:azureApplicationId
+          $azureTenantId = Get-ChildItem Env:azureTenantId
+
+          echo $azureApplicationId
+          echo $azureTenantId
+          echo $azureClientSecret
                     
           Write-Host "Hello World"
           Write-Host "install az module"
@@ -155,6 +167,7 @@ stages :
 
           echo $azureApplicationId
           echo $azureTenantId
+          echo $azureClientSecret
 
           Write-Host "Hello World"
           Write-Host "install az module"
