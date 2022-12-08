@@ -12,8 +12,8 @@ Param(
     [PARAMETER(Mandatory = $True, Position = 3, HelpMessage = "appGatewayName")]        
     [String]$appGatewayName,
     
-    [PARAMETER(Mandatory = $True, Position = 4, HelpMessage = "GitVersion.SemVer")]
-    [String]$GitVersionSemVer,
+    #[PARAMETER(Mandatory = $True, Position = 4, HelpMessage = "GitVersion.SemVer")]
+    #[String]$GitVersionSemVer,
 
     [PARAMETER(Mandatory = $True, Position = 5, HelpMessage = "apimServiceName")]
     [String]$apimServiceName,
@@ -30,17 +30,17 @@ Param(
     [PARAMETER(Mandatory = $True, Position = 9, HelpMessage = "pfxPassword")]        
     [String]$pfxPassword,
     
-    [PARAMETER(Mandatory = $True, Position = 10, HelpMessage = "trustedrootcertsecureFIlePath")]
-    [String]$trustedrootcertsecureFIlePath,
+    # [PARAMETER(Mandatory = $True, Position = 10, HelpMessage = "trustedrootcertsecureFIlePath")]
+    # [String]$trustedrootcertsecureFIlePath,
 
-    [PARAMETER(Mandatory = $True, Position = 11, HelpMessage = "pfxApiTasksecureFIlePath")]
-    [String]$pfxApiTasksecureFIlePath,
+    # [PARAMETER(Mandatory = $True, Position = 11, HelpMessage = "pfxApiTasksecureFIlePath")]
+    # [String]$pfxApiTasksecureFIlePath,
 
-    [PARAMETER(Mandatory = $True, Position = 12, HelpMessage = "pfxPortalTasksecureFIlePath")]
-    [String]$pfxPortalTasksecureFIlePath,
+    # [PARAMETER(Mandatory = $True, Position = 12, HelpMessage = "pfxPortalTasksecureFIlePath")]
+    # [String]$pfxPortalTasksecureFIlePath,
 
-    [PARAMETER(Mandatory = $True, Position = 13, HelpMessage = "pfxManagementTasksecureFIlePath")]
-    [String]$pfxManagementTasksecureFIlePath,
+    # [PARAMETER(Mandatory = $True, Position = 13, HelpMessage = "pfxManagementTasksecureFIlePath")]
+    # [String]$pfxManagementTasksecureFIlePath,
 
     [PARAMETER(Mandatory = $True, Position = 14, HelpMessage = "azureApplicationId")]
     [String]$azureApplicationId,
