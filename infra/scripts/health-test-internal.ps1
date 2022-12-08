@@ -52,9 +52,12 @@ Param(
     [String]$azureClientSecret
 )     
 
-Write-Host install az
+Write-Host generate hosts file
 
-Install-Module -Name Az -AllowClobber -Scope CurrentUser -Force
+Get-Content C:\Windows\System32\drivers\etc\hosts
+
+Copy-Item C:\Windows\System32\drivers\etc\hosts C:\Windows\System32\drivers\etc\hosts.bak
+
 
 $azurePassword = ConvertTo-SecureString "$azureClientSecret" -AsPlainText -Force
 $psCred = New-Object System.Management.Automation.PSCredential($azureApplicationId , $azurePassword)
