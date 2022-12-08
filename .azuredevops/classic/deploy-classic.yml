@@ -174,31 +174,38 @@ stages :
           Set-AzApiManagement -InputObject $apimService
 
           Write-Host Configure a private zone for DNS resolution in the virtual network
-
-          $myZone = New-AzPrivateDnsZone -Name "$(zoneName)" -ResourceGroupName $(ResourceGroupNameApim) 
-          $link = New-AzPrivateDnsVirtualNetworkLink -ZoneName $(zoneName) `
+          $existingZonesJson = az network private-dns zone list -g $(ResourceGroupNameApim)
+          $existingZones = $existingZonesJson | ConvertFrom-Json
+          if ( $existingZones.count -eq 0) {
+            $myZone = New-AzPrivateDnsZone -Name "$(zoneName)" -ResourceGroupName $(ResourceGroupNameApim) 
+            $link = New-AzPrivateDnsVirtualNetworkLink -ZoneName $(zoneName) `
             -ResourceGroupName $(ResourceGroupNameApim) -Name "mylink" `
             -VirtualNetworkId $vnet.id
 
-          Write-Host Create A records for the custom domain host names that map to the private IP address of API Management.
+            Write-Host Create A records for the custom domain host names that map to the private IP address of API Management.
 
-          $apimIP = $apimService.PrivateIPAddresses[0]
+            $apimIP = $apimService.PrivateIPAddresses[0]
 
-          New-AzPrivateDnsRecordSet -Name api -RecordType A -ZoneName $(zoneName) `
-            -ResourceGroupName $(ResourceGroupNameApim) -Ttl 3600 `
-            -PrivateDnsRecords (New-AzPrivateDnsRecordConfig -IPv4Address $apimIP)
-          New-AzPrivateDnsRecordSet -Name portal -RecordType A -ZoneName $(zoneName) `
-            -ResourceGroupName $(ResourceGroupNameApim) -Ttl 3600 `
-            -PrivateDnsRecords (New-AzPrivateDnsRecordConfig -IPv4Address $apimIP)
-          New-AzPrivateDnsRecordSet -Name management -RecordType A -ZoneName $(zoneName) `
-            -ResourceGroupName $(ResourceGroupNameApim) -Ttl 3600 `
-            -PrivateDnsRecords (New-AzPrivateDnsRecordConfig -IPv4Address $apimIP)
+            New-AzPrivateDnsRecordSet -Name api -RecordType A -ZoneName $(zoneName) `
+              -ResourceGroupName $(ResourceGroupNameApim) -Ttl 3600 `
+              -PrivateDnsRecords (New-AzPrivateDnsRecordConfig -IPv4Address $apimIP)
+            New-AzPrivateDnsRecordSet -Name portal -RecordType A -ZoneName $(zoneName) `
+              -ResourceGroupName $(ResourceGroupNameApim) -Ttl 3600 `
+              -PrivateDnsRecords (New-AzPrivateDnsRecordConfig -IPv4Address $apimIP)
+            New-AzPrivateDnsRecordSet -Name management -RecordType A -ZoneName $(zoneName) `
+              -ResourceGroupName $(ResourceGroupNameApim) -Ttl 3600 `
+              -PrivateDnsRecords (New-AzPrivateDnsRecordConfig -IPv4Address $apimIP)
+          } else {
+            Write-Host skipping creation of private zones
+          }
+
+          
 
           Write-Host Create a public IP address for the front-end configuration
           #Create a Standard public IP resource publicIP01 in the resource group.
 
           $publicip = New-AzPublicIpAddress -ResourceGroupName $(ResourceGroupNameApim) `
-            -name "publicIP01" -location $(Location) -AllocationMethod Static -Sku Standard
+            -name "publicIP01" -location $(Location) -AllocationMethod Static -Sku Standard -Force
           #An IP address is assigned to the application gateway when the service starts.
 
           Write-Host Create application gateway configuration
