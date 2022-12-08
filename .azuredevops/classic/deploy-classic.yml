@@ -101,15 +101,15 @@ stages :
           # You can also pass predefined and custom variables to this script using arguments
           
           # create rg
-          New-AzResourceGroup -Name $(ResourceGroupNameApim) -Location $(Location) -Force
+          New-AzResourceGroup -Name $(ResourceGroupNameApim) -Location $(Location) -Tag @{"infraVersionFromPipeline"="v $(GitVersion.SemVer)"} -Force
 
           #Create a virtual network and a subnet for the application gateway
           $appGwRule1 = New-AzNetworkSecurityRuleConfig -Name appgw-in -Description "AppGw inbound" `
               -Access Allow -Protocol * -Direction Inbound -Priority 100 -SourceAddressPrefix `
-              GatewayManager -SourcePortRange * -DestinationAddressPrefix * -DestinationPortRange 65200-65535 -Force
+              GatewayManager -SourcePortRange * -DestinationAddressPrefix * -DestinationPortRange 65200-65535
           $appGwRule2 = New-AzNetworkSecurityRuleConfig -Name appgw-in-internet -Description "AppGw inbound Internet" `
               -Access Allow -Protocol "TCP" -Direction Inbound -Priority 110 -SourceAddressPrefix `
-              Internet -SourcePortRange * -DestinationAddressPrefix * -DestinationPortRange 443 -Force
+              Internet -SourcePortRange * -DestinationAddressPrefix * -DestinationPortRange 443
           $appGwNsg = New-AzNetworkSecurityGroup -ResourceGroupName $(ResourceGroupNameApim) -Location $(Location) -Name `
               "NSG-APPGW" -SecurityRules $appGwRule1, $appGwRule2 -Force
 
