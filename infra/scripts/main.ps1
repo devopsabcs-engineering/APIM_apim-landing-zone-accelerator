@@ -2,8 +2,8 @@
 # You can also pass predefined and custom variables to this script using arguments
           
 Write-Host create rg
-$location = "$(Location)"
-$ResourceGroupNameApim = "$(ResourceGroupNameApim)"
+$location = Get-ChildItem Env:Location
+$ResourceGroupNameApim = Get-ChildItem Env:ResourceGroupNameApim
 
 # New-AzResourceGroup -Name $ResourceGroupNameApim -Location $location -Tag @{"infraVersionFromPipeline" = "v $(GitVersion.SemVer)" } -Force
 
