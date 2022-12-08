@@ -56,7 +56,7 @@ Write-Host generate hosts file
 
 Get-Content C:\Windows\System32\drivers\etc\hosts
 
-Copy-Item C:\Windows\System32\drivers\etc\hosts C:\Windows\System32\drivers\etc\hosts.default
+Copy-Item -Force C:\Windows\System32\drivers\etc\hosts C:\Windows\System32\drivers\etc\hosts.default
 
 
 $azurePassword = ConvertTo-SecureString "$azureClientSecret" -AsPlainText -Force
