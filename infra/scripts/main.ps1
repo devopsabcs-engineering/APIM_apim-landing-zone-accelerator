@@ -241,7 +241,7 @@ $appgw = New-AzApplicationGateway -Name $appGatewayName -ResourceGroupName $Reso
     -RequestRoutingRules $gatewayRule, $portalRule, $managementRule `
     -Sku $sku -WebApplicationFirewallConfig $config -SslCertificates $certGateway, $certPortal, $certManagement `
     -TrustedRootCertificate $trustedRootCert -Probes $apimGatewayProbe, $apimPortalProbe, $apimManagementProbe `
-    -SslPolicy $policy
+    -SslPolicy $policy -Force
 
 Write-Host After the application gateway deploys, confirm the health status of the API Management back ends in the portal or by running the following command
 
