@@ -21,6 +21,8 @@ variables:
 - group: APIM_apim-landing-zone-accelerator_common
 - name: appGatewayName
   value: appgw-ApimESLZ-dev-canadacentral-002
+- name: Location
+  value: canadacentral
 
 stages :
 - stage: get_and_set_version
@@ -54,8 +56,7 @@ stages :
       inputs:
         script: |
           git tag -a $(GitVersion.SemVer) -m "Main version $(GitVersion.SemVer)"
-          git push origin $(GitVersion.SemVer) 
-        pwsh: true
+          git push origin $(GitVersion.SemVer)       
 - stage: appGateway
   dependsOn: get_and_set_version
   jobs:
@@ -99,6 +100,10 @@ stages :
           # You can write your azure powershell scripts inline here. 
           # You can also pass predefined and custom variables to this script using arguments
           
+          # create rg
+          New-AzResourceGroup -Name $(ResourceGroupNameApim) -Location $(Location)
+
+
           Write-Host "let us configure an app gateway for external access"
 
           $gatewayCertPfxPath = "$(pfxApiTask.secureFIlePath)"
@@ -110,6 +115,7 @@ stages :
           $certGatewayPwd = ConvertTo-SecureString -String $pw  -AsPlainText -Force
           $certPortalPwd = ConvertTo-SecureString -String $pw -AsPlainText -Force
           $certManagementPwd = ConvertTo-SecureString -String $pw -AsPlainText -Force
+
         azurePowerShellVersion: 'LatestVersion'
         pwsh: true
     - task: AzurePowerShell@5
