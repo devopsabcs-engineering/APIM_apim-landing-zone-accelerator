@@ -110,6 +110,29 @@ stages :
           $certGatewayPwd = ConvertTo-SecureString -String $pw  -AsPlainText -Force
           $certPortalPwd = ConvertTo-SecureString -String $pw -AsPlainText -Force
           $certManagementPwd = ConvertTo-SecureString -String $pw -AsPlainText -Force
+        azurePowerShellVersion: 'LatestVersion'
+        pwsh: true
+    - task: AzurePowerShell@5
+      enabled: false
+      displayName: Configure listeners and health probes for app gateway
+      inputs:
+        azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+        ScriptType: 'InlineScript'
+        Inline: |
+          # You can write your azure powershell scripts inline here. 
+          # You can also pass predefined and custom variables to this script using arguments
+          
+          Write-Host "let us configure an app gateway for external access"
+
+          $gatewayCertPfxPath = "$(pfxApiTask.secureFIlePath)"
+          $portalCertPfxPath = "$(pfxPortalTask.secureFIlePath)"
+          $managementCertPfxPath = "$(pfxManagementTask.secureFIlePath)"
+          
+          # should use seperate pws
+          $pw = "$(pfxPassword)"
+          $certGatewayPwd = ConvertTo-SecureString -String $pw  -AsPlainText -Force
+          $certPortalPwd = ConvertTo-SecureString -String $pw -AsPlainText -Force
+          $certManagementPwd = ConvertTo-SecureString -String $pw -AsPlainText -Force
           
           $certGateway = New-AzApplicationGatewaySslCertificate -Name "gatewaycert" -CertificateFile "$gatewayCertPfxPath" -Password $certGatewayPwd
           
