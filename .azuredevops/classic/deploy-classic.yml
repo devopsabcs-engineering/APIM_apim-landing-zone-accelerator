@@ -96,8 +96,14 @@ stages :
       name: trustedrootcert
       inputs:
         secureFile: 'APIM_apim-landing-zone-accelerator_cacert.pem'
+    - task: AzureCLI@2
+      inputs:
+        azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+        scriptType: 'pscore'
+        scriptLocation: 'scriptPath'
+        scriptPath: '$(System.DefaultWorkingDirectory)/infra/scripts/main.ps1'
     - task: AzurePowerShell@5
-      enabled: true
+      enabled: false
       displayName: Configure listeners and health probes for app gateway
       inputs:
         azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
