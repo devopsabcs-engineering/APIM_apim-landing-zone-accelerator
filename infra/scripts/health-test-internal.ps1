@@ -79,3 +79,11 @@ echo $appGw
 $apimService = Get-AzApiManagement -ResourceGroupName $ResourceGroupNameApim -Name $apimServiceName 
 
 echo $apimService
+
+
+$publicip = Get-AzPublicIpAddress -ResourceGroupName $ResourceGroupNameApim -name "publicIP01"
+
+echo app gateway public ip $publicip
+
+echo apim public ip addresses $apimService.PublicIPAddresses
+echo apim private ip addresses $apimService.PrivateIPAddresses
