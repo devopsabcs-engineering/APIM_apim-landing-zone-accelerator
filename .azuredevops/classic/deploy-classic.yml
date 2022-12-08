@@ -135,7 +135,7 @@ stages :
 
           $apimVirtualNetwork = New-AzApiManagementVirtualNetwork -SubnetResourceId $apimSubnetData.Id          
           $apimService = New-AzApiManagement -ResourceGroupName $(ResourceGroupNameApim) -Location $(Location) -Name $(apimServiceName) `
-           -Organization $(apimOrganization) -AdminEmail $(apimAdminEmail) -VirtualNetwork $apimVirtualNetwork `
+           -Organization "$(apimOrganization)" -AdminEmail $(apimAdminEmail) -VirtualNetwork $apimVirtualNetwork `
            -VpnType "Internal" -Sku "Developer"
 
           Write-Host "let us configure an app gateway for external access"
