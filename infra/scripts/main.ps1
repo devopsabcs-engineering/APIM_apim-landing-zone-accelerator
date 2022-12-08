@@ -216,13 +216,13 @@ $apimManagementBackendPool = New-AzApplicationGatewayBackendAddressPool -Name "m
 
 $gatewayRule = New-AzApplicationGatewayRequestRoutingRule -Name "gatewayrule" `
     -RuleType Basic -HttpListener $gatewayListener -BackendAddressPool $apimGatewayBackendPool `
-    -BackendHttpSettings $apimPoolGatewaySetting
+    -BackendHttpSettings $apimPoolGatewaySetting -Priority 10009
 $portalRule = New-AzApplicationGatewayRequestRoutingRule -Name "portalrule" `
     -RuleType Basic -HttpListener $portalListener -BackendAddressPool $apimPortalBackendPool `
-    -BackendHttpSettings $apimPoolPortalSetting
+    -BackendHttpSettings $apimPoolPortalSetting -Priority 10012
 $managementRule = New-AzApplicationGatewayRequestRoutingRule -Name "managementrule" `
     -RuleType Basic -HttpListener $managementListener -BackendAddressPool $apimManagementBackendPool `
-    -BackendHttpSettings $apimPoolManagementSetting
+    -BackendHttpSettings $apimPoolManagementSetting -Priority 10015
 
 $sku = New-AzApplicationGatewaySku -Name "WAF_v2" -Tier "WAF_v2" -Capacity 2
 
