@@ -124,7 +124,7 @@ stages :
         azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
         scriptType: 'pscore'
         scriptLocation: 'scriptPath'
-        scriptPath: '$(System.DefaultWorkingDirectory)/infra/scripts/health-test.ps1'
+        scriptPath: '$(System.DefaultWorkingDirectory)/infra/scripts/health-test-internal.ps1'
         arguments: '-Location $(Location) -ResourceGroupNameApim $(ResourceGroupNameApim) -zoneName $(zoneName) -appGatewayName $(appGatewayName) -apimServiceName $(apimServiceName) -domainName $(domainName) -apimOrganization "$(apimOrganization)" -apimAdminEmail $(apimAdminEmail) -pfxPassword $(pfxPassword) -azureApplicationId $(azureApplicationId) -azureTenantId $(azureTenantId) -azureClientSecret $(azureClientSecret)'
 
 - stage: integrated_tests

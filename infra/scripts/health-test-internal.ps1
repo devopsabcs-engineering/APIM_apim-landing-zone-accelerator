@@ -52,17 +52,27 @@ Param(
     [String]$azureClientSecret
 )     
 
-Write-Host generate hosts file
+Write-Host install az
 
-Get-Content C:\Windows\System32\drivers\etc\hosts
-
-Copy-Item C:\Windows\System32\drivers\etc\hosts C:\Windows\System32\drivers\etc\hosts.bak
+Install-Module -Name Az -AllowClobber -Scope CurrentUser -Force
 
 $azurePassword = ConvertTo-SecureString "$azureClientSecret" -AsPlainText -Force
 $psCred = New-Object System.Management.Automation.PSCredential($azureApplicationId , $azurePassword)
 Connect-AzAccount -Credential $psCred -TenantId $azureTenantId  -ServicePrincipal 
 
-Write-Host After the application gateway deploys, confirm the health status of the API Management back ends in the portal or by running the following command
+#Write-Host After the application gateway deploys, confirm the health status of the API Management back ends in the portal or by running the following command
           
-Get-AzApplicationGatewayBackendHealth -Name $appGatewayName -ResourceGroupName $ResourceGroupNameApim
+#Get-AzApplicationGatewayBackendHealth -Name $appGatewayName -ResourceGroupName $ResourceGroupNameApim
 
+
+$gatewayHostname = "api.$domainName"                 # API gateway host
+$portalHostname = "portal.$domainName"               # API developer portal host
+$managementHostname = "management.$domainName"               # API management endpoint host
+
+$appGw = Get-AzApplicationGateway -Name $appGatewayName -ResourceGroupName $ResourceGroupNameApim
+
+echo $appGw
+
+$apimService = Get-AzApiManagement -ResourceGroupName $ResourceGroupNameApim $location -Name $apimServiceName 
+
+echo $apimService
