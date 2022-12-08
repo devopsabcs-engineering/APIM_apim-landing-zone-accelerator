@@ -112,8 +112,8 @@ stages :
   pool:
    vmImage: windows-latest
   jobs:
-  - job: Set_tag_for_version
-    displayName: set version once
+  - job: do_health_tests
+    displayName: perform health test
     steps:
     #- checkout: self
     #  persistCredentials: true
@@ -129,4 +129,3 @@ stages :
           Write-Host After the application gateway deploys, confirm the health status of the API Management back ends in the portal or by running the following command
           
           Get-AzApplicationGatewayBackendHealth -Name $(appGatewayName) -ResourceGroupName $(ResourceGroupNameApim)
-        pwsh: true
