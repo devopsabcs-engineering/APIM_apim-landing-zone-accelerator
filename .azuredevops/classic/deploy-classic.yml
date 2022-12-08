@@ -99,7 +99,7 @@ stages :
         secureFile: 'APIM_apim-landing-zone-accelerator_cacert.pem'
     
     - task: AzureCLI@2
-      enabled: true
+      enabled: false
       displayName: Do the Dew - Idempotent
       inputs:
         azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
@@ -107,8 +107,28 @@ stages :
         scriptLocation: 'scriptPath'
         scriptPath: '$(System.DefaultWorkingDirectory)/infra/scripts/main.ps1'
         arguments: '-Location $(Location) -ResourceGroupNameApim $(ResourceGroupNameApim) -zoneName $(zoneName) -appGatewayName $(appGatewayName) -GitVersionSemVer $(GitVersion.SemVer) -apimServiceName $(apimServiceName) -domainName $(domainName) -apimOrganization "$(apimOrganization)" -apimAdminEmail $(apimAdminEmail) -pfxPassword $(pfxPassword) -trustedrootcertsecureFIlePath $(trustedrootcert.secureFIlePath) -pfxApiTasksecureFIlePath $(pfxApiTask.secureFIlePath) -pfxPortalTasksecureFIlePath $(pfxPortalTask.secureFIlePath) -pfxManagementTasksecureFIlePath $(pfxManagementTask.secureFIlePath) -azureApplicationId $(azureApplicationId) -azureTenantId $(azureTenantId) -azureClientSecret $(azureClientSecret)'
-- stage: integrated_tests
+- stage: internal_vnet_tests
   dependsOn: [appGateway]
+  pool:
+   name: APIM_Internal_Vnet_Agents
+  jobs:
+  - job: do_health_tests
+    displayName: perform health test
+    steps:
+    #- checkout: self
+    #  persistCredentials: true
+    - task: AzureCLI@2
+      enabled: true
+      displayName: Perform the Backend Health Tests
+      inputs:
+        azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+        scriptType: 'pscore'
+        scriptLocation: 'scriptPath'
+        scriptPath: '$(System.DefaultWorkingDirectory)/infra/scripts/health-test.ps1'
+        arguments: '-Location $(Location) -ResourceGroupNameApim $(ResourceGroupNameApim) -zoneName $(zoneName) -appGatewayName $(appGatewayName) -apimServiceName $(apimServiceName) -domainName $(domainName) -apimOrganization "$(apimOrganization)" -apimAdminEmail $(apimAdminEmail) -pfxPassword $(pfxPassword) -azureApplicationId $(azureApplicationId) -azureTenantId $(azureTenantId) -azureClientSecret $(azureClientSecret)'
+
+- stage: integrated_tests
+  dependsOn: [internal_vnet_tests]
   pool:
    vmImage: windows-latest
   jobs:
@@ -118,7 +138,7 @@ stages :
     #- checkout: self
     #  persistCredentials: true
     - task: AzureCLI@2
-      enabled: true
+      enabled: false
       displayName: Perform the Backend Health Tests
       inputs:
         azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
