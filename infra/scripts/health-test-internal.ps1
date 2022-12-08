@@ -83,7 +83,22 @@ echo $apimService
 
 $publicip = Get-AzPublicIpAddress -ResourceGroupName $ResourceGroupNameApim -name "publicIP01"
 
-echo app gateway public ip $publicip
+echo app gateway public ip $publicip.IpAddress
 
-echo apim public ip addresses $apimService.PublicIPAddresses
-echo apim private ip addresses $apimService.PrivateIPAddresses
+echo apim public ip addresses $apimService.PublicIPAddresses[0]
+echo apim private ip addresses $apimService.PrivateIPAddresses[0]
+
+echo $publicip.IpAddress $gatewayHostname > C:\Windows\System32\drivers\etc\hosts.external
+echo $publicip.IpAddress $portalHostname >> C:\Windows\System32\drivers\etc\hosts.external
+echo $publicip.IpAddress $managementHostname >> C:\Windows\System32\drivers\etc\hosts.external
+
+echo external host file
+Get-Content C:\Windows\System32\drivers\etc\hosts.external
+
+
+echo $apimService.PrivateIPAddresses[0] $gatewayHostname > C:\Windows\System32\drivers\etc\hosts.internal
+echo $apimService.PrivateIPAddresses[0] $portalHostname >> C:\Windows\System32\drivers\etc\hosts.internal
+echo $apimService.PrivateIPAddresses[0] $managementHostname >> C:\Windows\System32\drivers\etc\hosts.internal
+
+echo internal host file
+Get-Content C:\Windows\System32\drivers\etc\hosts.internal
