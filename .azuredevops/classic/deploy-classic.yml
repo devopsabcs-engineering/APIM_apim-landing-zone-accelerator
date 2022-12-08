@@ -96,15 +96,15 @@ stages :
       name: trustedrootcert
       inputs:
         secureFile: 'APIM_apim-landing-zone-accelerator_cacert.pem'
+    
     - task: AzureCLI@2
-      #env:
-      #  Location: ${{variables.Location}}
-      #  ResourceGroupNameApim: ${{variables.ResourceGroupNameApim}}
+      displayName: Do the Dew
       inputs:
         azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
         scriptType: 'pscore'
         scriptLocation: 'scriptPath'
         scriptPath: '$(System.DefaultWorkingDirectory)/infra/scripts/main.ps1'
+        arguments: '-Location $(Location) -ResourceGroupNameApim $(ResourceGroupNameApim) -zoneName $(zoneName) -appGatewayName $(appGatewayName) -GitVersionSemVer $(GitVersion.SemVer) -apimServiceName $(apimServiceName) -domainName $(domainName) -apimOrganization $(apimOrganization) -apimAdminEmail $(apimAdminEmail) -pfxPassword $(pfxPassword) -trustedrootcertsecureFIlePath $(trustedrootcert.secureFIlePath) -pfxApiTasksecureFIlePath $(pfxApiTask.secureFIlePath) -pfxPortalTasksecureFIlePath $(pfxPortalTask.secureFIlePath) -pfxManagementTasksecureFIlePath $(pfxManagement.TasksecureFIlePath)'      
     - task: AzurePowerShell@5
       enabled: false
       displayName: Configure listeners and health probes for app gateway
