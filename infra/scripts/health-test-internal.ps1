@@ -84,24 +84,24 @@ Write-Host $apimService
 $publicip = Get-AzPublicIpAddress -ResourceGroupName $ResourceGroupNameApim -name "publicIP01"
 
 $appGatewayPuplicIp = $publicip.IpAddress
-Write-Host "app gateway public ip appGatewayPuplicIp"
+Write-Host "app gateway public ip $appGatewayPuplicIp"
 
 $apimPrivateIp = $apimService.PrivateIPAddresses[0]
 $apimPublicIp = $apimService.PublicIPAddresses[0]
 Write-Host "apim public ip addresses $apimPublicIp"
 Write-Host "apim private ip addresses $apimPrivateIp"
 
-Write-Host "$appGatewayPuplicIp $gatewayHostname" > C:\Windows\System32\drivers\etc\hosts.external
-Write-Host "$appGatewayPuplicIp $portalHostname" >> C:\Windows\System32\drivers\etc\hosts.external
-Write-Host "$appGatewayPuplicIp $managementHostname" >> C:\Windows\System32\drivers\etc\hosts.external
+echo "$appGatewayPuplicIp $gatewayHostname" > C:\Windows\System32\drivers\etc\hosts.external
+echo "$appGatewayPuplicIp $portalHostname" >> C:\Windows\System32\drivers\etc\hosts.external
+echo "$appGatewayPuplicIp $managementHostname" >> C:\Windows\System32\drivers\etc\hosts.external
 
 Write-Host "external host file"
 Get-Content C:\Windows\System32\drivers\etc\hosts.external
 
 
-Write-Host "$apimPrivateIp $gatewayHostname" > C:\Windows\System32\drivers\etc\hosts.internal
-Write-Host "$apimPrivateIp $portalHostname" >> C:\Windows\System32\drivers\etc\hosts.internal
-Write-Host "$apimPrivateIp $managementHostname" >> C:\Windows\System32\drivers\etc\hosts.internal
+echo "$apimPrivateIp $gatewayHostname" > C:\Windows\System32\drivers\etc\hosts.internal
+echo "$apimPrivateIp $portalHostname" >> C:\Windows\System32\drivers\etc\hosts.internal
+echo "$apimPrivateIp $managementHostname" >> C:\Windows\System32\drivers\etc\hosts.internal
 
 Write-Host "internal host file"
 Get-Content C:\Windows\System32\drivers\etc\hosts.internal
@@ -111,4 +111,4 @@ Copy-Item -Force C:\Windows\System32\drivers\etc\hosts C:\Windows\System32\drive
 Copy-Item -Force C:\Windows\System32\drivers\etc\hosts.internal C:\Windows\System32\drivers\etc\hosts
 Get-Content C:\Windows\System32\drivers\etc\hosts
 
-wget "https://$gatewayHostname"
+curl "https://$gatewayHostname"
