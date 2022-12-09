@@ -114,6 +114,8 @@ Get-Content C:\Windows\System32\drivers\etc\hosts
 #do not check for certification revocation status
 echo "testing https://$gatewayHostname"
 curl "https://$gatewayHostname" --ssl-no-revoke
+
+echo "testing https://$gatewayHostname/echo/resource?param1=sample"
 curl "https://$gatewayHostname/echo/resource?param1=sample" --ssl-no-revoke
 
 echo "testing https://$portalHostname"
