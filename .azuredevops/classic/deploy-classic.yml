@@ -113,7 +113,7 @@ stages :
    name: APIM_Internal_Vnet_Agents
   jobs:
   - job: do_health_tests
-    displayName: perform health test
+    displayName: perform internal vnet health test
     steps:
     #- checkout: self
     #  persistCredentials: true
@@ -133,7 +133,7 @@ stages :
    vmImage: windows-latest
   jobs:
   - job: do_health_tests
-    displayName: perform internal vnet health test
+    displayName: perform health test
     steps:
     #- checkout: self
     #  persistCredentials: true
