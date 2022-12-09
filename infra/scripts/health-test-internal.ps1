@@ -111,4 +111,6 @@ Copy-Item -Force C:\Windows\System32\drivers\etc\hosts C:\Windows\System32\drive
 Copy-Item -Force C:\Windows\System32\drivers\etc\hosts.internal C:\Windows\System32\drivers\etc\hosts
 Get-Content C:\Windows\System32\drivers\etc\hosts
 
-curl "https://$gatewayHostname"
+#do not check for certification revocation status
+echo "testing https://$gatewayHostname"
+curl "https://$gatewayHostname" --ssl-no-revoke
