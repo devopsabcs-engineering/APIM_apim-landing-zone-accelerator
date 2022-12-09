@@ -74,31 +74,31 @@ $managementHostname = "management.$domainName"               # API management en
 
 $appGw = Get-AzApplicationGateway -Name $appGatewayName -ResourceGroupName $ResourceGroupNameApim
 
-echo $appGw
+Write-Host $appGw
 
 $apimService = Get-AzApiManagement -ResourceGroupName $ResourceGroupNameApim -Name $apimServiceName 
 
-echo $apimService
+Write-Host $apimService
 
 
 $publicip = Get-AzPublicIpAddress -ResourceGroupName $ResourceGroupNameApim -name "publicIP01"
 
-echo app gateway public ip $publicip.IpAddress
+Write-Host "app gateway public ip $publicip.IpAddress"
 
-echo apim public ip addresses $apimService.PublicIPAddresses[0]
-echo apim private ip addresses $apimService.PrivateIPAddresses[0]
+Write-Host "apim public ip addresses $apimService.PublicIPAddresses[0]"
+Write-Host "apim private ip addresses $apimService.PrivateIPAddresses[0]"
 
-echo $publicip.IpAddress $gatewayHostname > C:\Windows\System32\drivers\etc\hosts.external
-echo $publicip.IpAddress $portalHostname >> C:\Windows\System32\drivers\etc\hosts.external
-echo $publicip.IpAddress $managementHostname >> C:\Windows\System32\drivers\etc\hosts.external
+Write-Host "$publicip.IpAddress $gatewayHostname" > C:\Windows\System32\drivers\etc\hosts.external
+Write-Host "$publicip.IpAddress $portalHostname" >> C:\Windows\System32\drivers\etc\hosts.external
+Write-Host "$publicip.IpAddress $managementHostname" >> C:\Windows\System32\drivers\etc\hosts.external
 
-echo external host file
+Write-Host "external host file"
 Get-Content C:\Windows\System32\drivers\etc\hosts.external
 
 
-echo $apimService.PrivateIPAddresses[0] $gatewayHostname > C:\Windows\System32\drivers\etc\hosts.internal
-echo $apimService.PrivateIPAddresses[0] $portalHostname >> C:\Windows\System32\drivers\etc\hosts.internal
-echo $apimService.PrivateIPAddresses[0] $managementHostname >> C:\Windows\System32\drivers\etc\hosts.internal
+Write-Host "$apimService.PrivateIPAddresses[0] $gatewayHostname" > C:\Windows\System32\drivers\etc\hosts.internal
+Write-Host "$apimService.PrivateIPAddresses[0] $portalHostname" >> C:\Windows\System32\drivers\etc\hosts.internal
+Write-Host "$apimService.PrivateIPAddresses[0] $managementHostname" >> C:\Windows\System32\drivers\etc\hosts.internal
 
-echo internal host file
+Write-Host "internal host file"
 Get-Content C:\Windows\System32\drivers\etc\hosts.internal
