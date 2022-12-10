@@ -146,20 +146,18 @@ stages :
         vstsFeed: $(System.TeamProject)/$(ARTIFACTS_FEED_NAME)
         vstsFeedPackage: 'restapitool'
         vstsPackageVersion: '*'
-    - task: AzureCLI@2
-      displayName: Run rest api tool
+    - task: CmdLine@2
       inputs:
-        azureSubscription: "$(SERVICE_CONNECTION_NAME)"
-        scriptType: bash
-        scriptLocation: inlineScript
-        inlineScript: |
+        script: |
+          echo Write your commands here
+          
+          echo Hello world
+          ls "$(Pipeline.Workspace)/restapitool"
           chmod u+x $(Pipeline.Workspace)/restapitool/restapitool
           $(Pipeline.Workspace)/restapitool/restapitool
           result=$?
           echo "Exit code is $result"
           exit $result
-        addSpnToEnvironment: true
-        failOnStandardError: true
     - task: AzureCLI@2
       enabled: false
       displayName: Perform the Backend Health Tests
