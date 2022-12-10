@@ -10,7 +10,7 @@ trigger:
       #- src/ApimManagementApiSoln/ApimManagementApi
 
 pool:
-  vmImage: ubuntu-latest
+  vmImage: windows-latest
 
 variables:
   #- group: APIM_apim-automation-end-to-end
@@ -35,7 +35,7 @@ stages:
               command: publish
               publishWebProjects: false
               projects: '$(Build.SourcesDirectory)/src/ApimManagementApiSoln/ApimManagementApi/ApimManagementApi.csproj'
-              arguments: '--output $(Build.ArtifactStagingDirectory) --runtime linux-x64 -p:PublishSingleFile=true'
+              arguments: '--output $(Build.ArtifactStagingDirectory) --runtime win-x64 -p:PublishSingleFile=true'
               modifyOutputPath: false
               zipAfterPublish: false
           - task: UniversalPackages@0
