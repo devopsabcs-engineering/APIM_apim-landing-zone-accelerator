@@ -141,12 +141,8 @@ stages :
           echo Write your commands here
           
           echo Hello world
-          ls "$(Pipeline.Workspace)/restapitool"
-          chmod u+x $(Pipeline.Workspace)/restapitool/ApimManagementApi
-          $(Pipeline.Workspace)/restapitool/ApimManagementApi
-          result=$?
-          echo "Exit code is $result"
-          exit $result
+          dir "$(Pipeline.Workspace)/restapitool"          
+          $(Pipeline.Workspace)/restapitool/ApimManagementApi.exe
 - stage: integrated_tests
   dependsOn: [internal_vnet_tests]
   pool:
