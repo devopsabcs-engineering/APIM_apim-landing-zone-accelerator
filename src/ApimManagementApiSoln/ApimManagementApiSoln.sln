@@ -3,11 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33103.184
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ApimManagementApi", "ApimManagementApi\ApimManagementApi.csproj", "{179AB3CB-4FA3-49E3-80DA-D9B6BC2BC7E7}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "functions", "azfunc\functions.csproj", "{E470BF45-B0D8-41F5-A57E-E1335E3492D7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APIMgtRESTAPIDemo", "APIMgtRESTAPIDemo\APIMgtRESTAPIDemo.csproj", "{912062DE-7FB3-40FE-A4C7-123D32D08733}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ApimManagementApi", "ApimManagementApi\ApimManagementApi.csproj", "{DBC8CB64-D7B5-4222-9A02-3DBF888D822D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,18 +13,14 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{179AB3CB-4FA3-49E3-80DA-D9B6BC2BC7E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{179AB3CB-4FA3-49E3-80DA-D9B6BC2BC7E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{179AB3CB-4FA3-49E3-80DA-D9B6BC2BC7E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{179AB3CB-4FA3-49E3-80DA-D9B6BC2BC7E7}.Release|Any CPU.Build.0 = Release|Any CPU
 		{E470BF45-B0D8-41F5-A57E-E1335E3492D7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{E470BF45-B0D8-41F5-A57E-E1335E3492D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E470BF45-B0D8-41F5-A57E-E1335E3492D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E470BF45-B0D8-41F5-A57E-E1335E3492D7}.Release|Any CPU.Build.0 = Release|Any CPU
-		{912062DE-7FB3-40FE-A4C7-123D32D08733}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{912062DE-7FB3-40FE-A4C7-123D32D08733}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{912062DE-7FB3-40FE-A4C7-123D32D08733}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{912062DE-7FB3-40FE-A4C7-123D32D08733}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DBC8CB64-D7B5-4222-9A02-3DBF888D822D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DBC8CB64-D7B5-4222-9A02-3DBF888D822D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DBC8CB64-D7B5-4222-9A02-3DBF888D822D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DBC8CB64-D7B5-4222-9A02-3DBF888D822D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
