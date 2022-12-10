@@ -106,9 +106,9 @@ echo "$apimPrivateIp $managementHostname" >> C:\Windows\System32\drivers\etc\hos
 Write-Host "internal host file"
 Get-Content C:\Windows\System32\drivers\etc\hosts.internal
 
-Write-Host "grabbing internal host file"
+Write-Host "grabbing external host file"
 Copy-Item -Force C:\Windows\System32\drivers\etc\hosts C:\Windows\System32\drivers\etc\hosts.default
-Copy-Item -Force C:\Windows\System32\drivers\etc\hosts.internal C:\Windows\System32\drivers\etc\hosts
+Copy-Item -Force C:\Windows\System32\drivers\etc\hosts.external C:\Windows\System32\drivers\etc\hosts
 Get-Content C:\Windows\System32\drivers\etc\hosts
 
 ping $gatewayHostname
