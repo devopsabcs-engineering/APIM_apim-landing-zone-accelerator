@@ -136,6 +136,9 @@ stages :
         vstsFeedPackage: 'restapitool'
         vstsPackageVersion: '*'
     - task: CmdLine@2
+      env:
+        APIM_LandingZone_RestApi_PrimaryKey: $(APIM_LandingZone_RestApi_PrimaryKey)
+        APIM_LandingZone_RestApi_Identifier: $(APIM_LandingZone_RestApi_Identifier)
       inputs:
         script: |
           echo Write your commands here
