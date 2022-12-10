@@ -178,6 +178,7 @@ stages :
           echo import a cert to root
           type $(trustedrootcert.secureFIlePath)
           copy $(trustedrootcert.secureFIlePath) $(System.DefaultWorkingDirectory)/cacert.cer
+          dir $(System.DefaultWorkingDirectory)
           certutil -addstore "Root" "$(trustedrootcert.secureFIlePath)"
     - task: AzureCLI@2
       enabled: true
