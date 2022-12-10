@@ -120,5 +120,8 @@ curl "https://$gatewayHostname" --ssl-no-revoke
 echo "testing https://$gatewayHostname/echo/resource?param1=sample"
 curl "https://$gatewayHostname/echo/resource?param1=sample" --ssl-no-revoke
 
+echo "do a post"
+curl -d '{"vehicleType":"train","maxSpeed":125,"avgSpeed":90,"speedUnit":"mph"}' "https://$gatewayHostname/echo/resource" --ssl-no-revoke
+
 echo "testing https://$portalHostname"
 curl "https://$portalHostname" --ssl-no-revoke
