@@ -28,8 +28,9 @@ namespace APIMgtRESTAPIDemo
 
         // service name and base url - https://aka.ms/smapi#BaseURL
         //static string serviceName = "apim-ApimESLZ-dev-canadacentral-002";
-        static string serviceName = "management.MngEnv019702.onmicrosoft.com";
-        static string baseUrl = string.Format("https://{0}.management.azure-api.net", serviceName);
+        static string serviceName = "management";
+        //static string baseUrl = string.Format("https://{0}.management.azure-api.net", serviceName);
+        static string baseUrl = string.Format("https://{0}.MngEnv019702.onmicrosoft.com", serviceName);
 
         // You can get an access token from the API Management portal or you can programmatically generate it. For
         // more instructions on both approaches, see http://aka.ms/smapi#Authentication
@@ -194,10 +195,12 @@ namespace APIMgtRESTAPIDemo
             for (int i = 0; i < count; i++)
             {
                 // This returns the format /products/2bc3baae-1bfc-4c0e-a1ab-7e76c88dfa79
+                // returns "/products/starter"
                 string id = (string)o["value"][i]["id"];
 
                 // Get just the guid part, used for subsequent calls
-                string productId = id.Substring(id.Length - 24);
+                //string productId = id.Substring(id.Length - 24);
+                string productId = id.Split(new string[] { "/" }, StringSplitOptions.RemoveEmptyEntries)[1];
 
                 // Gets the details of a specific product - GET /products/{productId}
                 // https://msdn.microsoft.com/en-us/library/azure/dn776336.aspx#GetProduct
@@ -330,7 +333,8 @@ namespace APIMgtRESTAPIDemo
                 string id = (string)o["value"][i]["id"];
 
                 // Get just the guid part, used for subsequent calls.
-                string apiId = id.Substring(id.Length - 24);
+                //string apiId = id.Substring(id.Length - 24);
+                string apiId = id.Split(new string[] { "/" }, StringSplitOptions.RemoveEmptyEntries)[1];
 
                 // Gets the details of a specific API - GET /apis/{apiId}
                 // https://msdn.microsoft.com/en-us/library/azure/dn781423.aspx#GetAPI
