@@ -117,8 +117,15 @@ stages :
   - job: do_health_tests
     displayName: perform internal vnet health test
     steps:
-    #- checkout: self
-    #  persistCredentials: true
+    - task: CmdLine@2
+      displayName: show hostname to prove internal
+      inputs:
+        script: |
+          echo Write your commands here
+          
+          echo Hello world
+          
+          echo hostname
     - task: AzureCLI@2
       enabled: true
       displayName: Perform the Backend Health Tests
@@ -136,6 +143,52 @@ stages :
         vstsFeedPackage: 'restapitool'
         vstsPackageVersion: '*'
     - task: CmdLine@2
+      displayName: internal test management via direct rest api tools
+      env:
+        APIM_LandingZone_RestApi_PrimaryKey: $(APIM_LandingZone_RestApi_PrimaryKey)
+        APIM_LandingZone_RestApi_Identifier: $(APIM_LandingZone_RestApi_Identifier)
+      inputs:
+        script: |
+          echo Write your commands here
+          
+          echo Hello world
+          dir "$(Pipeline.Workspace)/restapitool"          
+          $(Pipeline.Workspace)/restapitool/ApimManagementApi.exe
+- stage: external_vnet_tests
+  dependsOn: [internal_vnet_tests]
+  pool:
+   vmImage: windows-latest
+  jobs:
+  - job: do_health_tests
+    displayName: perform external vnet health test
+    steps:
+    - task: CmdLine@2
+      displayName: show hostname to prove external
+      inputs:
+        script: |
+          echo Write your commands here
+          
+          echo Hello world
+          
+          echo hostname
+    - task: AzureCLI@2
+      enabled: true
+      displayName: Perform the Backend Health Tests
+      inputs:
+        azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+        scriptType: 'pscore'
+        scriptLocation: 'scriptPath'
+        scriptPath: '$(System.DefaultWorkingDirectory)/infra/scripts/health-test-external.ps1'
+        arguments: '-Location $(Location) -ResourceGroupNameApim $(ResourceGroupNameApim) -zoneName $(zoneName) -appGatewayName $(appGatewayName) -apimServiceName $(apimServiceName) -domainName $(domainName) -apimOrganization "$(apimOrganization)" -apimAdminEmail $(apimAdminEmail) -pfxPassword $(pfxPassword) -azureApplicationId $(azureApplicationId) -azureTenantId $(azureTenantId) -azureClientSecret $(azureClientSecret)'
+    - task: UniversalPackages@0
+      displayName: Download rest api tools
+      inputs:
+        downloadDirectory: '$(Pipeline.Workspace)/restapitool'
+        vstsFeed: $(System.TeamProject)/$(ARTIFACTS_FEED_NAME)
+        vstsFeedPackage: 'restapitool'
+        vstsPackageVersion: '*'
+    - task: CmdLine@2
+      displayName: external test management via direct rest api tools
       env:
         APIM_LandingZone_RestApi_PrimaryKey: $(APIM_LandingZone_RestApi_PrimaryKey)
         APIM_LandingZone_RestApi_Identifier: $(APIM_LandingZone_RestApi_Identifier)
@@ -147,7 +200,7 @@ stages :
           dir "$(Pipeline.Workspace)/restapitool"          
           $(Pipeline.Workspace)/restapitool/ApimManagementApi.exe
 - stage: integrated_tests
-  dependsOn: [internal_vnet_tests]
+  dependsOn: [external_vnet_tests]
   pool:
    vmImage: windows-latest
   jobs:
