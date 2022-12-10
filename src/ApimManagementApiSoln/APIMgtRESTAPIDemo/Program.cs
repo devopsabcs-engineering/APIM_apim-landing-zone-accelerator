@@ -1,7 +1,6 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Net.Http;
@@ -28,7 +27,8 @@ namespace APIMgtRESTAPIDemo
         static string apiVersion = "2014-02-14-preview";
 
         // service name and base url - https://aka.ms/smapi#BaseURL
-        static string serviceName = "contoso5";
+        //static string serviceName = "apim-ApimESLZ-dev-canadacentral-002";
+        static string serviceName = "management.MngEnv019702.onmicrosoft.com";
         static string baseUrl = string.Format("https://{0}.management.azure-api.net", serviceName);
 
         // You can get an access token from the API Management portal or you can programmatically generate it. For
@@ -49,9 +49,9 @@ namespace APIMgtRESTAPIDemo
             // https://msdn.microsoft.com/library/azure/5b13010a-d202-4af5-aabf-7ebc26800b3d#ProgrammaticallyCreateToken
             // id - the value from the identifier text box in the credentials section of the
             //      API Management REST API tab of the Security section.
-            string id = "<your identifier value here>";
+            var id = Environment.GetEnvironmentVariable("APIM_LandingZone_RestApi_Identifier");
             // key - either the primary or secondary key from that same tab.
-            string key = "<either the primary or secondary key here>";
+            var key = Environment.GetEnvironmentVariable("APIM_LandingZone_RestApi_PrimaryKey");
             // expiry - the expiration date and time of the generated access token. In this example
             //          the expiry is one day from the time the sample is run.
             DateTime expiry = DateTime.UtcNow.AddDays(1);
