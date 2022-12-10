@@ -1,5 +1,4 @@
-﻿using System;
-using System.Text;
+﻿using System.Text;
 using System.Globalization;
 using System.Security.Cryptography;
 
@@ -7,8 +6,8 @@ public class Program
 {
     public static void Main()
     {
-        var id = "53d7e14aee681a0034030003";
-        var key = "pXeTVcmdbU9XxH6fPcPlq8Y9D9G3Cdo5Eh2nMSgKj/DWqeSFFXDdmpz5Trv+L2hQNM+nGa704Rf8Z22W9O1jdQ==";
+        var id = Environment.GetEnvironmentVariable("APIM_LandingZone_RestApi_Identifier");
+        var key = Environment.GetEnvironmentVariable("APIM_LandingZone_RestApi_PrimaryKey");
         var expiry = DateTime.UtcNow.AddDays(10);
         using (var encoder = new HMACSHA512(Encoding.UTF8.GetBytes(key)))
         {
