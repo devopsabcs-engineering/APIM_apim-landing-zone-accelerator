@@ -51,6 +51,13 @@ Param(
     [PARAMETER(Mandatory = $True, Position = 16, HelpMessage = "azureClientSecret")]
     [String]$azureClientSecret
 )     
+Write-Host install az powershell modules
+
+Install-Module -Name Az -AllowClobber -Scope CurrentUser -Force
+
+$azurePassword = ConvertTo-SecureString "$azureClientSecret" -AsPlainText -Force
+$psCred = New-Object System.Management.Automation.PSCredential($azureApplicationId , $azurePassword)
+Connect-AzAccount -Credential $psCred -TenantId $azureTenantId  -ServicePrincipal 
 
 Write-Host generate hosts file
 
