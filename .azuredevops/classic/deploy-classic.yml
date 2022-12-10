@@ -128,17 +128,6 @@ stages :
         scriptLocation: 'scriptPath'
         scriptPath: '$(System.DefaultWorkingDirectory)/infra/scripts/health-test-internal.ps1'
         arguments: '-Location $(Location) -ResourceGroupNameApim $(ResourceGroupNameApim) -zoneName $(zoneName) -appGatewayName $(appGatewayName) -apimServiceName $(apimServiceName) -domainName $(domainName) -apimOrganization "$(apimOrganization)" -apimAdminEmail $(apimAdminEmail) -pfxPassword $(pfxPassword) -azureApplicationId $(azureApplicationId) -azureTenantId $(azureTenantId) -azureClientSecret $(azureClientSecret)'
-
-- stage: integrated_tests
-  dependsOn: [internal_vnet_tests]
-  pool:
-   vmImage: windows-latest
-  jobs:
-  - job: do_health_tests
-    displayName: perform health test
-    steps:
-    #- checkout: self
-    #  persistCredentials: true
     - task: UniversalPackages@0
       displayName: Download rest api tools
       inputs:
@@ -153,11 +142,21 @@ stages :
           
           echo Hello world
           ls "$(Pipeline.Workspace)/restapitool"
-          chmod u+x $(Pipeline.Workspace)/restapitool/restapitool
-          $(Pipeline.Workspace)/restapitool/restapitool
+          chmod u+x $(Pipeline.Workspace)/restapitool/ApimManagementApi
+          $(Pipeline.Workspace)/restapitool/ApimManagementApi
           result=$?
           echo "Exit code is $result"
           exit $result
+- stage: integrated_tests
+  dependsOn: [internal_vnet_tests]
+  pool:
+   vmImage: windows-latest
+  jobs:
+  - job: do_health_tests
+    displayName: perform health test
+    steps:
+    #- checkout: self
+    #  persistCredentials: true    
     - task: AzureCLI@2
       enabled: false
       displayName: Perform the Backend Health Tests
