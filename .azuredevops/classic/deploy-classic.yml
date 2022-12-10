@@ -123,9 +123,9 @@ stages :
         script: |
           echo Write your commands here
           
-          echo Hello world
-          
           echo hostname
+          
+          hostname
     - task: AzureCLI@2
       enabled: true
       displayName: Perform the Backend Health Tests
@@ -168,9 +168,9 @@ stages :
         script: |
           echo Write your commands here
           
-          echo Hello world
-          
           echo hostname
+          
+          hostname
     - task: AzureCLI@2
       enabled: true
       displayName: Perform the Backend Health Tests
