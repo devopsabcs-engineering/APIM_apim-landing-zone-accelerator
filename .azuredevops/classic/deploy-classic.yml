@@ -30,6 +30,8 @@ variables:
 - name: apimAdminEmail
   value: "admin@MngEnv019702.onmicrosoft.com" # Administrator's email address
 - group: APIM_apim-landing-zone-accelerator_common
+- name: ARTIFACTS_FEED_NAME
+  value: APIM_landing_zone_tools
 
 stages :
 - stage: get_and_set_version
@@ -137,6 +139,27 @@ stages :
     steps:
     #- checkout: self
     #  persistCredentials: true
+    - task: UniversalPackages@0
+      displayName: Download rest api tools
+      inputs:
+        downloadDirectory: '$(Pipeline.Workspace)/restapitool'
+        vstsFeed: $(System.TeamProject)/$(ARTIFACTS_FEED_NAME)
+        vstsFeedPackage: 'restapitool'
+        vstsPackageVersion: '*'
+    - task: AzureCLI@2
+      displayName: Run rest api tool
+      inputs:
+        azureSubscription: "$(SERVICE_CONNECTION_NAME)"
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+          chmod u+x $(Pipeline.Workspace)/restapitool/restapitool
+          $(Pipeline.Workspace)/restapitool/restapitool
+          result=$?
+          echo "Exit code is $result"
+          exit $result
+        addSpnToEnvironment: true
+        failOnStandardError: true
     - task: AzureCLI@2
       enabled: false
       displayName: Perform the Backend Health Tests
