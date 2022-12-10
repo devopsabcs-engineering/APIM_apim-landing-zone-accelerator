@@ -162,6 +162,10 @@ stages :
   - job: do_health_tests
     displayName: perform external vnet health test
     steps:
+    - task: DownloadSecureFile@1
+      name: trustedrootcert
+      inputs:
+        secureFile: 'APIM_apim-landing-zone-accelerator_cacert.pem'
     - task: CmdLine@2
       displayName: show hostname to prove external
       inputs:
@@ -171,6 +175,10 @@ stages :
           echo hostname
           
           hostname
+          echo import a cert to root
+          type $(trustedrootcert.secureFIlePath)
+          copy $(trustedrootcert.secureFIlePath) $(System.DefaultWorkingDirectory)/cacert.cer
+          certutil -addstore "Root" "$(trustedrootcert.secureFIlePath)"
     - task: AzureCLI@2
       enabled: true
       displayName: Perform the Backend Health Tests
