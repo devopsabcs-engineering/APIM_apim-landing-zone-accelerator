@@ -4,31 +4,44 @@
 # https://docs.microsoft.com/azure/devops/pipelines/languages/dotnet-core
 
 trigger:
-- none
+  paths:
+    include:
+      - src/ApimManagementApiSoln/ApimManagementApi
+      #- src/ApimManagementApiSoln/ApimManagementApi
 
 pool:
-  vmImage: 'windows-latest'
+  vmImage: ubuntu-latest
 
 variables:
-  solution: '**/*.sln'
-  buildPlatform: 'Any CPU'
-  buildConfiguration: 'Release'
+  #- group: APIM_apim-automation-end-to-end
+  - name: ARTIFACTS_FEED_NAME
+    value: APIM_landing_zone_tools
 
-steps:
-- task: NuGetToolInstaller@1
-
-- task: NuGetCommand@2
-  inputs:
-    restoreSolution: '$(solution)'
-
-- task: VSBuild@1
-  inputs:
-    solution: '$(solution)'
-    msbuildArgs: '/p:DeployOnBuild=true /p:WebPublishMethod=Package /p:PackageAsSingleFile=true /p:SkipInvalidConfigurations=true /p:DesktopBuildPackageLocation="$(build.artifactStagingDirectory)\WebApp.zip" /p:DeployIisAppPath="Default Web Site"'
-    platform: '$(buildPlatform)'
-    configuration: '$(buildConfiguration)'
-
-- task: VSTest@2
-  inputs:
-    platform: '$(buildPlatform)'
-    configuration: '$(buildConfiguration)'
+stages:
+  - stage: publish_rest_api_tools
+    displayName: Publish rest api tools
+    jobs:
+      - job: publish_rest_api_tools_job
+        displayName: Publish rest api utils        
+        steps:
+          - task: UseDotNet@2
+            displayName: Install .NET Core SDK
+            inputs:
+              version: 6.x
+              includePreviewVersions: true
+          - task: DotNetCoreCLI@2
+            displayName: Publish .NET Core application
+            inputs:
+              command: publish
+              publishWebProjects: false
+              projects: '$(Build.SourcesDirectory)/src/ApimManagementApiSoln/ApimManagementApi/ApimManagementApi.csproj'
+              arguments: '--output $(Build.ArtifactStagingDirectory) --runtime linux-x64 -p:PublishSingleFile=true'
+              modifyOutputPath: false
+              zipAfterPublish: false
+          - task: UniversalPackages@0
+            displayName: Publish rest api artifact
+            inputs:
+              command: publish
+              vstsFeedPublish: $(System.TeamProject)/$(ARTIFACTS_FEED_NAME)
+              vstsFeedPackagePublish: restapitool
+              packagePublishDescription: 'APIM rest apim tool'
