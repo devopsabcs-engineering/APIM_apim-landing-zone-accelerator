@@ -49,7 +49,7 @@ param appGatewayCertType string
 param location string = deployment().location
 
 // Variables
-var resourceSuffix = '${workloadName}-${environment}-${location}-001'
+var resourceSuffix = '${workloadName}-${environment}-${location}-003'
 var networkingResourceGroupName = 'rg-networking-${resourceSuffix}'
 var sharedResourceGroupName = 'rg-shared-${resourceSuffix}'
 
