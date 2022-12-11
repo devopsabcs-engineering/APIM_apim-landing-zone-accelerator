@@ -1,4 +1,4 @@
-targetScope='subscription'
+targetScope = 'subscription'
 
 // Parameters
 @description('A short name for the workload being deployed alphanumberic only')
@@ -48,11 +48,34 @@ param appGatewayCertType string
 
 param location string = deployment().location
 
+@description('The FQDN for the Api. Example - api.contoso.com.')
+param apiFQDN string
+@description('The password for the TLS certificate for the Api.  The pfx file needs to be copied to deployment/bicep/gateway/certs/api.pfx')
+@secure()
+param apiCertificatePassword string
+@description('Set to selfsigned if self signed certificates should be used for the Api. Set to custom and copy the pfx file to deployment/bicep/gateway/certs/api.pfx if custom certificates are to be used')
+param apiCertType string
+
+@description('The FQDN for the Portal. Example - portal.contoso.com.')
+param portalFQDN string
+@description('The password for the TLS certificate for the Portal.  The pfx file needs to be copied to deployment/bicep/gateway/certs/portal.pfx')
+@secure()
+param portalCertificatePassword string
+@description('Set to selfsigned if self signed certificates should be used for the Portal. Set to custom and copy the pfx file to deployment/bicep/gateway/certs/portal.pfx if custom certificates are to be used')
+param portalCertType string
+
+@description('The FQDN for the Management. Example - management.contoso.com.')
+param managementFQDN string
+@description('The password for the TLS certificate for the Management.  The pfx file needs to be copied to deployment/bicep/gateway/certs/management.pfx')
+@secure()
+param managementCertificatePassword string
+@description('Set to selfsigned if self signed certificates should be used for the Management. Set to custom and copy the pfx file to deployment/bicep/gateway/certs/management.pfx if custom certificates are to be used')
+param managementCertType string
+
 // Variables
 var resourceSuffix = '${workloadName}-${environment}-${location}-003'
 var networkingResourceGroupName = 'rg-networking-${resourceSuffix}'
 var sharedResourceGroupName = 'rg-shared-${resourceSuffix}'
-
 
 var backendResourceGroupName = 'rg-backend-${resourceSuffix}'
 
@@ -61,7 +84,6 @@ var apimResourceGroupName = 'rg-apim-${resourceSuffix}'
 // Resource Names
 var apimName = 'apim-${resourceSuffix}'
 var appGatewayName = 'appgw-${resourceSuffix}'
-
 
 resource networkingRG 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   name: networkingResourceGroupName
@@ -99,7 +121,7 @@ module backend './backend/backend.bicep' = {
   params: {
     workloadName: workloadName
     environment: environment
-    location: location    
+    location: location
     vnetName: networking.outputs.apimCSVNetName
     vnetRG: networkingRG.name
     backendSubnetId: networking.outputs.backEndSubnetid
@@ -107,7 +129,7 @@ module backend './backend/backend.bicep' = {
   }
 }
 
-var jumpboxSubnetId= networking.outputs.jumpBoxSubnetid
+var jumpboxSubnetId = networking.outputs.jumpBoxSubnetid
 var CICDAgentSubnetId = networking.outputs.CICDAgentSubnetId
 
 module shared './shared/shared.bicep' = {
@@ -131,7 +153,7 @@ module shared './shared/shared.bicep' = {
   }
 }
 
-module apimModule 'apim/apim.bicep'  = {
+module apimModule 'apim/apim.bicep' = {
   name: 'apimDeploy'
   scope: resourceGroup(apimRG.name)
   params: {
@@ -145,7 +167,7 @@ module apimModule 'apim/apim.bicep'  = {
 }
 
 //Creation of private DNS zones
-module dnsZoneModule 'shared/dnszone.bicep'  = {
+module dnsZoneModule 'shared/dnszone.bicep' = {
   name: 'apimDnsZoneDeploy'
   scope: resourceGroup(sharedRG.name)
   dependsOn: [
@@ -167,14 +189,23 @@ module appgwModule 'gateway/appgw.bicep' = {
     dnsZoneModule
   ]
   params: {
-    appGatewayName:                 appGatewayName
-    appGatewayFQDN:                 appGatewayFqdn
-    location:                       location
-    appGatewaySubnetId:             networking.outputs.appGatewaySubnetid
-    primaryBackendEndFQDN:          '${apimName}.azure-api.net'
-    keyVaultName:                   shared.outputs.keyVaultName
-    keyVaultResourceGroupName:      sharedRG.name
-    appGatewayCertType:             appGatewayCertType
-    certPassword:                   certificatePassword
+    appGatewayName: appGatewayName
+    appGatewayFQDN: appGatewayFqdn
+    location: location
+    appGatewaySubnetId: networking.outputs.appGatewaySubnetid
+    primaryBackendEndFQDN: '${apimName}.azure-api.net'
+    keyVaultName: shared.outputs.keyVaultName
+    keyVaultResourceGroupName: sharedRG.name
+    appGatewayCertType: appGatewayCertType
+    certPassword: certificatePassword
+    apiCertPassword: apiCertificatePassword
+    apiCertType: apiCertType
+    apiFQDN: apiFQDN
+    portalCertPassword: portalCertificatePassword
+    portalCertType: portalCertType
+    portalFQDN: portalFQDN
+    managementCertPassword: managementCertificatePassword
+    managementCertType: managementCertType
+    managementFQDN: managementFQDN
   }
 }
