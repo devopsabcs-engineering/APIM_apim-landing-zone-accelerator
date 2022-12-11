@@ -153,19 +153,19 @@ resource appGatewayName_resource 'Microsoft.Network/applicationGateways@2019-09-
       //   }
       // }
       {
-        name: apiFQDN
+        name: 'gatewaycert' // apiFQDN
         properties: {
           keyVaultSecretId: certificateApi.outputs.secretUri
         }
       }
       {
-        name: portalFQDN
+        name: 'portalcert' // portalFQDN
         properties: {
           keyVaultSecretId: certificatePortal.outputs.secretUri
         }
       }
       {
-        name: managementFQDN
+        name: 'managementcert' // managementFQDN
         properties: {
           keyVaultSecretId: certificateManagement.outputs.secretUri
         }
