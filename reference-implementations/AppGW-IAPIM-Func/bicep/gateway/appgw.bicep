@@ -146,12 +146,12 @@ resource appGatewayName_resource 'Microsoft.Network/applicationGateways@2019-09-
       }
     ]
     sslCertificates: [
-      {
-        name: appGatewayFQDN
-        properties: {
-          keyVaultSecretId: certificate.outputs.secretUri
-        }
-      }
+      // {
+      //   name: appGatewayFQDN
+      //   properties: {
+      //     keyVaultSecretId: certificate.outputs.secretUri
+      //   }
+      // }
       {
         name: apiFQDN
         properties: {
@@ -207,12 +207,12 @@ resource appGatewayName_resource 'Microsoft.Network/applicationGateways@2019-09-
       }
     ]
     frontendPorts: [
-      {
-        name: 'port_80'
-        properties: {
-          port: 80
-        }
-      }
+      // {
+      //   name: 'port_80'
+      //   properties: {
+      //     port: 80
+      //   }
+      // }
       {
         name: 'port_443'
         properties: {
@@ -221,16 +221,16 @@ resource appGatewayName_resource 'Microsoft.Network/applicationGateways@2019-09-
       }
     ]
     backendAddressPools: [
-      {
-        name: 'apim'
-        properties: {
-          backendAddresses: [
-            {
-              fqdn: primaryBackendEndFQDN
-            }
-          ]
-        }
-      }
+      // {
+      //   name: 'apim'
+      //   properties: {
+      //     backendAddresses: [
+      //       {
+      //         fqdn: primaryBackendEndFQDN
+      //       }
+      //     ]
+      //   }
+      // }
       {
         name: 'gatewaybackend'
         properties: {
@@ -263,100 +263,304 @@ resource appGatewayName_resource 'Microsoft.Network/applicationGateways@2019-09-
       }
     ]
     backendHttpSettingsCollection: [
+      // {
+      //   name: 'default'
+      //   properties: {
+      //     port: 80
+      //     protocol: 'Http'
+      //     cookieBasedAffinity: 'Disabled'
+      //     pickHostNameFromBackendAddress: false
+      //     affinityCookieName: 'ApplicationGatewayAffinity'
+      //     requestTimeout: 20
+      //   }
+      // }
+      // {
+      //   name: 'https'
+      //   properties: {
+      //     port: 443
+      //     protocol: 'Https'
+      //     cookieBasedAffinity: 'Disabled'
+      //     hostName: primaryBackendEndFQDN
+      //     pickHostNameFromBackendAddress: false
+      //     requestTimeout: 20
+      //     probe: {
+      //       id: resourceId('Microsoft.Network/applicationGateways/probes', appGatewayName, 'APIM')
+      //     }
+      //   }
+      // }
       {
-        name: 'default'
-        properties: {
-          port: 80
-          protocol: 'Http'
-          cookieBasedAffinity: 'Disabled'
-          pickHostNameFromBackendAddress: false
-          affinityCookieName: 'ApplicationGatewayAffinity'
-          requestTimeout: 20
-        }
-      }
-      {
-        name: 'https'
+        name: 'apimPoolGatewaySetting'
         properties: {
           port: 443
           protocol: 'Https'
           cookieBasedAffinity: 'Disabled'
-          hostName: primaryBackendEndFQDN
-          pickHostNameFromBackendAddress: false
-          requestTimeout: 20
+          pickHostNameFromBackendAddress: true
+          requestTimeout: 180
           probe: {
-            id: resourceId('Microsoft.Network/applicationGateways/probes', appGatewayName, 'APIM')
+            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/probes/apimgatewayprobe')
           }
+          trustedRootCertificates: [
+            {
+              id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/trustedRootCertificates/whitelistcert1')
+            }
+          ]
+        }
+      }
+      {
+        name: 'apimPoolPortalSetting'
+        properties: {
+          port: 443
+          protocol: 'Https'
+          cookieBasedAffinity: 'Disabled'
+          pickHostNameFromBackendAddress: true
+          requestTimeout: 180
+          probe: {
+            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/probes/apimportalprobe')
+          }
+          trustedRootCertificates: [
+            {
+              id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/trustedRootCertificates/whitelistcert1')
+            }
+          ]
+        }
+      }
+      {
+        name: 'apimPoolManagementSetting'
+        properties: {
+          port: 443
+          protocol: 'Https'
+          cookieBasedAffinity: 'Disabled'
+          pickHostNameFromBackendAddress: true
+          requestTimeout: 180
+          probe: {
+            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/probes/apimmanagementprobe')
+          }
+          trustedRootCertificates: [
+            {
+              id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/trustedRootCertificates/whitelistcert1')
+            }
+          ]
         }
       }
     ]
     httpListeners: [
+      // {
+      //   name: 'default'
+      //   properties: {
+      //     frontendIPConfiguration: {
+      //       id: resourceId('Microsoft.Network/applicationGateways/frontendIPConfigurations', appGatewayName, 'appGwPublicFrontendIp')
+      //     }
+      //     frontendPort: {
+      //       id: resourceId('Microsoft.Network/applicationGateways/frontendPorts', appGatewayName, 'port_80')
+      //     }
+      //     protocol: 'Http'
+      //     hostnames: []
+      //     requireServerNameIndication: false
+      //   }
+      // }
+      // {
+      //   name: 'https'
+      //   properties: {
+      //     frontendIPConfiguration: {
+      //       id: resourceId('Microsoft.Network/applicationGateways/frontendIPConfigurations', appGatewayName, 'appGwPublicFrontendIp')
+      //     }
+      //     frontendPort: {
+      //       id: resourceId('Microsoft.Network/applicationGateways/frontendPorts', appGatewayName, 'port_443')
+      //     }
+      //     protocol: 'Https'
+      //     sslCertificate: {
+      //       id: resourceId('Microsoft.Network/applicationGateways/sslCertificates', appGatewayName, appGatewayFQDN)
+      //     }
+      //     hostnames: []
+      //     requireServerNameIndication: false
+      //   }
+      // }
+
       {
-        name: 'default'
+        name: 'gatewaylistener'
         properties: {
           frontendIPConfiguration: {
-            id: resourceId('Microsoft.Network/applicationGateways/frontendIPConfigurations', appGatewayName, 'appGwPublicFrontendIp')
+            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/frontendIPConfigurations/appGwPublicFrontendIp')
           }
           frontendPort: {
-            id: resourceId('Microsoft.Network/applicationGateways/frontendPorts', appGatewayName, 'port_80')
-          }
-          protocol: 'Http'
-          hostnames: []
-          requireServerNameIndication: false
-        }
-      }
-      {
-        name: 'https'
-        properties: {
-          frontendIPConfiguration: {
-            id: resourceId('Microsoft.Network/applicationGateways/frontendIPConfigurations', appGatewayName, 'appGwPublicFrontendIp')
-          }
-          frontendPort: {
-            id: resourceId('Microsoft.Network/applicationGateways/frontendPorts', appGatewayName, 'port_443')
+            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/frontendPorts/port_443')
           }
           protocol: 'Https'
           sslCertificate: {
-            id: resourceId('Microsoft.Network/applicationGateways/sslCertificates', appGatewayName, appGatewayFQDN)
+            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/sslCertificates/gatewaycert')
           }
+          hostName: apiFQDN
           hostnames: []
-          requireServerNameIndication: false
+          requireServerNameIndication: true
+          customErrorConfigurations: []
         }
       }
+      {
+        name: 'portallistener'
+        properties: {
+          frontendIPConfiguration: {
+            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/frontendIPConfigurations/appGwPublicFrontendIp')
+          }
+          frontendPort: {
+            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/frontendPorts/port_443')
+          }
+          protocol: 'Https'
+          sslCertificate: {
+            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/sslCertificates/portalcert')
+          }
+          hostName: portalFQDN
+          hostnames: []
+          requireServerNameIndication: true
+          customErrorConfigurations: []
+        }
+      }
+      {
+        name: 'managementlistener'
+        properties: {
+          frontendIPConfiguration: {
+            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/frontendIPConfigurations/appGwPublicFrontendIp')
+          }
+          frontendPort: {
+            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/frontendPorts/port_443')
+          }
+          protocol: 'Https'
+          sslCertificate: {
+            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/sslCertificates/managementcert')
+          }
+          hostName: managementFQDN
+          hostnames: []
+          requireServerNameIndication: true
+          customErrorConfigurations: []
+        }
+      }
+
     ]
     urlPathMaps: []
     requestRoutingRules: [
+      // {
+      //   name: 'apim'
+      //   properties: {
+      //     ruleType: 'Basic'
+      //     httpListener: {
+      //       id: resourceId('Microsoft.Network/applicationGateways/httpListeners', appGatewayName, 'https')
+      //     }
+      //     backendAddressPool: {
+      //       id: resourceId('Microsoft.Network/applicationGateways/backendAddressPools', appGatewayName, 'apim')
+      //     }
+      //     backendHttpSettings: {
+      //       id: resourceId('Microsoft.Network/applicationGateways/backendHttpSettingsCollection', appGatewayName, 'https')
+      //     }
+      //   }
+      // }
+
       {
-        name: 'apim'
+        name: 'gatewayrule'
         properties: {
           ruleType: 'Basic'
+          priority: 10009
           httpListener: {
-            id: resourceId('Microsoft.Network/applicationGateways/httpListeners', appGatewayName, 'https')
+            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/httpListeners/gatewaylistener')
           }
           backendAddressPool: {
-            id: resourceId('Microsoft.Network/applicationGateways/backendAddressPools', appGatewayName, 'apim')
+            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/backendAddressPools/gatewaybackend')
           }
           backendHttpSettings: {
-            id: resourceId('Microsoft.Network/applicationGateways/backendHttpSettingsCollection', appGatewayName, 'https')
+            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/backendHttpSettingsCollection/apimPoolGatewaySetting')
+          }
+        }
+      }
+      {
+        name: 'portalrule'
+        properties: {
+          ruleType: 'Basic'
+          priority: 10012
+          httpListener: {
+            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/httpListeners/portallistener')
+          }
+          backendAddressPool: {
+            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/backendAddressPools/portalbackend')
+          }
+          backendHttpSettings: {
+            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/backendHttpSettingsCollection/apimPoolPortalSetting')
+          }
+        }
+      }
+      {
+        name: 'managementrule'
+        properties: {
+          ruleType: 'Basic'
+          priority: 10015
+          httpListener: {
+            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/httpListeners/managementlistener')
+          }
+          backendAddressPool: {
+            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/backendAddressPools/managementbackend')
+          }
+          backendHttpSettings: {
+            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/backendHttpSettingsCollection/apimPoolManagementSetting')
           }
         }
       }
     ]
     probes: [
+      // {
+      //   name: 'APIM'
+      //   properties: {
+      //     protocol: 'Https'
+      //     host: primaryBackendEndFQDN
+      //     path: probeUrl
+      //     interval: 30
+      //     timeout: 30
+      //     unhealthyThreshold: 3
+      //     pickHostNameFromBackendHttpSettings: false
+      //     minServers: 0
+      //     match: {
+      //       statusCodes: [
+      //         '200-399'
+      //       ]
+      //     }
+      //   }
+      // }
       {
-        name: 'APIM'
+        name: 'apimgatewayprobe'
         properties: {
           protocol: 'Https'
-          host: primaryBackendEndFQDN
-          path: probeUrl
+          host: apiFQDN
+          path: '/status-0123456789abcdef'
           interval: 30
-          timeout: 30
-          unhealthyThreshold: 3
+          timeout: 120
+          unhealthyThreshold: 8
           pickHostNameFromBackendHttpSettings: false
           minServers: 0
-          match: {
-            statusCodes: [
-              '200-399'
-            ]
-          }
+          match: {}
+        }
+      }
+      {
+        name: 'apimportalprobe'
+        properties: {
+          protocol: 'Https'
+          host: portalFQDN
+          path: '/signin'
+          interval: 60
+          timeout: 300
+          unhealthyThreshold: 8
+          pickHostNameFromBackendHttpSettings: false
+          minServers: 0
+          match: {}
+        }
+      }
+      {
+        name: 'apimmanagementprobe'
+        properties: {
+          protocol: 'Https'
+          host: managementFQDN
+          path: '/ServiceStatus'
+          interval: 60
+          timeout: 300
+          unhealthyThreshold: 8
+          pickHostNameFromBackendHttpSettings: false
+          minServers: 0
+          match: {}
         }
       }
     ]
