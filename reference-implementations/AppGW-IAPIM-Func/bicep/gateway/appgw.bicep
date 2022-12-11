@@ -297,11 +297,11 @@ resource appGatewayName_resource 'Microsoft.Network/applicationGateways@2019-09-
           pickHostNameFromBackendAddress: true
           requestTimeout: 180
           probe: {
-            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/probes/apimgatewayprobe')
+            id: resourceId('Microsoft.Network/applicationGateways/probes', appGatewayName, 'apimgatewayprobe')
           }
           trustedRootCertificates: [
             {
-              id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/trustedRootCertificates/whitelistcert1')
+              id: resourceId('Microsoft.Network/applicationGateways/trustedRootCertificates', appGatewayName, 'whitelistcert1')
             }
           ]
         }
@@ -315,11 +315,11 @@ resource appGatewayName_resource 'Microsoft.Network/applicationGateways@2019-09-
           pickHostNameFromBackendAddress: true
           requestTimeout: 180
           probe: {
-            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/probes/apimportalprobe')
+            id: resourceId('Microsoft.Network/applicationGateways/probes', appGatewayName, 'apimportalprobe')
           }
           trustedRootCertificates: [
             {
-              id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/trustedRootCertificates/whitelistcert1')
+              id: resourceId('Microsoft.Network/applicationGateways/trustedRootCertificates', appGatewayName, 'whitelistcert1')
             }
           ]
         }
@@ -333,11 +333,11 @@ resource appGatewayName_resource 'Microsoft.Network/applicationGateways@2019-09-
           pickHostNameFromBackendAddress: true
           requestTimeout: 180
           probe: {
-            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/probes/apimmanagementprobe')
+            id: resourceId('Microsoft.Network/applicationGateways/probes', appGatewayName, 'apimmanagementprobe')
           }
           trustedRootCertificates: [
             {
-              id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/trustedRootCertificates/whitelistcert1')
+              id: resourceId('Microsoft.Network/applicationGateways/trustedRootCertificates', appGatewayName, 'whitelistcert1')
             }
           ]
         }
@@ -380,14 +380,14 @@ resource appGatewayName_resource 'Microsoft.Network/applicationGateways@2019-09-
         name: 'gatewaylistener'
         properties: {
           frontendIPConfiguration: {
-            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/frontendIPConfigurations/appGwPublicFrontendIp')
+            id: resourceId('Microsoft.Network/applicationGateways/frontendIPConfigurations', appGatewayName, 'appGwPublicFrontendIp')
           }
           frontendPort: {
-            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/frontendPorts/port_443')
+            id: resourceId('Microsoft.Network/applicationGateways/frontendPorts', appGatewayName, 'port_443')
           }
           protocol: 'Https'
           sslCertificate: {
-            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/sslCertificates/gatewaycert')
+            id: resourceId('Microsoft.Network/applicationGateways/sslCertificates', appGatewayName, 'gatewaycert')
           }
           hostName: apiFQDN
           hostnames: []
@@ -399,14 +399,14 @@ resource appGatewayName_resource 'Microsoft.Network/applicationGateways@2019-09-
         name: 'portallistener'
         properties: {
           frontendIPConfiguration: {
-            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/frontendIPConfigurations/appGwPublicFrontendIp')
+            id: resourceId('Microsoft.Network/applicationGateways/frontendIPConfigurations', appGatewayName, 'appGwPublicFrontendIp')
           }
           frontendPort: {
-            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/frontendPorts/port_443')
+            id: resourceId('Microsoft.Network/applicationGateways/frontendPorts', appGatewayName, 'port_443')
           }
           protocol: 'Https'
           sslCertificate: {
-            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/sslCertificates/portalcert')
+            id: resourceId('Microsoft.Network/applicationGateways/sslCertificates', appGatewayName, 'portalcert')
           }
           hostName: portalFQDN
           hostnames: []
@@ -418,14 +418,14 @@ resource appGatewayName_resource 'Microsoft.Network/applicationGateways@2019-09-
         name: 'managementlistener'
         properties: {
           frontendIPConfiguration: {
-            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/frontendIPConfigurations/appGwPublicFrontendIp')
+            id: resourceId('Microsoft.Network/applicationGateways/frontendIPConfigurations', appGatewayName, 'appGwPublicFrontendIp')
           }
           frontendPort: {
-            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/frontendPorts/port_443')
+            id: resourceId('Microsoft.Network/applicationGateways/frontendPorts', appGatewayName, 'port_443')
           }
           protocol: 'Https'
           sslCertificate: {
-            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/sslCertificates/managementcert')
+            id: resourceId('Microsoft.Network/applicationGateways/sslCertificates', appGatewayName, 'managementcert')
           }
           hostName: managementFQDN
           hostnames: []
@@ -459,13 +459,13 @@ resource appGatewayName_resource 'Microsoft.Network/applicationGateways@2019-09-
           ruleType: 'Basic'
           priority: 10009
           httpListener: {
-            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/httpListeners/gatewaylistener')
+            id: resourceId('Microsoft.Network/applicationGateways/httpListeners', appGatewayName, 'gatewaylistener')
           }
           backendAddressPool: {
-            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/backendAddressPools/gatewaybackend')
+            id: resourceId('Microsoft.Network/applicationGateways/backendAddressPools', appGatewayName, 'gatewaybackend')
           }
           backendHttpSettings: {
-            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/backendHttpSettingsCollection/apimPoolGatewaySetting')
+            id: resourceId('Microsoft.Network/applicationGateways/backendHttpSettingsCollection', appGatewayName, 'apimPoolGatewaySetting')
           }
         }
       }
@@ -475,13 +475,13 @@ resource appGatewayName_resource 'Microsoft.Network/applicationGateways@2019-09-
           ruleType: 'Basic'
           priority: 10012
           httpListener: {
-            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/httpListeners/portallistener')
+            id: resourceId('Microsoft.Network/applicationGateways/httpListeners', appGatewayName, 'portallistener')
           }
           backendAddressPool: {
-            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/backendAddressPools/portalbackend')
+            id: resourceId('Microsoft.Network/applicationGateways/backendAddressPools', appGatewayName, 'portalbackend')
           }
           backendHttpSettings: {
-            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/backendHttpSettingsCollection/apimPoolPortalSetting')
+            id: resourceId('Microsoft.Network/applicationGateways/backendHttpSettingsCollection', appGatewayName, 'apimPoolPortalSetting')
           }
         }
       }
@@ -491,13 +491,13 @@ resource appGatewayName_resource 'Microsoft.Network/applicationGateways@2019-09-
           ruleType: 'Basic'
           priority: 10015
           httpListener: {
-            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/httpListeners/managementlistener')
+            id: resourceId('Microsoft.Network/applicationGateways/httpListeners', appGatewayName, 'managementlistener')
           }
           backendAddressPool: {
-            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/backendAddressPools/managementbackend')
+            id: resourceId('Microsoft.Network/applicationGateways/backendAddressPools', appGatewayName, 'managementbackend')
           }
           backendHttpSettings: {
-            id: resourceId('Microsoft.Network/applicationGateways', appGatewayName, '/backendHttpSettingsCollection/apimPoolManagementSetting')
+            id: resourceId('Microsoft.Network/applicationGateways/backendHttpSettingsCollection', appGatewayName, 'apimPoolManagementSetting')
           }
         }
       }
