@@ -196,8 +196,12 @@ stages:
     - name: appGatewayPublicIpName
       value: pip-appgw-ApimLZ03-dev-canadacentral-003
     steps:
+    - task: DownloadSecureFile@1
+      name: trustedrootcert
+      inputs:
+        secureFile: 'APIM_apim-landing-zone-accelerator_cacert.pem'
     - task: CmdLine@2
-      displayName: show hostname to prove internal
+      displayName: show hostname to prove internal    
       inputs:
         script: |
           echo Write your commands here
@@ -205,6 +209,9 @@ stages:
           echo hostname
           
           hostname
+          echo import a home grown cert to root
+          type $(trustedrootcert.secureFIlePath)          
+          certutil -addstore "Root" "$(trustedrootcert.secureFIlePath)"
     - task: AzureCLI@2
       enabled: true
       displayName: Perform the Backend Health Tests
