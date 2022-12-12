@@ -92,9 +92,9 @@ stages:
               scriptType: 'pscore'
               scriptLocation: 'inlineScript'
               inlineScript: |
-              echo "using serviceconnection :" $(serviceConnectionName)
-              echo "initial deployment may take up to one hour while subsequent ones are shorter"
-              az deployment sub create --location $(deploymentLocation) --name $(deploymentName) --template-file $(Pipeline.Workspace)/$(artifactName)/main.bicep --parameters workloadName=$(workloadName) environment=$(eslzEnvironmentType) CICDAgentType=$(CICDAgentType) accountName=$(accountName) appGatewayCertType=$(appGatewayCertType) appGatewayFqdn=$(appGatewayFqdn) certificatePassword=$(certificatePassword) personalAccessToken=$(personalAccessToken) vmPassword=$(vmPassword) vmUsername=$(vmUsername) apiFQDN=$(apiFQDN) apiCertificatePassword=$(apiCertificatePassword) apiCertType=$(apiCertType) portalFQDN=$(portalFQDN) portalCertificatePassword=$(portalCertificatePassword) portalCertType=$(portalCertType) managementFQDN=$(managementFQDN) managementCertificatePassword=$(managementCertificatePassword) managementCertType=$(managementCertType)
+                echo "using serviceconnection :" $(serviceConnectionName)
+                echo "initial deployment may take up to one hour while subsequent ones are shorter"
+                az deployment sub create --location $(deploymentLocation) --name $(deploymentName) --template-file $(Pipeline.Workspace)/$(artifactName)/main.bicep --parameters workloadName=$(workloadName) environment=$(eslzEnvironmentType) CICDAgentType=$(CICDAgentType) accountName=$(accountName) appGatewayCertType=$(appGatewayCertType) appGatewayFqdn=$(appGatewayFqdn) certificatePassword=$(certificatePassword) personalAccessToken=$(personalAccessToken) vmPassword=$(vmPassword) vmUsername=$(vmUsername) apiFQDN=$(apiFQDN) apiCertificatePassword=$(apiCertificatePassword) apiCertType=$(apiCertType) portalFQDN=$(portalFQDN) portalCertificatePassword=$(portalCertificatePassword) portalCertType=$(portalCertType) managementFQDN=$(managementFQDN) managementCertificatePassword=$(managementCertificatePassword) managementCertType=$(managementCertType)
 - stage: postdeploy
   displayName: 'Post deploy scripts'
   dependsOn: deploy_artifacts
