@@ -77,7 +77,7 @@ resource apimName_resource 'Microsoft.ApiManagement/service@2020-12-01' = {
         certificatePassword: 'Test12345!'
         //encodedCertificate: ''
         identityClientId: '1216d0de-27c4-49b9-a97d-4f0c16590cee'
-        keyVaultId: 'https://kv-apimlz03-dev-canadace.${environment().suffixes.keyvaultDns}/secrets/api-mngenv019702-onmicrosoft-com'
+        keyVaultId: 'https://kv-apimlz03-dev-canadace${environment().suffixes.keyvaultDns}/secrets/api-mngenv019702-onmicrosoft-com'
       }
       {
         type: 'DeveloperPortal'
@@ -93,7 +93,7 @@ resource apimName_resource 'Microsoft.ApiManagement/service@2020-12-01' = {
         certificatePassword: 'Test12345!'
         //encodedCertificate: ''
         identityClientId: '1216d0de-27c4-49b9-a97d-4f0c16590cee'
-        keyVaultId: 'https://kv-apimlz03-dev-canadace.${environment().suffixes.keyvaultDns}/secrets/portal-mngenv019702-onmicrosoft-com'
+        keyVaultId: 'https://kv-apimlz03-dev-canadace${environment().suffixes.keyvaultDns}/secrets/portal-mngenv019702-onmicrosoft-com'
       }
       {
         type: 'Management'
@@ -109,7 +109,7 @@ resource apimName_resource 'Microsoft.ApiManagement/service@2020-12-01' = {
         certificatePassword: 'Test12345!'
         //encodedCertificate: ''
         identityClientId: '1216d0de-27c4-49b9-a97d-4f0c16590cee'
-        keyVaultId: 'https://kv-apimlz03-dev-canadace.${environment().suffixes.keyvaultDns}/secrets/management-mngenv019702-onmicrosoft-com'
+        keyVaultId: 'https://kv-apimlz03-dev-canadace${environment().suffixes.keyvaultDns}/secrets/management-mngenv019702-onmicrosoft-com'
       }
     ]
   }
