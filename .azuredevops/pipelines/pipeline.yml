@@ -187,6 +187,12 @@ stages:
       value: appgw-ApimLZ03-dev-canadacentral-003
     - name: apimServiceName
       value: apim-ApimLZ03-dev-canadacentral-003
+    - name: Location
+      value: canadacentral
+    - name: apimOrganization
+      value: "Contoso MngEnv019702"
+    - name: apimAdminEmail
+      value: "admin@MngEnv019702.onmicrosoft.com" # Administrator's email address
     steps:
     - task: CmdLine@2
       displayName: show hostname to prove internal
