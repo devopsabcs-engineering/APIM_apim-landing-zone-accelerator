@@ -163,6 +163,8 @@ module apimModule 'apim/apim.bicep' = {
     appInsightsName: shared.outputs.appInsightsName
     appInsightsId: shared.outputs.appInsightsId
     appInsightsInstrumentationKey: shared.outputs.appInsightsInstrumentationKey
+    publisherEmail: 'admin@MngEnv019702.onmicrosoft.com'
+    publisherName: 'Contoso MngEnv019702'
   }
 }
 

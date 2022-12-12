@@ -88,7 +88,7 @@ stages:
             artifact: $(artifactName)
           - task: AzureCLI@2
             displayName: deploy apim bicep templates
-            enabled: false
+            enabled: true
             inputs:
               azureSubscription: $(serviceConnectionName)
               scriptType: 'pscore'
@@ -103,12 +103,16 @@ stages:
   jobs:
   - job: post_deploy_job
     variables:
-    #- name: internalVnetName
-    #  value: vnet-apim-cs-ApimESLZ-dev-canadacentral-002
+    - name: appGatewayVnetName
+      value: vnet-apim-cs-ApimLZ03-dev-canadacentral-003
+    - name: ResourceGroupNameShared
+      value: rg-shared-ApimLZ03-dev-canadacentral-003
+    - name: ResourceGroupNameNetwork
+      value: rg-networking-ApimLZ03-dev-canadacentral-003
     - name: domainName
       value: MngEnv019702.onmicrosoft.com
-    #- name: zoneName
-    #  value: MngEnv019702.onmicrosoft.com
+    - name: zoneName
+      value: MngEnv019702.onmicrosoft.com
     - name: ResourceGroupNameApim 
       value: rg-apim-ApimLZ03-dev-canadacentral-003
     - name: apimServiceName
@@ -156,4 +160,4 @@ stages:
           scriptType: 'pscore'
           scriptLocation: 'scriptPath'
           scriptPath: '$(System.DefaultWorkingDirectory)/infra/scripts/main-postdeploy.ps1'
-          arguments: '-ResourceGroupNameApim $(ResourceGroupNameApim) -apimServiceName $(apimServiceName) -domainName $(domainName) -pfxPassword $(pfxPassword) -trustedrootcertsecureFIlePath $(trustedrootcert.secureFIlePath) -pfxApiTasksecureFIlePath $(pfxApiTask.secureFIlePath) -pfxPortalTasksecureFIlePath $(pfxPortalTask.secureFIlePath) -pfxManagementTasksecureFIlePath $(pfxManagementTask.secureFIlePath) -azureApplicationId $(azureApplicationId) -azureTenantId $(azureTenantId) -azureClientSecret $(azureClientSecret)'
+          arguments: '-ResourceGroupNameApim $(ResourceGroupNameApim) -apimServiceName $(apimServiceName) -domainName $(domainName) -pfxPassword $(pfxPassword) -trustedrootcertsecureFIlePath $(trustedrootcert.secureFIlePath) -pfxApiTasksecureFIlePath $(pfxApiTask.secureFIlePath) -pfxPortalTasksecureFIlePath $(pfxPortalTask.secureFIlePath) -pfxManagementTasksecureFIlePath $(pfxManagementTask.secureFIlePath) -azureApplicationId $(azureApplicationId) -azureTenantId $(azureTenantId) -azureClientSecret $(azureClientSecret) -zoneName $(zoneName) -ResourceGroupNameShared $(ResourceGroupNameShared) -ResourceGroupNameNetwork $(ResourceGroupNameNetwork) -appGatewayVnetName $(appGatewayVnetName)'

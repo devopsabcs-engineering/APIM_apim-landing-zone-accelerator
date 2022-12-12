@@ -7,9 +7,9 @@ Param(
     
     [PARAMETER(Mandatory = $True, Position = 1, HelpMessage = "ResourceGroupNameApim")]
     [String]$ResourceGroupNameApim,
-
-    #[PARAMETER(Mandatory = $True, Position = 2, HelpMessage = "zoneName")]
-    #[String]$zoneName,
+    
+    [PARAMETER(Mandatory = $True, Position = 2, HelpMessage = "zoneName")]
+    [String]$zoneName,
 
     #[PARAMETER(Mandatory = $True, Position = 3, HelpMessage = "appGatewayName")]        
     #[String]$appGatewayName,
@@ -51,7 +51,13 @@ Param(
     [String]$azureTenantId,
 
     [PARAMETER(Mandatory = $True, Position = 16, HelpMessage = "azureClientSecret")]
-    [String]$azureClientSecret
+    [String]$azureClientSecret,
+    [PARAMETER(Mandatory = $True, Position = 17, HelpMessage = "ResourceGroupNameShared")]
+    [String]$ResourceGroupNameShared,
+    [PARAMETER(Mandatory = $True, Position = 18, HelpMessage = "ResourceGroupNameNetwork")]
+    [String]$ResourceGroupNameNetwork,
+    [PARAMETER(Mandatory = $True, Position = 19, HelpMessage = "appGatewayVnetName")]        
+    [String]$appGatewayVnetName
 )     
 
 Write-Host post deploy only
@@ -98,3 +104,33 @@ $apimService.PortalCustomHostnameConfiguration = $portalHostnameConfig
 $apimService.ManagementCustomHostnameConfiguration = $managementHostnameConfig
 
 Set-AzApiManagement -InputObject $apimService
+
+Write-Host get vnet info
+$vnet = Get-AzVirtualNetwork -Name $appGatewayVnetName -ResourceGroupName $ResourceGroupNameNetwork
+
+Write-Host Configure a private zone for DNS resolution in the virtual network
+$existingZonesJson = az network private-dns zone list -g $ResourceGroupNameShared
+$existingZones = $existingZonesJson | ConvertFrom-Json
+if ( $existingZones.count -lt 6 ) {
+    $myZone = New-AzPrivateDnsZone -Name "$zoneName" -ResourceGroupName $ResourceGroupNameShared
+    $link = New-AzPrivateDnsVirtualNetworkLink -ZoneName $zoneName `
+        -ResourceGroupName $ResourceGroupNameShared -Name "mylink" `
+        -VirtualNetworkId $vnet.id
+
+    Write-Host Create A records for the custom domain host names that map to the private IP address of API Management.
+
+    $apimIP = $apimService.PrivateIPAddresses[0]
+
+    New-AzPrivateDnsRecordSet -Name api -RecordType A -ZoneName $zoneName `
+        -ResourceGroupName $ResourceGroupNameShared -Ttl 3600 `
+        -PrivateDnsRecords (New-AzPrivateDnsRecordConfig -IPv4Address $apimIP)
+    New-AzPrivateDnsRecordSet -Name portal -RecordType A -ZoneName $zoneName `
+        -ResourceGroupName $ResourceGroupNameShared -Ttl 3600 `
+        -PrivateDnsRecords (New-AzPrivateDnsRecordConfig -IPv4Address $apimIP)
+    New-AzPrivateDnsRecordSet -Name management -RecordType A -ZoneName $zoneName `
+        -ResourceGroupName $ResourceGroupNameShared -Ttl 3600 `
+        -PrivateDnsRecords (New-AzPrivateDnsRecordConfig -IPv4Address $apimIP)
+}
+else {
+    Write-Host skipping creation of private zones
+}  
