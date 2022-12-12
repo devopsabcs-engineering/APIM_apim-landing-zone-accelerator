@@ -164,7 +164,7 @@ stages:
 - stage: internal_vnet_tests
   dependsOn: [postdeploy]
   pool:
-   name: APIM_Internal_Vnet_Agents
+   name: APIM_Internal_Vnet_Agents_003
   jobs:
   - job: do_health_tests
     displayName: perform internal vnet health test
