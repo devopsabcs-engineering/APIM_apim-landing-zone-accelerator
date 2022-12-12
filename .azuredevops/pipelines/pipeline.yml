@@ -87,6 +87,8 @@ stages:
           - download: current
             artifact: $(artifactName)
           - task: AzureCLI@2
+            displayName: deploy apim bicep templates
+            enabled: false
             inputs:
               azureSubscription: $(serviceConnectionName)
               scriptType: 'pscore'
@@ -153,5 +155,5 @@ stages:
           azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
           scriptType: 'pscore'
           scriptLocation: 'scriptPath'
-          scriptPath: '$(System.DefaultWorkingDirectory)/infra/scripts/main-postdeply.ps1'
+          scriptPath: '$(System.DefaultWorkingDirectory)/infra/scripts/main-postdeploy.ps1'
           arguments: '-ResourceGroupNameApim $(ResourceGroupNameApim) -apimServiceName $(apimServiceName) -domainName $(domainName) -pfxPassword $(pfxPassword) -trustedrootcertsecureFIlePath $(trustedrootcert.secureFIlePath) -pfxApiTasksecureFIlePath $(pfxApiTask.secureFIlePath) -pfxPortalTasksecureFIlePath $(pfxPortalTask.secureFIlePath) -pfxManagementTasksecureFIlePath $(pfxManagementTask.secureFIlePath) -azureApplicationId $(azureApplicationId) -azureTenantId $(azureTenantId) -azureClientSecret $(azureClientSecret)'
