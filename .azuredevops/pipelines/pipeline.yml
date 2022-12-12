@@ -15,6 +15,8 @@ pool:
 variables:
 - template: apim-eslz-vars.yml
 - group: APIM_ESLZ_dev_vars
+- name: ReDeployInfra
+  value: true
 
 #resources:
 #  repositories:
@@ -88,7 +90,7 @@ stages:
             artifact: $(artifactName)
           - task: AzureCLI@2
             displayName: deploy apim bicep templates
-            enabled: false
+            enabled: ${{ variables.ReDeployInfra }}
             inputs:
               azureSubscription: $(serviceConnectionName)
               scriptType: 'pscore'
@@ -150,7 +152,7 @@ stages:
         inputs:
           secureFile: 'APIM_apim-landing-zone-accelerator_cacert.pem'      
       - task: AzureCLI@2
-        enabled: false
+        enabled: ${{ variables.ReDeployInfra }}
         displayName: post deploy
         inputs:
           azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
