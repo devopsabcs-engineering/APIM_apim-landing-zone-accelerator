@@ -49,7 +49,9 @@ Param(
     [String]$azureTenantId,
 
     [PARAMETER(Mandatory = $True, Position = 16, HelpMessage = "azureClientSecret")]
-    [String]$azureClientSecret
+    [String]$azureClientSecret,
+    [PARAMETER(Mandatory = $True, Position = 17, HelpMessage = "appGatewayPublicIpName")]
+    [String]$appGatewayPublicIpName
 )     
 Write-Host install az powershell modules
 
@@ -60,6 +62,19 @@ $psCred = New-Object System.Management.Automation.PSCredential($azureApplication
 Connect-AzAccount -Credential $psCred -TenantId $azureTenantId  -ServicePrincipal 
 
 Write-Host generate hosts file
+
+Write-Host but first we quickly check private dns zones
+
+$gatewayHostname = "api.$domainName"                 # API gateway host
+$portalHostname = "portal.$domainName"               # API developer portal host
+$managementHostname = "management.$domainName"               # API management endpoint host
+
+Write-Host "do nslookup thrice..."
+
+nslookup.exe $gatewayHostname
+nslookup.exe $portalHostname
+nslookup.exe $managementHostname
+
 
 Get-Content C:\Windows\System32\drivers\etc\hosts
 
@@ -75,9 +90,7 @@ Connect-AzAccount -Credential $psCred -TenantId $azureTenantId  -ServicePrincipa
 #Get-AzApplicationGatewayBackendHealth -Name $appGatewayName -ResourceGroupName $ResourceGroupNameApim
 
 
-$gatewayHostname = "api.$domainName"                 # API gateway host
-$portalHostname = "portal.$domainName"               # API developer portal host
-$managementHostname = "management.$domainName"               # API management endpoint host
+
 
 $appGw = Get-AzApplicationGateway -Name $appGatewayName -ResourceGroupName $ResourceGroupNameApim
 
@@ -88,7 +101,7 @@ $apimService = Get-AzApiManagement -ResourceGroupName $ResourceGroupNameApim -Na
 Write-Host $apimService
 
 
-$publicip = Get-AzPublicIpAddress -ResourceGroupName $ResourceGroupNameApim -name "publicIP01"
+$publicip = Get-AzPublicIpAddress -ResourceGroupName $ResourceGroupNameApim -name $appGatewayPublicIpName
 
 $appGatewayPuplicIp = $publicip.IpAddress
 Write-Host "app gateway public ip $appGatewayPuplicIp"
@@ -120,6 +133,9 @@ Get-Content C:\Windows\System32\drivers\etc\hosts
 
 ping $gatewayHostname
 
+$cacertFilePath = "./infra/scripts/cacert.pem"
+Get-Content $cacertFilePath
+
 #do not check for certification revocation status
 echo "testing https://$gatewayHostname"
 curl "https://$gatewayHostname" --ssl-no-revoke
@@ -131,4 +147,15 @@ echo "do a post"
 curl -d '{"vehicleType":"train","maxSpeed":125,"avgSpeed":90,"speedUnit":"mph"}' "https://$gatewayHostname/echo/resource" --ssl-no-revoke
 
 echo "testing https://$portalHostname"
-curl "https://$portalHostname" --ssl-no-revoke
+curl "https://$portalHostname" --ssl-no-revoke --cacert $cacertFilePath
+
+echo "backend api tests"
+echo "https://$gatewayHostname/todoapi/todo"
+curl "https://$gatewayHostname/todoapi/todo" --ssl-no-revoke --cacert $cacertFilePath
+
+echo "POST one more task"
+$date = Get-Date
+curl -d "{`"taskDescription`": `"task from pipeline ${date}`"}" "https://$gatewayHostname/todoapi/todo" --ssl-no-revoke --cacert $cacertFilePath
+
+echo "you should now see one more..."
+curl "https://$gatewayHostname/todoapi/todo" --ssl-no-revoke --cacert $cacertFilePath
