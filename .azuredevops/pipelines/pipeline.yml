@@ -193,6 +193,8 @@ stages:
       value: "Contoso MngEnv019702"
     - name: apimAdminEmail
       value: "admin@MngEnv019702.onmicrosoft.com" # Administrator's email address
+    - name: appGatewayPublicIpName
+      value: pip-appgw-ApimLZ03-dev-canadacentral-003
     steps:
     - task: CmdLine@2
       displayName: show hostname to prove internal
@@ -211,7 +213,7 @@ stages:
         scriptType: 'pscore'
         scriptLocation: 'scriptPath'
         scriptPath: '$(System.DefaultWorkingDirectory)/infra/scripts/health-test-internal.ps1'
-        arguments: '-Location $(Location) -ResourceGroupNameApim $(ResourceGroupNameApim) -zoneName $(zoneName) -appGatewayName $(appGatewayName) -apimServiceName $(apimServiceName) -domainName $(domainName) -apimOrganization "$(apimOrganization)" -apimAdminEmail $(apimAdminEmail) -pfxPassword $(pfxPassword) -azureApplicationId $(azureApplicationId) -azureTenantId $(azureTenantId) -azureClientSecret $(azureClientSecret)'
+        arguments: '-Location $(Location) -ResourceGroupNameApim $(ResourceGroupNameApim) -zoneName $(zoneName) -appGatewayName $(appGatewayName) -apimServiceName $(apimServiceName) -domainName $(domainName) -apimOrganization "$(apimOrganization)" -apimAdminEmail $(apimAdminEmail) -pfxPassword $(pfxPassword) -azureApplicationId $(azureApplicationId) -azureTenantId $(azureTenantId) -azureClientSecret $(azureClientSecret) -appGatewayPublicIpName $(appGatewayPublicIpName)'
     - task: UniversalPackages@0
       displayName: Download rest api tools
       inputs:

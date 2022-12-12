@@ -49,7 +49,9 @@ Param(
     [String]$azureTenantId,
 
     [PARAMETER(Mandatory = $True, Position = 16, HelpMessage = "azureClientSecret")]
-    [String]$azureClientSecret
+    [String]$azureClientSecret,
+    [PARAMETER(Mandatory = $True, Position = 17, HelpMessage = "appGatewayPublicIpName")]
+    [String]$appGatewayPublicIpName
 )     
 
 Write-Host generate hosts file
@@ -92,7 +94,7 @@ $apimService = Get-AzApiManagement -ResourceGroupName $ResourceGroupNameApim -Na
 Write-Host $apimService
 
 
-$publicip = Get-AzPublicIpAddress -ResourceGroupName $ResourceGroupNameApim -name "publicIP01"
+$publicip = Get-AzPublicIpAddress -ResourceGroupName $ResourceGroupNameApim -name $appGatewayPublicIpName
 
 $appGatewayPuplicIp = $publicip.IpAddress
 Write-Host "app gateway public ip $appGatewayPuplicIp"
