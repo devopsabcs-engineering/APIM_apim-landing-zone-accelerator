@@ -56,6 +56,8 @@ Param(
 
 Write-Host post deploy only
 
+Write-Host install az module
+
 Install-Module -Name Az -AllowClobber -Scope CurrentUser -Force
 
 $azurePassword = ConvertTo-SecureString "$azureClientSecret" -AsPlainText -Force
@@ -88,6 +90,8 @@ $portalHostnameConfig = New-AzApiManagementCustomHostnameConfiguration -Hostname
     -HostnameType DeveloperPortal -PfxPath $portalCertPfxPath -PfxPassword $certPortalPwd
 $managementHostnameConfig = New-AzApiManagementCustomHostnameConfiguration -Hostname $managementHostname `
     -HostnameType Management -PfxPath $managementCertPfxPath -PfxPassword $certManagementPwd
+
+$apimService = Get-AzApiManagement -ResourceGroupName $ResourceGroupNameApim -Name $apimServiceName
 
 $apimService.ProxyCustomHostnameConfiguration = $gatewayHostnameConfig
 $apimService.PortalCustomHostnameConfiguration = $portalHostnameConfig
