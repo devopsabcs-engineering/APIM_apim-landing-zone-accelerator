@@ -126,6 +126,8 @@ Get-Content C:\Windows\System32\drivers\etc\hosts
 
 ping $gatewayHostname
 
+Get-Content cacert.pem
+
 #do not check for certification revocation status
 echo "testing https://$gatewayHostname"
 curl "https://$gatewayHostname" --ssl-no-revoke --cacert cacert.pem
