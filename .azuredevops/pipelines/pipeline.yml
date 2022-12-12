@@ -88,7 +88,7 @@ stages:
             artifact: $(artifactName)
           - task: AzureCLI@2
             displayName: deploy apim bicep templates
-            enabled: true
+            enabled: false
             inputs:
               azureSubscription: $(serviceConnectionName)
               scriptType: 'pscore'
@@ -117,7 +117,7 @@ stages:
       value: rg-apim-ApimLZ03-dev-canadacentral-003
     - name: apimServiceName
       value: apim-ApimLZ03-dev-canadacentral-003
-    - group: APIM_apim-landing-zone-accelerator_common
+    #- group: APIM_apim-landing-zone-accelerator_common
     #- name: appGatewayName
     #  value: appgw-ApimESLZ-dev-canadacentral-002
     #- name: Location
@@ -126,9 +126,9 @@ stages:
     #  value: "Contoso MngEnv019702"
     #- name: apimAdminEmail
     #  value: "admin@MngEnv019702.onmicrosoft.com" # Administrator's email address
-    - group: APIM_apim-landing-zone-accelerator_common
-    #- name: ARTIFACTS_FEED_NAME
-    #  value: APIM_landing_zone_tools
+    - group: APIM_apim-landing-zone-accelerator_common_003
+    - name: ARTIFACTS_FEED_NAME
+      value: APIM_landing_zone_tools
     steps:
       - task: CmdLine@2
         inputs:
@@ -153,7 +153,7 @@ stages:
         inputs:
           secureFile: 'APIM_apim-landing-zone-accelerator_cacert.pem'      
       - task: AzureCLI@2
-        enabled: true
+        enabled: false
         displayName: post deploy
         inputs:
           azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
@@ -161,3 +161,201 @@ stages:
           scriptLocation: 'scriptPath'
           scriptPath: '$(System.DefaultWorkingDirectory)/infra/scripts/main-postdeploy.ps1'
           arguments: '-ResourceGroupNameApim $(ResourceGroupNameApim) -apimServiceName $(apimServiceName) -domainName $(domainName) -pfxPassword $(pfxPassword) -trustedrootcertsecureFIlePath $(trustedrootcert.secureFIlePath) -pfxApiTasksecureFIlePath $(pfxApiTask.secureFIlePath) -pfxPortalTasksecureFIlePath $(pfxPortalTask.secureFIlePath) -pfxManagementTasksecureFIlePath $(pfxManagementTask.secureFIlePath) -azureApplicationId $(azureApplicationId) -azureTenantId $(azureTenantId) -azureClientSecret $(azureClientSecret) -zoneName $(zoneName) -ResourceGroupNameShared $(ResourceGroupNameShared) -ResourceGroupNameNetwork $(ResourceGroupNameNetwork) -appGatewayVnetName $(appGatewayVnetName)'
+- stage: internal_vnet_tests
+  dependsOn: [postdeploy]
+  pool:
+   name: APIM_Internal_Vnet_Agents
+  jobs:
+  - job: do_health_tests
+    displayName: perform internal vnet health test
+    variables:
+    - name: appGatewayVnetName
+      value: vnet-apim-cs-ApimLZ03-dev-canadacentral
+    - name: ResourceGroupNameShared
+      value: rg-shared-ApimLZ03-dev-canadacentral-003
+    - name: ResourceGroupNameNetwork
+      value: rg-networking-ApimLZ03-dev-canadacentral-003
+    - name: domainName
+      value: MngEnv019702.onmicrosoft.com
+    - name: zoneName
+      value: MngEnv019702.onmicrosoft.com
+    - name: ResourceGroupNameApim 
+      value: rg-apim-ApimLZ03-dev-canadacentral-003
+    - name: apimServiceName
+      value: apim-ApimLZ03-dev-canadacentral-003    
+    - group: APIM_apim-landing-zone-accelerator_common_003
+    - name: ARTIFACTS_FEED_NAME
+      value: APIM_landing_zone_tools
+    steps:
+    - task: CmdLine@2
+      displayName: show hostname to prove internal
+      inputs:
+        script: |
+          echo Write your commands here
+          
+          echo hostname
+          
+          hostname
+    - task: AzureCLI@2
+      enabled: true
+      displayName: Perform the Backend Health Tests
+      inputs:
+        azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+        scriptType: 'pscore'
+        scriptLocation: 'scriptPath'
+        scriptPath: '$(System.DefaultWorkingDirectory)/infra/scripts/health-test-internal.ps1'
+        arguments: '-Location $(Location) -ResourceGroupNameApim $(ResourceGroupNameApim) -zoneName $(zoneName) -appGatewayName $(appGatewayName) -apimServiceName $(apimServiceName) -domainName $(domainName) -apimOrganization "$(apimOrganization)" -apimAdminEmail $(apimAdminEmail) -pfxPassword $(pfxPassword) -azureApplicationId $(azureApplicationId) -azureTenantId $(azureTenantId) -azureClientSecret $(azureClientSecret)'
+    - task: UniversalPackages@0
+      displayName: Download rest api tools
+      inputs:
+        downloadDirectory: '$(Pipeline.Workspace)/restapitool'
+        vstsFeed: $(System.TeamProject)/$(ARTIFACTS_FEED_NAME)
+        vstsFeedPackage: 'restapitool'
+        vstsPackageVersion: '*'
+    - task: CmdLine@2
+      displayName: internal test management via direct rest api tools
+      env:
+        APIM_LandingZone_RestApi_PrimaryKey: $(APIM_LandingZone_RestApi_PrimaryKey)
+        APIM_LandingZone_RestApi_Identifier: $(APIM_LandingZone_RestApi_Identifier)
+      inputs:
+        script: |
+          echo Write your commands here
+          
+          echo Hello world
+          dir "$(Pipeline.Workspace)/restapitool"          
+          $(Pipeline.Workspace)/restapitool/ApimManagementApi.exe
+- stage: external_vnet_tests
+  dependsOn: [internal_vnet_tests]
+  pool:
+   vmImage: windows-latest
+  jobs:
+  - job: do_health_tests
+    displayName: perform external vnet health test
+    steps:
+    - task: DownloadSecureFile@1
+      name: trustedrootcert
+      inputs:
+        secureFile: 'APIM_apim-landing-zone-accelerator_cacert.pem'
+    - task: CmdLine@2
+      displayName: show hostname to prove external
+      inputs:
+        script: |
+          echo Write your commands here
+          
+          echo hostname
+          
+          hostname
+          echo import a cert to root
+          type $(trustedrootcert.secureFIlePath)          
+          certutil -addstore "Root" "$(trustedrootcert.secureFIlePath)"
+    - task: AzureCLI@2
+      enabled: true
+      displayName: Perform the Backend Health Tests
+      inputs:
+        azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+        scriptType: 'pscore'
+        scriptLocation: 'scriptPath'
+        scriptPath: '$(System.DefaultWorkingDirectory)/infra/scripts/health-test-external.ps1'
+        arguments: '-Location $(Location) -ResourceGroupNameApim $(ResourceGroupNameApim) -zoneName $(zoneName) -appGatewayName $(appGatewayName) -apimServiceName $(apimServiceName) -domainName $(domainName) -apimOrganization "$(apimOrganization)" -apimAdminEmail $(apimAdminEmail) -pfxPassword $(pfxPassword) -azureApplicationId $(azureApplicationId) -azureTenantId $(azureTenantId) -azureClientSecret $(azureClientSecret)'
+    - task: UniversalPackages@0
+      displayName: Download rest api tools
+      inputs:
+        downloadDirectory: '$(Pipeline.Workspace)/restapitool'
+        vstsFeed: $(System.TeamProject)/$(ARTIFACTS_FEED_NAME)
+        vstsFeedPackage: 'restapitool'
+        vstsPackageVersion: '*'
+    - task: CmdLine@2
+      displayName: external test management via direct rest api tools
+      env:
+        APIM_LandingZone_RestApi_PrimaryKey: $(APIM_LandingZone_RestApi_PrimaryKey)
+        APIM_LandingZone_RestApi_Identifier: $(APIM_LandingZone_RestApi_Identifier)
+      inputs:
+        script: |
+          echo Write your commands here
+          
+          echo Hello world
+          dir "$(Pipeline.Workspace)/restapitool"          
+          $(Pipeline.Workspace)/restapitool/ApimManagementApi.exe
+- stage: integrated_tests
+  dependsOn: [external_vnet_tests]
+  pool:
+   vmImage: windows-latest
+  jobs:
+  - job: do_health_tests
+    displayName: perform health test
+    steps:
+    #- checkout: self
+    #  persistCredentials: true    
+    - task: AzureCLI@2
+      enabled: false
+      displayName: Perform the Backend Health Tests
+      inputs:
+        azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+        scriptType: 'pscore'
+        scriptLocation: 'scriptPath'
+        scriptPath: '$(System.DefaultWorkingDirectory)/infra/scripts/health-test.ps1'
+        arguments: '-Location $(Location) -ResourceGroupNameApim $(ResourceGroupNameApim) -zoneName $(zoneName) -appGatewayName $(appGatewayName) -apimServiceName $(apimServiceName) -domainName $(domainName) -apimOrganization "$(apimOrganization)" -apimAdminEmail $(apimAdminEmail) -pfxPassword $(pfxPassword) -azureApplicationId $(azureApplicationId) -azureTenantId $(azureTenantId) -azureClientSecret $(azureClientSecret)'
+
+    - task: AzureCLI@2
+      enabled: false
+      env:
+        azureClientSecret: $(azureClientSecret)
+        azureApplicationId: $(azureApplicationId)
+        azureTenantId: $(azureTenantId)
+      inputs:
+        azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+        scriptType: 'pscore'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          # Write your PowerShell commands here.
+
+          $azureClientSecret = Get-ChildItem Env:azureClientSecret
+          $azureApplicationId = Get-ChildItem Env:azureApplicationId
+          $azureTenantId = Get-ChildItem Env:azureTenantId
+
+          echo $azureApplicationId
+          echo $azureTenantId
+          echo $azureClientSecret
+                    
+          Write-Host "Hello World"
+          Write-Host "install az module"
+
+          Install-Module -Name Az -AllowClobber -Scope CurrentUser -Force
+          $azurePassword = ConvertTo-SecureString "$(azureClientSecret)" -AsPlainText -Force
+          $psCred = New-Object System.Management.Automation.PSCredential($(azureApplicationId) , $azurePassword)
+          Connect-AzAccount -Credential $psCred -TenantId $(azureTenantId)  -ServicePrincipal 
+          
+          Write-Host After the application gateway deploys, confirm the health status of the API Management back ends in the portal or by running the following command
+          
+          Get-AzApplicationGatewayBackendHealth -Name $(appGatewayName) -ResourceGroupName $(ResourceGroupNameApim)
+    - task: PowerShell@2
+      enabled: false
+      displayName: Health Check
+      env:
+        azureClientSecret: $(azureClientSecret)
+        azureApplicationId: $(azureApplicationId)
+        azureTenantId: $(azureTenantId)
+      inputs:
+        targetType: 'inline'
+        script: |
+          # Write your PowerShell commands here.
+          
+          $azureClientSecret = Get-ChildItem Env:azureClientSecret
+          $azureApplicationId = Get-ChildItem Env:azureApplicationId
+          $azureTenantId = Get-ChildItem Env:azureTenantId
+
+          echo $azureApplicationId
+          echo $azureTenantId
+          echo $azureClientSecret
+
+          Write-Host "Hello World"
+          Write-Host "install az module"
+
+          Install-Module -Name Az -AllowClobber -Scope CurrentUser -Force
+          $azurePassword = ConvertTo-SecureString "$azureClientSecret" -AsPlainText -Force
+          $psCred = New-Object System.Management.Automation.PSCredential($azureApplicationId , $azurePassword)
+          Connect-AzAccount -Credential $psCred -TenantId $azureTenantId  -ServicePrincipal
+          
+          Write-Host After the application gateway deploys, confirm the health status of the API Management back ends in the portal or by running the following command
+          
+          Get-AzApplicationGatewayBackendHealth -Name $(appGatewayName) -ResourceGroupName $(ResourceGroupNameApim)
