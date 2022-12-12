@@ -54,6 +54,19 @@ Param(
 
 Write-Host generate hosts file
 
+Write-Host but first we quickly check private dns zones
+
+$gatewayHostname = "api.$domainName"                 # API gateway host
+$portalHostname = "portal.$domainName"               # API developer portal host
+$managementHostname = "management.$domainName"               # API management endpoint host
+
+Write-Host "do nslookup thrice..."
+
+nslookup.exe $gatewayHostname
+nslookup.exe $portalHostname
+nslookup.exe $managementHostname
+
+
 Get-Content C:\Windows\System32\drivers\etc\hosts
 
 Copy-Item -Force C:\Windows\System32\drivers\etc\hosts C:\Windows\System32\drivers\etc\hosts.default
@@ -68,9 +81,7 @@ Connect-AzAccount -Credential $psCred -TenantId $azureTenantId  -ServicePrincipa
 #Get-AzApplicationGatewayBackendHealth -Name $appGatewayName -ResourceGroupName $ResourceGroupNameApim
 
 
-$gatewayHostname = "api.$domainName"                 # API gateway host
-$portalHostname = "portal.$domainName"               # API developer portal host
-$managementHostname = "management.$domainName"               # API management endpoint host
+
 
 $appGw = Get-AzApplicationGateway -Name $appGatewayName -ResourceGroupName $ResourceGroupNameApim
 
