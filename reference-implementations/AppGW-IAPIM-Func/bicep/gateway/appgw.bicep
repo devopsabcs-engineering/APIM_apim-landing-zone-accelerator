@@ -134,6 +134,7 @@ resource appGatewayName_resource 'Microsoft.Network/applicationGateways@2019-09-
     sku: {
       name: 'WAF_v2'
       tier: 'WAF_v2'
+      capacity: 2
     }
     gatewayIPConfigurations: [
       {
@@ -172,18 +173,19 @@ resource appGatewayName_resource 'Microsoft.Network/applicationGateways@2019-09-
       }
     ]
     sslPolicy: {
-      minProtocolVersion: 'TLSv1_2'
-      policyType: 'Custom'
-      cipherSuites: [
-        'TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256'
-        'TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384'
-        'TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256'
-        'TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384'
-        'TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256'
-        'TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384'
-        'TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256'
-        'TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384'
-      ]
+      //minProtocolVersion: 'TLSv1_2'
+      policyType: 'Predefined'
+      policyName: 'AppGwSslPolicy20220101'
+      // cipherSuites: [
+      //   'TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256'
+      //   'TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384'
+      //   'TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256'
+      //   'TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384'
+      //   'TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256'
+      //   'TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384'
+      //   'TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256'
+      //   'TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384'
+      // ]
     }
     trustedRootCertificates: [
       {
@@ -568,7 +570,7 @@ resource appGatewayName_resource 'Microsoft.Network/applicationGateways@2019-09-
     redirectConfigurations: []
     webApplicationFirewallConfiguration: {
       enabled: true
-      firewallMode: 'Detection'
+      firewallMode: 'Prevention' // 'Detection'
       ruleSetType: 'OWASP'
       ruleSetVersion: '3.0'
       disabledRuleGroups: []
@@ -576,10 +578,10 @@ resource appGatewayName_resource 'Microsoft.Network/applicationGateways@2019-09-
       maxRequestBodySizeInKb: 128
       fileUploadLimitInMb: 100
     }
-    enableHttp2: true
-    autoscaleConfiguration: {
-      minCapacity: 2
-      maxCapacity: 3
-    }
+    // enableHttp2: true
+    // autoscaleConfiguration: {
+    //   minCapacity: 2
+    //   maxCapacity: 3
+    // }
   }
 }
