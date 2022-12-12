@@ -1,0 +1,130 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "apim-todo",
+    "version": "1.0"
+  },
+  "paths": {
+    "/todo": {
+      "post": {
+        "summary": "CreateTodo",
+        "operationId": "createtodo",
+        "responses": {
+          "200": {
+            "description": "create a to do task"
+          }
+        }
+      },
+      "get": {
+        "summary": "GetTodos",
+        "operationId": "gettodos",
+        "responses": {
+          "200": {
+            "description": "get all todos"
+          }
+        }
+      }
+    },
+    "/todo/{id}": {
+      "get": {
+        "summary": "GetTodoById",
+        "operationId": "gettodobyid",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "get todo by id"
+          }
+        }
+      },
+      "put": {
+        "summary": "UpdateTodo",
+        "operationId": "updatetodo",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "update todo"
+          }
+        }
+      },
+      "delete": {
+        "summary": "DeleteTodo",
+        "operationId": "deletetodo",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "delete todo"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Todo": {
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "taskDescription": {
+            "type": "string"
+          },
+          "isCompleted": {
+            "type": "bool"
+          }
+        }
+      },
+      "Todos": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Todo"
+        }
+      },
+      "Error": {
+        "required": [
+          "code",
+          "message"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

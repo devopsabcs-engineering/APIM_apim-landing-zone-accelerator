@@ -5,5 +5,5 @@ apis:
       openApiSpec: todo-openapi.yaml
       suffix: todo
       subscriptionRequired: false
-      serviceUrl: https://functionurl.net/api
+      serviceUrl: https://func-code-be-apimlz03-dev-canadacentral.azurewebsites.net/api
 outputLocation: ./Templates
