@@ -343,9 +343,18 @@ class Program
             // https://msdn.microsoft.com/en-us/library/azure/dn781423.aspx#GetAPI
             // Note that this information is also present in GET /apis
             // but for demonstration purposes we call both.
-            api = GetAPIExportJson(apiId).Result;
-            Console.WriteLine("API with exported JSON:");
-            Console.WriteLine(FormatJSON(api));
+            try
+            {
+                api = GetAPIExportJson(apiId).Result;
+                Console.WriteLine("API with exported JSON:");
+                Console.WriteLine(FormatJSON(api));
+            }
+            catch (Exception ex)
+            {
+
+                Console.WriteLine($"unable to export json for api {apiId}");
+                Console.WriteLine(ex.Message);
+            }
         }
     }
 
