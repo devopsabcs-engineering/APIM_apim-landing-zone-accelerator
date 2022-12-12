@@ -98,7 +98,3 @@ $apimService.PortalCustomHostnameConfiguration = $portalHostnameConfig
 $apimService.ManagementCustomHostnameConfiguration = $managementHostnameConfig
 
 Set-AzApiManagement -InputObject $apimService
-
-Write-Host After the application gateway deploys, confirm the health status of the API Management back ends in the portal or by running the following command
-
-Get-AzApplicationGatewayBackendHealth -Name $appGatewayName -ResourceGroupName $ResourceGroupNameApim
