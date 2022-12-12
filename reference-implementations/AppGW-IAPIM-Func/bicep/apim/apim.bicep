@@ -1,11 +1,11 @@
-targetScope='resourceGroup'
+targetScope = 'resourceGroup'
 
 /*
  * Input parameters
 */
 
 @description('The name of the API Management resource to be created.')
-param apimName            string
+param apimName string
 
 @description('The subnet resource id to use for APIM.')
 @minLength(1)
@@ -39,17 +39,67 @@ param appInsightsInstrumentationKey string
 resource apimName_resource 'Microsoft.ApiManagement/service@2020-12-01' = {
   name: apimName
   location: location
-  sku:{
+  sku: {
     capacity: capacity
     name: skuName
   }
-  properties:{
+  properties: {
     virtualNetworkType: 'Internal'
     publisherEmail: publisherEmail
     publisherName: publisherName
     virtualNetworkConfiguration: {
       subnetResourceId: apimSubnetId
     }
+    hostnameConfigurations: [
+      {
+        type: 'Proxy'
+        hostName: 'api.MngEnv019702.onmicrosoft.com'
+        negotiateClientCertificate: false
+        // certificate: {
+        //   expiry: '2023-12-01T01:03:32+00:00'
+        //   thumbprint: '01F83F79F55BEBC5BEA2943253CAB3335BC3A946'
+        //   subject: 'CN=api.MngEnv019702.onmicrosoft.com, O=Contoso, L=Montreal, S=Quebec, C=CA'
+        // }
+        defaultSslBinding: true
+        //certificateSource: 'Custom'
+        certificatePassword: 'Test12345!'
+        //encodedCertificate: ''
+        identityClientId: '1216d0de-27c4-49b9-a97d-4f0c16590cee'
+        keyVaultId: 'https://kv-apimlz03-dev-canadace.${environment().suffixes.keyvaultDns}/secrets/api-mngenv019702-onmicrosoft-com'
+      }
+      {
+        type: 'DeveloperPortal'
+        hostName: 'portal.MngEnv019702.onmicrosoft.com'
+        negotiateClientCertificate: false
+        // certificate: {
+        //   expiry: '2023-12-01T01:03:34+00:00'
+        //   thumbprint: 'A0E92738CF5A9F0ED6DA44CFF57F50DDA7532ADA'
+        //   subject: 'CN=portal.MngEnv019702.onmicrosoft.com, O=Contoso, L=Montreal, S=Quebec, C=CA'
+        // }
+        defaultSslBinding: false
+        //certificateSource: 'Custom'
+        certificatePassword: 'Test12345!'
+        //encodedCertificate: ''
+        identityClientId: '1216d0de-27c4-49b9-a97d-4f0c16590cee'
+        keyVaultId: 'https://kv-apimlz03-dev-canadace.${environment().suffixes.keyvaultDns}/secrets/portal-mngenv019702-onmicrosoft-com'
+      }
+      {
+        type: 'Management'
+        hostName: 'management.MngEnv019702.onmicrosoft.com'
+        negotiateClientCertificate: false
+        // certificate: {
+        //   expiry: '2023-12-01T01:03:35+00:00'
+        //   thumbprint: '36425F6F48EBE02A0D7AE26A8CCCC008A4EFE744'
+        //   subject: 'CN=management.MngEnv019702.onmicrosoft.com, O=Contoso, L=Montreal, S=Quebec, C=CA'
+        // }
+        defaultSslBinding: false
+        //certificateSource: 'Custom'
+        certificatePassword: 'Test12345!'
+        //encodedCertificate: ''
+        identityClientId: '1216d0de-27c4-49b9-a97d-4f0c16590cee'
+        keyVaultId: 'https://kv-apimlz03-dev-canadace.${environment().suffixes.keyvaultDns}/secrets/management-mngenv019702-onmicrosoft-com'
+      }
+    ]
   }
 }
 
