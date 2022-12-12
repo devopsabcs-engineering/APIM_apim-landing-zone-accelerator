@@ -100,6 +100,29 @@ stages:
   dependsOn: deploy_artifacts
   jobs:
   - job: post_deploy_job
+    variables:
+    #- name: internalVnetName
+    #  value: vnet-apim-cs-ApimESLZ-dev-canadacentral-002
+    - name: domainName
+      value: MngEnv019702.onmicrosoft.com
+    #- name: zoneName
+    #  value: MngEnv019702.onmicrosoft.com
+    - name: ResourceGroupNameApim 
+      value: rg-apim-ApimLZ03-dev-canadacentral-003
+    - name: apimServiceName
+      value: apim-ApimLZ03-dev-canadacentral-003
+    - group: APIM_apim-landing-zone-accelerator_common
+    #- name: appGatewayName
+    #  value: appgw-ApimESLZ-dev-canadacentral-002
+    #- name: Location
+    #  value: canadacentral
+    #- name: apimOrganization
+    #  value: "Contoso MngEnv019702"
+    #- name: apimAdminEmail
+    #  value: "admin@MngEnv019702.onmicrosoft.com" # Administrator's email address
+    - group: APIM_apim-landing-zone-accelerator_common
+    #- name: ARTIFACTS_FEED_NAME
+    #  value: APIM_landing_zone_tools
     steps:
       - task: CmdLine@2
         inputs:
@@ -107,3 +130,28 @@ stages:
             echo Write your commands here
             
             echo Hello world
+      - task: DownloadSecureFile@1
+        name: pfxApiTask
+        inputs:
+          secureFile: 'APIM_apim-landing-zone-accelerator_api.pfx'
+      - task: DownloadSecureFile@1
+        name: pfxManagementTask
+        inputs:
+          secureFile: 'APIM_apim-landing-zone-accelerator_management.pfx'
+      - task: DownloadSecureFile@1
+        name: pfxPortalTask
+        inputs:
+          secureFile: 'APIM_apim-landing-zone-accelerator_portal.pfx'
+      - task: DownloadSecureFile@1
+        name: trustedrootcert
+        inputs:
+          secureFile: 'APIM_apim-landing-zone-accelerator_cacert.pem'      
+      - task: AzureCLI@2
+        enabled: true
+        displayName: post deploy
+        inputs:
+          azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+          scriptType: 'pscore'
+          scriptLocation: 'scriptPath'
+          scriptPath: '$(System.DefaultWorkingDirectory)/infra/scripts/main-postdeply.ps1'
+          arguments: '-ResourceGroupNameApim $(ResourceGroupNameApim) -apimServiceName $(apimServiceName) -domainName $(domainName) -pfxPassword $(pfxPassword) -trustedrootcertsecureFIlePath $(trustedrootcert.secureFIlePath) -pfxApiTasksecureFIlePath $(pfxApiTask.secureFIlePath) -pfxPortalTasksecureFIlePath $(pfxPortalTask.secureFIlePath) -pfxManagementTasksecureFIlePath $(pfxManagementTask.secureFIlePath) -azureApplicationId $(azureApplicationId) -azureTenantId $(azureTenantId) -azureClientSecret $(azureClientSecret)'
