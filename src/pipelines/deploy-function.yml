@@ -4,7 +4,7 @@ parameters:
 - name: functionAppName
   displayName: Azure Function App name
   type: string
-  default: 'func-code-be-apimeslz-dev-canadacentral'
+  default: 'func-code-be-ApimLZ03-dev-canadacentral'
 - name: armServiceConnection
   displayName: Azure RM service connection
   type: string
