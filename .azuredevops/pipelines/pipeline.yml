@@ -104,7 +104,7 @@ stages:
   - job: post_deploy_job
     variables:
     - name: appGatewayVnetName
-      value: vnet-apim-cs-ApimLZ03-dev-canadacentral-003
+      value: vnet-apim-cs-ApimLZ03-dev-canadacentral
     - name: ResourceGroupNameShared
       value: rg-shared-ApimLZ03-dev-canadacentral-003
     - name: ResourceGroupNameNetwork
