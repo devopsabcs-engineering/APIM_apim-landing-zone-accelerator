@@ -126,17 +126,18 @@ Get-Content C:\Windows\System32\drivers\etc\hosts
 
 ping $gatewayHostname
 
-Get-Content cacert.pem
+$cacertFilePath = "./infra/scripts/cacert.pem"
+Get-Content $cacertFilePath
 
 #do not check for certification revocation status
 echo "testing https://$gatewayHostname"
-curl "https://$gatewayHostname" --ssl-no-revoke --cacert cacert.pem
+curl "https://$gatewayHostname" --ssl-no-revoke --cacert $cacertFilePath
 
 echo "testing https://$gatewayHostname/echo/resource?param1=sample"
-curl "https://$gatewayHostname/echo/resource?param1=sample" --ssl-no-revoke --cacert cacert.pem
+curl "https://$gatewayHostname/echo/resource?param1=sample" --ssl-no-revoke --cacert $cacertFilePath
 
 echo "do a post"
-curl -d '{"vehicleType":"train","maxSpeed":125,"avgSpeed":90,"speedUnit":"mph"}' "https://$gatewayHostname/echo/resource" --ssl-no-revoke --cacert cacert.pem
+curl -d '{"vehicleType":"train","maxSpeed":125,"avgSpeed":90,"speedUnit":"mph"}' "https://$gatewayHostname/echo/resource" --ssl-no-revoke --cacert $cacertFilePath
 
 echo "testing https://$portalHostname"
-curl "https://$portalHostname" --ssl-no-revoke --cacert cacert.pem
+curl "https://$portalHostname" --ssl-no-revoke --cacert $cacertFilePath
