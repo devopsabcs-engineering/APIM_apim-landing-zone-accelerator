@@ -141,3 +141,14 @@ curl -d '{"vehicleType":"train","maxSpeed":125,"avgSpeed":90,"speedUnit":"mph"}'
 
 echo "testing https://$portalHostname"
 curl "https://$portalHostname" --ssl-no-revoke --cacert $cacertFilePath
+
+echo "backend api tests"
+echo "https://$gatewayHostname/todoapi/todo"
+curl "https://$gatewayHostname/todoapi/todo" --ssl-no-revoke --cacert $cacertFilePath
+
+echo "POST one more task"
+$date = Get-Date
+curl -d "{`"taskDescription`": `"task from pipeline ${date}`"}" "https://$gatewayHostname/todoapi/todo" --ssl-no-revoke --cacert $cacertFilePath
+
+echo "you should now see one more..."
+curl "https://$gatewayHostname/todoapi/todo" --ssl-no-revoke --cacert $cacertFilePath
