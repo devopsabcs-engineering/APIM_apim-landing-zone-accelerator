@@ -48,6 +48,8 @@ param managementCertificatePassword string
 param managementFqdn string
 param managementCertificateKeyVaultId string
 
+param apimUserIdentityClientId string
+
 /*
  * Resources
 */
@@ -98,7 +100,7 @@ resource apimName_resource 'Microsoft.ApiManagement/service@2020-12-01' = {
         //certificateSource: 'Custom'
         certificatePassword: apiCertificatePassword
         //encodedCertificate: ''
-        identityClientId: '1216d0de-27c4-49b9-a97d-4f0c16590cee'
+        identityClientId: apimUserIdentityClientId
         keyVaultId: apiCertificateKeyVaultId
       }
       {
@@ -114,7 +116,7 @@ resource apimName_resource 'Microsoft.ApiManagement/service@2020-12-01' = {
         //certificateSource: 'Custom'
         certificatePassword: portalCertificatePassword
         //encodedCertificate: ''
-        identityClientId: '1216d0de-27c4-49b9-a97d-4f0c16590cee'
+        identityClientId: apimUserIdentityClientId
         keyVaultId: portalCertificateKeyVaultId
       }
       {
@@ -130,7 +132,7 @@ resource apimName_resource 'Microsoft.ApiManagement/service@2020-12-01' = {
         //certificateSource: 'Custom'
         certificatePassword: managementCertificatePassword
         //encodedCertificate: ''
-        identityClientId: '1216d0de-27c4-49b9-a97d-4f0c16590cee'
+        identityClientId: apimUserIdentityClientId
         keyVaultId: managementCertificateKeyVaultId
       }
     ]

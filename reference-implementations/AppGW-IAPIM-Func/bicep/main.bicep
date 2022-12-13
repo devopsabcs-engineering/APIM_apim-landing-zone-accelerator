@@ -184,6 +184,7 @@ module apimModule 'apim/apim.bicep' = {
     publisherEmail: 'admin@MngEnv019702.onmicrosoft.com'
     publisherName: 'Contoso MngEnv019702'
     apimUserIdentityId: shared.outputs.commonUserIdentityId
+    apimUserIdentityClientId: shared.outputs.commonUserIdentityClientId
 
     apiCertificatePassword: apiCertificatePassword
     managementCertificatePassword: managementCertificatePassword
