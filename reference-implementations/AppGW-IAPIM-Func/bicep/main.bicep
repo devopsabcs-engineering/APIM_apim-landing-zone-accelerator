@@ -72,6 +72,9 @@ param managementCertificatePassword string
 @description('Set to selfsigned if self signed certificates should be used for the Management. Set to custom and copy the pfx file to deployment/bicep/gateway/shared/management.pfx if custom certificates are to be used')
 param managementCertType string
 
+@description('main domain name such as for certificates to access externally e.g. mngenv019702.onmicrosoft.com')
+param mainDomainName string
+
 // Variables
 var resourceSuffix = '${workloadName}-${environment}-${location}-003'
 var networkingResourceGroupName = 'rg-networking-${resourceSuffix}'
@@ -212,6 +215,9 @@ module dnsZoneModule 'shared/dnszone.bicep' = {
     vnetRG: networkingRG.name
     apimName: apimName
     apimRG: apimRG.name
+
+    mainPrivateDnsZone: mainDomainName
+    mainVirtualNetworkId: networking.outputs.apimCSVNetId
   }
 }
 

@@ -62,15 +62,15 @@ Param(
 
 Write-Host post deploy only
 
-Write-Host install az module
+# Write-Host install az module
 
-Install-Module -Name Az -AllowClobber -Scope CurrentUser -Force
+# Install-Module -Name Az -AllowClobber -Scope CurrentUser -Force
 
-$azurePassword = ConvertTo-SecureString "$azureClientSecret" -AsPlainText -Force
-$psCred = New-Object System.Management.Automation.PSCredential($azureApplicationId , $azurePassword)
-Connect-AzAccount -Credential $psCred -TenantId $azureTenantId  -ServicePrincipal 
+# $azurePassword = ConvertTo-SecureString "$azureClientSecret" -AsPlainText -Force
+# $psCred = New-Object System.Management.Automation.PSCredential($azureApplicationId , $azurePassword)
+# Connect-AzAccount -Credential $psCred -TenantId $azureTenantId  -ServicePrincipal 
 
-Write-Host "let us configure an app gateway for external access"
+# Write-Host "let us configure an app gateway for external access"
 
 #$gatewayHostname = "api.$domainName"                 # API gateway host
 #$portalHostname = "portal.$domainName"               # API developer portal host
@@ -97,7 +97,7 @@ Write-Host "let us configure an app gateway for external access"
 # $managementHostnameConfig = New-AzApiManagementCustomHostnameConfiguration -Hostname $managementHostname `
 #     -HostnameType Management -PfxPath $managementCertPfxPath -PfxPassword $certManagementPwd
 
-$apimService = Get-AzApiManagement -ResourceGroupName $ResourceGroupNameApim -Name $apimServiceName
+#$apimService = Get-AzApiManagement -ResourceGroupName $ResourceGroupNameApim -Name $apimServiceName
 
 # $apimService.ProxyCustomHostnameConfiguration = $gatewayHostnameConfig
 # $apimService.PortalCustomHostnameConfiguration = $portalHostnameConfig
@@ -105,32 +105,34 @@ $apimService = Get-AzApiManagement -ResourceGroupName $ResourceGroupNameApim -Na
 
 # Set-AzApiManagement -InputObject $apimService
 
-Write-Host get vnet info
-$vnet = Get-AzVirtualNetwork -Name $appGatewayVnetName -ResourceGroupName $ResourceGroupNameNetwork
+# Write-Host get vnet info
+# $vnet = Get-AzVirtualNetwork -Name $appGatewayVnetName -ResourceGroupName $ResourceGroupNameNetwork
 
-Write-Host Configure a private zone for DNS resolution in the virtual network
-$existingZonesJson = az network private-dns zone list -g $ResourceGroupNameShared
-$existingZones = $existingZonesJson | ConvertFrom-Json
-if ( $existingZones.count -lt 6 ) {
-    $myZone = New-AzPrivateDnsZone -Name "$zoneName" -ResourceGroupName $ResourceGroupNameShared
-    $link = New-AzPrivateDnsVirtualNetworkLink -ZoneName $zoneName `
-        -ResourceGroupName $ResourceGroupNameShared -Name "mylink" `
-        -VirtualNetworkId $vnet.id
+# Write-Host Configure a private zone for DNS resolution in the virtual network
+# $existingZonesJson = az network private-dns zone list -g $ResourceGroupNameShared
+# $existingZones = $existingZonesJson | ConvertFrom-Json
+# if ( $existingZones.count -lt 6 ) {
+#     $myZone = New-AzPrivateDnsZone -Name "$zoneName" -ResourceGroupName $ResourceGroupNameShared
+#     $link = New-AzPrivateDnsVirtualNetworkLink -ZoneName $zoneName `
+#         -ResourceGroupName $ResourceGroupNameShared -Name "mylink" `
+#         -VirtualNetworkId $vnet.id
 
-    Write-Host Create A records for the custom domain host names that map to the private IP address of API Management.
+#     Write-Host Create A records for the custom domain host names that map to the private IP address of API Management.
 
-    $apimIP = $apimService.PrivateIPAddresses[0]
+#     $apimIP = $apimService.PrivateIPAddresses[0]
 
-    New-AzPrivateDnsRecordSet -Name api -RecordType A -ZoneName $zoneName `
-        -ResourceGroupName $ResourceGroupNameShared -Ttl 3600 `
-        -PrivateDnsRecords (New-AzPrivateDnsRecordConfig -IPv4Address $apimIP)
-    New-AzPrivateDnsRecordSet -Name portal -RecordType A -ZoneName $zoneName `
-        -ResourceGroupName $ResourceGroupNameShared -Ttl 3600 `
-        -PrivateDnsRecords (New-AzPrivateDnsRecordConfig -IPv4Address $apimIP)
-    New-AzPrivateDnsRecordSet -Name management -RecordType A -ZoneName $zoneName `
-        -ResourceGroupName $ResourceGroupNameShared -Ttl 3600 `
-        -PrivateDnsRecords (New-AzPrivateDnsRecordConfig -IPv4Address $apimIP)
-}
-else {
-    Write-Host skipping creation of private zones
-}  
+#     New-AzPrivateDnsRecordSet -Name api -RecordType A -ZoneName $zoneName `
+#         -ResourceGroupName $ResourceGroupNameShared -Ttl 3600 `
+#         -PrivateDnsRecords (New-AzPrivateDnsRecordConfig -IPv4Address $apimIP)
+#     New-AzPrivateDnsRecordSet -Name portal -RecordType A -ZoneName $zoneName `
+#         -ResourceGroupName $ResourceGroupNameShared -Ttl 3600 `
+#         -PrivateDnsRecords (New-AzPrivateDnsRecordConfig -IPv4Address $apimIP)
+#     New-AzPrivateDnsRecordSet -Name management -RecordType A -ZoneName $zoneName `
+#         -ResourceGroupName $ResourceGroupNameShared -Ttl 3600 `
+#         -PrivateDnsRecords (New-AzPrivateDnsRecordConfig -IPv4Address $apimIP)
+# }
+# else {
+#     Write-Host skipping creation of private zones
+#}  
+
+Write-Host THIS POST DEPLOY SCRIPT IS NO LONGER NEEDED!

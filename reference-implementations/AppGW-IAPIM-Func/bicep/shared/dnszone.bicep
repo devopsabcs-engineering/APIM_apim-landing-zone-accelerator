@@ -1,8 +1,7 @@
-
-param vnetName                  string
-param vnetRG                    string
-param apimName                  string
-param apimRG                    string
+param vnetName string
+param vnetRG string
+param apimName string
+param apimRG string
 
 /*
  Retrieve APIM and Virtual Network
@@ -73,6 +72,83 @@ resource scmDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
     vnet
   ]
   properties: {}
+}
+
+param mainPrivateDnsZone string // = 'mngenv019702.onmicrosoft.com'
+param mainVirtualNetworkId string // = '/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-networking-ApimLZ03-dev-canadacentral-003/providers/Microsoft.Network/virtualNetworks/vnet-apim-cs-ApimLZ03-dev-canadacentral'
+
+resource mainPrivateDnsZoneResource 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+  name: mainPrivateDnsZone
+  location: 'global'
+  properties: {}
+}
+
+resource externalApiRecord 'Microsoft.Network/privateDnsZones/A@2020-06-01' = {
+  parent: mainPrivateDnsZoneResource
+  name: 'api'
+  properties: {
+    ttl: 3600
+    aRecords: [
+      {
+        ipv4Address: apim.properties.privateIPAddresses[0]
+      }
+    ]
+  }
+}
+
+resource externalManagementRecord 'Microsoft.Network/privateDnsZones/A@2020-06-01' = {
+  parent: mainPrivateDnsZoneResource
+  name: 'management'
+  properties: {
+    ttl: 3600
+    aRecords: [
+      {
+        ipv4Address: apim.properties.privateIPAddresses[0]
+      }
+    ]
+  }
+}
+
+resource externalPortalRecord 'Microsoft.Network/privateDnsZones/A@2020-06-01' = {
+  parent: mainPrivateDnsZoneResource
+  name: 'portal'
+  properties: {
+    ttl: 3600
+    aRecords: [
+      {
+        ipv4Address: apim.properties.privateIPAddresses[0]
+      }
+    ]
+  }
+}
+
+resource SOARecord 'Microsoft.Network/privateDnsZones/SOA@2020-06-01' = {
+  parent: mainPrivateDnsZoneResource
+  name: '@'
+  properties: {
+    ttl: 3600
+    soaRecord: {
+      email: 'azureprivatedns-host.microsoft.com'
+      expireTime: 2419200
+      host: 'azureprivatedns.net'
+      minimumTtl: 10
+      refreshTime: 3600
+      retryTime: 300
+      serialNumber: 1
+    }
+  }
+}
+
+resource mainVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+  parent: mainPrivateDnsZoneResource
+  name: 'mylink'
+  location: 'global'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: mainVirtualNetworkId
+    }
+  }
 }
 
 // A Records
