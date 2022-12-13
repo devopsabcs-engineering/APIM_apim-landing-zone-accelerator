@@ -5,9 +5,11 @@ trigger:
       - tools/code/extractor
 
 variables:
-  - group: APIM_apim-automation-end-to-end
+  #- group: APIM_apim-automation-end-to-end
   - name: System.Debug
     value: true
+  - name: ARTIFACTS_FEED_NAME
+    value: APIM_landing_zone_tools
 
 stages:
   - stage: publish_extractor
