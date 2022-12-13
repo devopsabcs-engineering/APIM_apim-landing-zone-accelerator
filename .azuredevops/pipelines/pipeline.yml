@@ -12,11 +12,17 @@ trigger: none
 pool:
   vmImage: 'ubuntu-latest'
 
+parameters:
+  - name: ReDeployInfraParam
+    type: boolean
+    default: false
+    displayName: Re-Deploy the Infra
+
 variables:
 - template: apim-eslz-vars.yml
 - group: APIM_ESLZ_dev_vars
 - name: ReDeployInfra
-  value: true
+  value: ${{ parameters.ReDeployInfraParam }}
 
 #resources:
 #  repositories:
