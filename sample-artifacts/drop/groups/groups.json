@@ -1,0 +1,89 @@
+{
+  "count": 7,
+  "value": [
+    {
+      "id": "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/dev-myservice-eknafo-001/providers/Microsoft.ApiManagement/service/apimhrbdq4glrhu2g/groups/administrators",
+      "name": "administrators",
+      "properties": {
+        "builtIn": true,
+        "description": "Administrators is a built-in group containing the admin email account provided at the time of service creation. Its membership is managed by the system.",
+        "displayName": "Administrators",
+        "externalId": null,
+        "type": "system"
+      },
+      "type": "Microsoft.ApiManagement/service/groups"
+    },
+    {
+      "id": "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/dev-myservice-eknafo-001/providers/Microsoft.ApiManagement/service/apimhrbdq4glrhu2g/groups/custom_group_api_contributors",
+      "name": "custom_group_api_contributors",
+      "properties": {
+        "builtIn": false,
+        "description": "these can contribute to all APIs",
+        "displayName": "API Contributors",
+        "externalId": null,
+        "type": "custom"
+      },
+      "type": "Microsoft.ApiManagement/service/groups"
+    },
+    {
+      "id": "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/dev-myservice-eknafo-001/providers/Microsoft.ApiManagement/service/apimhrbdq4glrhu2g/groups/developers",
+      "name": "developers",
+      "properties": {
+        "builtIn": true,
+        "description": "Developers is a built-in group. Its membership is managed by the system. Signed-in users fall into this group.",
+        "displayName": "Developers",
+        "externalId": null,
+        "type": "system"
+      },
+      "type": "Microsoft.ApiManagement/service/groups"
+    },
+    {
+      "id": "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/dev-myservice-eknafo-001/providers/Microsoft.ApiManagement/service/apimhrbdq4glrhu2g/groups/aad_group_echo_api_group",
+      "name": "aad_group_echo_api_group",
+      "properties": {
+        "builtIn": false,
+        "description": "for echo api",
+        "displayName": "echoApiGroup",
+        "externalId": "aad://mngenv019702.onmicrosoft.com/groups/26aa0530-2b95-4f6e-b58d-d5e529d6b442",
+        "type": "external"
+      },
+      "type": "Microsoft.ApiManagement/service/groups"
+    },
+    {
+      "id": "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/dev-myservice-eknafo-001/providers/Microsoft.ApiManagement/service/apimhrbdq4glrhu2g/groups/guests",
+      "name": "guests",
+      "properties": {
+        "builtIn": true,
+        "description": "Guests is a built-in group. Its membership is managed by the system. Unauthenticated users visiting the developer portal fall into this group.",
+        "displayName": "Guests",
+        "externalId": null,
+        "type": "system"
+      },
+      "type": "Microsoft.ApiManagement/service/groups"
+    },
+    {
+      "id": "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/dev-myservice-eknafo-001/providers/Microsoft.ApiManagement/service/apimhrbdq4glrhu2g/groups/regularapigroup",
+      "name": "regularapigroup",
+      "properties": {
+        "builtIn": false,
+        "description": null,
+        "displayName": "regularApiGroup",
+        "externalId": null,
+        "type": "custom"
+      },
+      "type": "Microsoft.ApiManagement/service/groups"
+    },
+    {
+      "id": "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/dev-myservice-eknafo-001/providers/Microsoft.ApiManagement/service/apimhrbdq4glrhu2g/groups/aad_group_star_wars_api_group",
+      "name": "aad_group_star_wars_api_group",
+      "properties": {
+        "builtIn": false,
+        "description": "for star wars api by bicep",
+        "displayName": "starWarsApiGroup",
+        "externalId": "aad://mngenv019702.onmicrosoft.com/groups/610b9e2a-1cda-4bd9-9e81-522b7e1e200a",
+        "type": "external"
+      },
+      "type": "Microsoft.ApiManagement/service/groups"
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+apimServiceName: apim-fifgmevnwrnwu
+namedValues:
+  - name: environment
+    properties:
+      displayName: environment
+      value: "https://www.search2.com"
+  - name: mysecretvalue
+    properties:
+      displayName: mysecretvalue    
+  - name: testSecret
+    properties:
+      displayName: testSecret
+      value: "{#testSecretValue#}"
+  - name: helloworldfromfuncapp-key
+    properties:
+      displayName: helloworldfromfuncapp-key
+      value: "{#helloworldfromfuncappkey#}"
+  - name: 634e022983908257b35630b0
+    properties:
+      displayName: helloworldfromlogicapp_manual-invoke_634e022983908257b35630b0
+      value: "{#helloworldfromlogicapp#}"  
+loggers:
+    - name: appi-apim3l6lgheenifvg-1
+      properties:
+        loggerType: applicationInsights
+        description: manual one prod application insights
+        resourceId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-dev-001/providers/Microsoft.Insights/components/appi-apim3l6lgheenifvg"
+        credentials:
+          instrumentationKey: "{{Logger-Credentials--637776e94634610660f2dc00}}"
+        isBuffered: true
+    - name: appi-apim3l6lgheenifvg
+      properties:
+        loggerType: applicationInsights
+        description: manual default for all application insights
+        resourceId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-dev-001/providers/Microsoft.Insights/components/appi-apim3l6lgheenifvg"
+        credentials:
+          instrumentationKey: "{{Logger-Credentials--63776c88217d2013f03c4334}}"
+        isBuffered: true
+diagnostics:
+   - name: applicationinsights
+     properties:
+       verbosity: Error
+       loggerId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-001/providers/Microsoft.ApiManagement/service/apim-fifgmevnwrnwu/loggers/appi-apim3l6lgheenifvg-1"
+apis:
+  - name: 'echo-api'
+    diagnostics:
+      - name: applicationinsights
+        properties:
+          verbosity: Error
+          loggerId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-001/providers/Microsoft.ApiManagement/service/apim-fifgmevnwrnwu/loggers/appi-apim3l6lgheenifvg-1"
