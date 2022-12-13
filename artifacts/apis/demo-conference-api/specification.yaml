@@ -4,8 +4,8 @@ info:
   description: 'A sample API with information related to a technical conference.  The available resources  include *Speakers*, *Sessions* and *Topics*.  A single write operation is available to provide  feedback on a session.'
   version: '1.0'
 servers:
-  - url: http://apiservice3l6lgheenifvg.azure-api.net/democonference
-  - url: https://apiservice3l6lgheenifvg.azure-api.net/democonference
+  - url: http://api.mngenv019702.onmicrosoft.com/democonference
+  - url: https://api.mngenv019702.onmicrosoft.com/democonference
 paths:
   /sessions:
     get:

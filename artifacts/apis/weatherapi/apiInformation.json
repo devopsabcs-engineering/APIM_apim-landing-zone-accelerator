@@ -13,6 +13,6 @@
       "header": "Ocp-Apim-Subscription-Key",
       "query": "subscription-key"
     },
-    "subscriptionRequired": true
+    "subscriptionRequired": false
   }
 }

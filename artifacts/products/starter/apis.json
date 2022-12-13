@@ -3,9 +3,27 @@
     "name": "apim-todo"
   },
   {
+    "name": "demo-conference-api"
+  },
+  {
     "name": "echo-api"
   },
   {
+    "name": "notes-api"
+  },
+  {
+    "name": "star-wars"
+  },
+  {
+    "name": "star-wars-custom"
+  },
+  {
+    "name": "super-hero-api"
+  },
+  {
     "name": "todo"
+  },
+  {
+    "name": "weatherapi"
   }
 ]
