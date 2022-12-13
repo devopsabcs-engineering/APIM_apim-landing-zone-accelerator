@@ -1,0 +1,18 @@
+{
+  "properties": {
+    "apiRevision": "1",
+    "authenticationSettings": {},
+    "displayName": "Humongous.Healthcare",
+    "isCurrent": true,
+    "path": "healthcareapi",
+    "protocols": [
+      "https"
+    ],
+    "serviceUrl": "https://humongoushealthcare20221122141142.azurewebsites.net/",
+    "subscriptionKeyParameterNames": {
+      "header": "Ocp-Apim-Subscription-Key",
+      "query": "subscription-key"
+    },
+    "subscriptionRequired": false
+  }
+}

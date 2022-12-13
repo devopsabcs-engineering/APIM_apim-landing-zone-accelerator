@@ -31,7 +31,7 @@ paths:
           in: path
           required: true
           schema:
-            $ref: '#/components/schemas/Todo-id-GetRequest'
+            type: string
       responses:
         '200':
           description: get todo by id
@@ -44,7 +44,7 @@ paths:
           in: path
           required: true
           schema:
-            $ref: '#/components/schemas/Todo-id-PutRequest'
+            type: string
       responses:
         '200':
           description: update todo
@@ -57,7 +57,7 @@ paths:
           in: path
           required: true
           schema:
-            $ref: '#/components/schemas/Todo-id-DeleteRequest'
+            type: string
       responses:
         '200':
           description: delete todo

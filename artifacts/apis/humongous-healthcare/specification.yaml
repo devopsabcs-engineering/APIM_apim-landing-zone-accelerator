@@ -1,0 +1,268 @@
+openapi: 3.0.1
+info:
+  title: Humongous.Healthcare
+  version: '1.0'
+servers:
+  - url: https://api.mngenv019702.onmicrosoft.com/healthcareapi
+paths:
+  /HealthCheck:
+    get:
+      tags:
+        - HealthCheck
+      summary: /HealthCheck - GET
+      operationId: get-healthcheck
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HealthCheck'
+              examples:
+                default:
+                  value: 
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HealthCheck'
+              example:
+                - id: string
+                  patientid: 0
+                  date: string
+                  healthstatus: string
+                  symptoms:
+                    - string
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HealthCheck'
+              example:
+                - id: string
+                  patientid: 0
+                  date: string
+                  healthstatus: string
+                  symptoms:
+                    - string
+    post:
+      tags:
+        - HealthCheck
+      summary: /HealthCheck - POST
+      operationId: post-healthcheck
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HealthCheck'
+            example:
+              id: string
+              patientid: 0
+              date: string
+              healthstatus: string
+              symptoms:
+                - string
+          text/json:
+            schema:
+              $ref: '#/components/schemas/HealthCheck'
+            example:
+              id: string
+              patientid: 0
+              date: string
+              healthstatus: string
+              symptoms:
+                - string
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/HealthCheck'
+            example:
+              id: string
+              patientid: 0
+              date: string
+              healthstatus: string
+              symptoms:
+                - string
+      responses:
+        '200':
+          description: Success
+  '/HealthCheck/{id}':
+    get:
+      tags:
+        - HealthCheck
+      summary: '/HealthCheck/{id} - GET'
+      operationId: get-healthcheck-id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HealthCheck'
+              examples:
+                default:
+                  value: 
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HealthCheck'
+              example:
+                - id: string
+                  patientid: 0
+                  date: string
+                  healthstatus: string
+                  symptoms:
+                    - string
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HealthCheck'
+              example:
+                - id: string
+                  patientid: 0
+                  date: string
+                  healthstatus: string
+                  symptoms:
+                    - string
+    put:
+      tags:
+        - HealthCheck
+      summary: '/HealthCheck/{id} - PUT'
+      operationId: put-healthcheck-id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HealthCheck'
+            example:
+              id: string
+              patientid: 0
+              date: string
+              healthstatus: string
+              symptoms:
+                - string
+          text/json:
+            schema:
+              $ref: '#/components/schemas/HealthCheck'
+            example:
+              id: string
+              patientid: 0
+              date: string
+              healthstatus: string
+              symptoms:
+                - string
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/HealthCheck'
+            example:
+              id: string
+              patientid: 0
+              date: string
+              healthstatus: string
+              symptoms:
+                - string
+      responses:
+        '200':
+          description: Success
+    delete:
+      tags:
+        - HealthCheck
+      summary: '/HealthCheck/{id} - DELETE'
+      operationId: delete-healthcheck-id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+  /HealthCheck/GetStatus:
+    get:
+      tags:
+        - HealthCheck
+      summary: /HealthCheck/GetStatus - GET
+      operationId: get-healthcheck-getstatus
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/HealthCheck'
+              examples:
+                default:
+                  value: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthCheck'
+              example:
+                id: string
+                patientid: 0
+                date: string
+                healthstatus: string
+                symptoms:
+                  - string
+            text/json:
+              schema:
+                $ref: '#/components/schemas/HealthCheck'
+              example:
+                id: string
+                patientid: 0
+                date: string
+                healthstatus: string
+                symptoms:
+                  - string
+components:
+  schemas:
+    HealthCheck:
+      type: object
+      properties:
+        id:
+          type: string
+          nullable: true
+        patientid:
+          type: integer
+          format: int32
+        date:
+          type: string
+          format: date-time
+        healthstatus:
+          type: string
+          nullable: true
+        symptoms:
+          type: array
+          items:
+            type: string
+          nullable: true
+      additionalProperties: false
+  securitySchemes:
+    apiKeyHeader:
+      type: apiKey
+      name: Ocp-Apim-Subscription-Key
+      in: header
+    apiKeyQuery:
+      type: apiKey
+      name: subscription-key
+      in: query
+security:
+  - apiKeyHeader: [ ]
+  - apiKeyQuery: [ ]
