@@ -1,0 +1,10 @@
+{
+  "properties": {
+    "credentials": {
+      "instrumentationKey": "{{Logger-Credentials--6398e209e28c780b30261fc6}}"
+    },
+    "isBuffered": true,
+    "loggerType": "applicationInsights",
+    "resourceId": "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-shared-ApimLZ03-dev-canadacentral-003/providers/Microsoft.Insights/components/appi-ApimLZ03-dev-canadacentral-003"
+  }
+}

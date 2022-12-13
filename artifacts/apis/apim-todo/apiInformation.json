@@ -2,19 +2,18 @@
   "properties": {
     "apiRevision": "1",
     "authenticationSettings": {},
-    "displayName": "Super Hero API",
+    "displayName": "apim-todo",
     "isCurrent": true,
-    "path": "superhero",
+    "path": "todoapi",
     "protocols": [
       "http",
       "https"
     ],
-    "serviceUrl": "http://app-web-ovaakb5xobmxs.azurewebsites.net/graphql/",
+    "serviceUrl": "https://func-code-be-apimlz03-dev-canadacentral.azurewebsites.net/api",
     "subscriptionKeyParameterNames": {
       "header": "Ocp-Apim-Subscription-Key",
       "query": "subscription-key"
     },
-    "subscriptionRequired": true,
-    "type": "graphql"
+    "subscriptionRequired": false
   }
 }

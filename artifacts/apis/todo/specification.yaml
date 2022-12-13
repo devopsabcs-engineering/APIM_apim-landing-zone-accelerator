@@ -1,0 +1,76 @@
+openapi: 3.0.1
+info:
+  title: todo
+  version: '1.0'
+servers:
+  - url: http://api.mngenv019702.onmicrosoft.com/todo
+  - url: https://api.mngenv019702.onmicrosoft.com/todo
+paths:
+  /todo:
+    post:
+      summary: CreateTodo
+      description: CreateTodo
+      operationId: createtodo
+      responses:
+        '200':
+          description: create a to do task
+    get:
+      summary: GetTodos
+      description: GetTodos
+      operationId: gettodos
+      responses:
+        '200':
+          description: get all todos
+  '/todo/{id}':
+    get:
+      summary: GetTodoById
+      description: GetTodoById
+      operationId: gettodobyid
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Todo-id-GetRequest'
+      responses:
+        '200':
+          description: get todo by id
+    put:
+      summary: UpdateTodo
+      description: UpdateTodo
+      operationId: updatetodo
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Todo-id-PutRequest'
+      responses:
+        '200':
+          description: update todo
+    delete:
+      summary: DeleteTodo
+      description: DeleteTodo
+      operationId: deletetodo
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Todo-id-DeleteRequest'
+      responses:
+        '200':
+          description: delete todo
+components:
+  securitySchemes:
+    apiKeyHeader:
+      type: apiKey
+      name: Ocp-Apim-Subscription-Key
+      in: header
+    apiKeyQuery:
+      type: apiKey
+      name: subscription-key
+      in: query
+security:
+  - apiKeyHeader: [ ]
+  - apiKeyQuery: [ ]

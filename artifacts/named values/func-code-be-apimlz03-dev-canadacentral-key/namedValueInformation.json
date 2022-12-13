@@ -1,0 +1,11 @@
+{
+  "properties": {
+    "displayName": "func-code-be-apimlz03-dev-canadacentral-key",
+    "secret": true,
+    "tags": [
+      "key",
+      "function",
+      "auto"
+    ]
+  }
+}

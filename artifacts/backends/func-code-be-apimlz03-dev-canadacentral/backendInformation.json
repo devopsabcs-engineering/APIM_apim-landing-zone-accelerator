@@ -1,0 +1,15 @@
+{
+  "properties": {
+    "credentials": {
+      "header": {
+        "x-functions-key": [
+          "{{func-code-be-apimlz03-dev-canadacentral-key}}"
+        ]
+      }
+    },
+    "description": "func-code-be-ApimLZ03-dev-canadacentral",
+    "protocol": "http",
+    "resourceId": "https://management.azure.com/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-backend-ApimLZ03-dev-canadacentral-003/providers/Microsoft.Web/sites/func-code-be-ApimLZ03-dev-canadacentral",
+    "url": "https://func-code-be-apimlz03-dev-canadacentral.azurewebsites.net/api"
+  }
+}

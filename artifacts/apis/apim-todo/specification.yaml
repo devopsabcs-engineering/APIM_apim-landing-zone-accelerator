@@ -1,0 +1,102 @@
+openapi: 3.0.1
+info:
+  title: apim-todo
+  version: '1.0'
+servers:
+  - url: http://api.mngenv019702.onmicrosoft.com/todoapi
+  - url: https://api.mngenv019702.onmicrosoft.com/todoapi
+paths:
+  /todo:
+    post:
+      summary: CreateTodo
+      description: CreateTodo
+      operationId: createtodo
+      responses:
+        '200':
+          description: 'null'
+    get:
+      summary: GetTodos
+      description: GetTodos
+      operationId: gettodos
+      responses:
+        '200':
+          description: 'null'
+  '/todo/{id}':
+    get:
+      summary: GetTodoById
+      description: GetTodoById
+      operationId: gettodobyid
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: ''
+      responses:
+        '200':
+          description: 'null'
+    put:
+      summary: UpdateTodo
+      description: UpdateTodo
+      operationId: updatetodo
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: ''
+      responses:
+        '200':
+          description: 'null'
+    delete:
+      summary: DeleteTodo
+      description: DeleteTodo
+      operationId: deletetodo
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: ''
+      responses:
+        '200':
+          description: 'null'
+components:
+  schemas:
+    Todo:
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+        taskDescription:
+          type: string
+        isCompleted:
+          type: bool
+    Todos:
+      type: array
+      items:
+        $ref: '#/components/schemas/Todo'
+    Error:
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+  securitySchemes:
+    apiKeyHeader:
+      type: apiKey
+      name: Ocp-Apim-Subscription-Key
+      in: header
+    apiKeyQuery:
+      type: apiKey
+      name: subscription-key
+      in: query
+security:
+  - apiKeyHeader: [ ]
+  - apiKeyQuery: [ ]

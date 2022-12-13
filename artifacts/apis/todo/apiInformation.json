@@ -2,19 +2,18 @@
   "properties": {
     "apiRevision": "1",
     "authenticationSettings": {},
-    "displayName": "Notes API",
+    "displayName": "todo",
     "isCurrent": true,
-    "path": "notes",
+    "path": "todo",
     "protocols": [
       "http",
       "https"
     ],
-    "serviceUrl": "https://app-web-bpskedlrqnf5k.azurewebsites.net/graphql",
+    "serviceUrl": "https://func-code-be-apimlz03-dev-canadacentral.azurewebsites.net/api",
     "subscriptionKeyParameterNames": {
       "header": "Ocp-Apim-Subscription-Key",
       "query": "subscription-key"
     },
-    "subscriptionRequired": true,
-    "type": "graphql"
+    "subscriptionRequired": false
   }
 }

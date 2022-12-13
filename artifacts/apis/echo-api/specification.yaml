@@ -3,7 +3,7 @@ info:
   title: Echo API
   version: '1.0'
 servers:
-  - url: https://apiservice3l6lgheenifvg.azure-api.net/echo
+  - url: https://api.mngenv019702.onmicrosoft.com/echo
 paths:
   /resource:
     get:
