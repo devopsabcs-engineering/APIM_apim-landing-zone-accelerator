@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace common;
-//dummy should trigger publish extractor and publisher BUT NOT regular run puplisher
+
 public sealed record ApisUri : IArtifactUri
 {
     public Uri Uri { get; }
