@@ -33,7 +33,7 @@ parameters:
 trigger: none
 
 variables:
-  - group: apim-automation
+  - group: APIM_apim-automation-landing-zone
   - name: System.Debug
     value: true
 
