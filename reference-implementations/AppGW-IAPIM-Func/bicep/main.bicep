@@ -39,37 +39,37 @@ param personalAccessToken string
 @description('The FQDN for the Application Gateway. Example - api.contoso.com.')
 param appGatewayFqdn string
 
-@description('The password for the TLS certificate for the Application Gateway.  The pfx file needs to be copied to deployment/bicep/gateway/certs/appgw.pfx')
+@description('The password for the TLS certificate for the Application Gateway.  The pfx file needs to be copied to deployment/bicep/shared/certs/appgw.pfx')
 @secure()
 param certificatePassword string
 
-@description('Set to selfsigned if self signed certificates should be used for the Application Gateway. Set to custom and copy the pfx file to deployment/bicep/gateway/certs/appgw.pfx if custom certificates are to be used')
+@description('Set to selfsigned if self signed certificates should be used for the Application Gateway. Set to custom and copy the pfx file to deployment/bicep/shared/certs/appgw.pfx if custom certificates are to be used')
 param appGatewayCertType string
 
 param location string = deployment().location
 
 @description('The FQDN for the Api. Example - api.contoso.com.')
 param apiFQDN string
-@description('The password for the TLS certificate for the Api.  The pfx file needs to be copied to deployment/bicep/gateway/certs/api.pfx')
+@description('The password for the TLS certificate for the Api.  The pfx file needs to be copied to deployment/bicep/shared/certs/api.pfx')
 @secure()
 param apiCertificatePassword string
-@description('Set to selfsigned if self signed certificates should be used for the Api. Set to custom and copy the pfx file to deployment/bicep/gateway/certs/api.pfx if custom certificates are to be used')
+@description('Set to selfsigned if self signed certificates should be used for the Api. Set to custom and copy the pfx file to deployment/bicep/shared/certs/api.pfx if custom certificates are to be used')
 param apiCertType string
 
 @description('The FQDN for the Portal. Example - portal.contoso.com.')
 param portalFQDN string
-@description('The password for the TLS certificate for the Portal.  The pfx file needs to be copied to deployment/bicep/gateway/certs/portal.pfx')
+@description('The password for the TLS certificate for the Portal.  The pfx file needs to be copied to deployment/bicep/shared/certs/portal.pfx')
 @secure()
 param portalCertificatePassword string
-@description('Set to selfsigned if self signed certificates should be used for the Portal. Set to custom and copy the pfx file to deployment/bicep/gateway/certs/portal.pfx if custom certificates are to be used')
+@description('Set to selfsigned if self signed certificates should be used for the Portal. Set to custom and copy the pfx file to deployment/bicep/shared/certs/portal.pfx if custom certificates are to be used')
 param portalCertType string
 
 @description('The FQDN for the Management. Example - management.contoso.com.')
 param managementFQDN string
-@description('The password for the TLS certificate for the Management.  The pfx file needs to be copied to deployment/bicep/gateway/certs/management.pfx')
+@description('The password for the TLS certificate for the Management.  The pfx file needs to be copied to deployment/bicep/shared/certs/management.pfx')
 @secure()
 param managementCertificatePassword string
-@description('Set to selfsigned if self signed certificates should be used for the Management. Set to custom and copy the pfx file to deployment/bicep/gateway/certs/management.pfx if custom certificates are to be used')
+@description('Set to selfsigned if self signed certificates should be used for the Management. Set to custom and copy the pfx file to deployment/bicep/gateway/shared/management.pfx if custom certificates are to be used')
 param managementCertType string
 
 // Variables
@@ -84,6 +84,8 @@ var apimResourceGroupName = 'rg-apim-${resourceSuffix}'
 // Resource Names
 var apimName = 'apim-${resourceSuffix}'
 var appGatewayName = 'appgw-${resourceSuffix}'
+
+var commonUserIdentityName = 'identity-${resourceSuffix}'
 
 resource networkingRG 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   name: networkingResourceGroupName
@@ -150,6 +152,22 @@ module shared './shared/shared.bicep' = {
     resourceSuffix: resourceSuffix
     vmPassword: vmPassword
     vmUsername: vmUsername
+
+    apiCertPassword: apiCertificatePassword
+    apiCertType: apiCertType
+    apiFQDN: apiFQDN
+
+    commonUserIdentityName: commonUserIdentityName
+
+    managementCertPassword: managementCertificatePassword
+    managementCertType: managementCertType
+    managementFQDN: managementFQDN
+    portalCertPassword: portalCertificatePassword
+    portalCertType: portalCertType
+    portalFQDN: portalFQDN
+    appGatewayFQDN: appGatewayFqdn
+    appGatewayCertType: appGatewayCertType
+    certPassword: certificatePassword
   }
 }
 
@@ -165,6 +183,19 @@ module apimModule 'apim/apim.bicep' = {
     appInsightsInstrumentationKey: shared.outputs.appInsightsInstrumentationKey
     publisherEmail: 'admin@MngEnv019702.onmicrosoft.com'
     publisherName: 'Contoso MngEnv019702'
+    apimUserIdentityId: shared.outputs.commonUserIdentityId
+
+    apiCertificatePassword: apiCertificatePassword
+    managementCertificatePassword: managementCertificatePassword
+    portalCertificatePassword: portalCertificatePassword
+
+    apiFqdn: apiFQDN
+    portalFqdn: portalFQDN
+    managementFqdn: managementFQDN
+
+    apiCertificateKeyVaultId: shared.outputs.certificateApiSecretUri
+    portalCertificateKeyVaultId: shared.outputs.certificatePortalSecretUri
+    managementCertificateKeyVaultId: shared.outputs.certificateManagementSecretUri
   }
 }
 
@@ -192,22 +223,29 @@ module appgwModule 'gateway/appgw.bicep' = {
   ]
   params: {
     appGatewayName: appGatewayName
-    appGatewayFQDN: appGatewayFqdn
     location: location
     appGatewaySubnetId: networking.outputs.appGatewaySubnetid
     primaryBackendEndFQDN: '${apimName}.azure-api.net'
-    keyVaultName: shared.outputs.keyVaultName
-    keyVaultResourceGroupName: sharedRG.name
-    appGatewayCertType: appGatewayCertType
-    certPassword: certificatePassword
-    apiCertPassword: apiCertificatePassword
-    apiCertType: apiCertType
+    //keyVaultName: shared.outputs.keyVaultName
+    //keyVaultResourceGroupName: sharedRG.name
+
+    //appGatewayFQDN: appGatewayFqdn
+    //appGatewayCertType: appGatewayCertType
+    //certPassword: certificatePassword
+
+    //apiCertPassword: apiCertificatePassword
+    //apiCertType: apiCertType
     apiFQDN: apiFQDN
-    portalCertPassword: portalCertificatePassword
-    portalCertType: portalCertType
+    //portalCertPassword: portalCertificatePassword
+    //portalCertType: portalCertType
     portalFQDN: portalFQDN
-    managementCertPassword: managementCertificatePassword
-    managementCertType: managementCertType
+    //managementCertPassword: managementCertificatePassword
+    //managementCertType: managementCertType
     managementFQDN: managementFQDN
+
+    appGatewayUserIdentityId: shared.outputs.commonUserIdentityId
+    certificateApiSecretUri: shared.outputs.certificateApiSecretUri
+    certificateManagementSecretUri: shared.outputs.certificateManagementSecretUri
+    certificatePortalSecretUri: shared.outputs.certificatePortalSecretUri
   }
 }

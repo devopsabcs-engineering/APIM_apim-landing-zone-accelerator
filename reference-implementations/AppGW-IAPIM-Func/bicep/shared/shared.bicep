@@ -1,4 +1,4 @@
-targetScope='resourceGroup'
+targetScope = 'resourceGroup'
 // Parameters
 @description('Azure location to which the resources are to be deployed')
 param location string
@@ -46,6 +46,38 @@ param resourceSuffix string
 ])
 param environment string
 
+@secure()
+param certPassword string
+
+@description('The FQDN of the Api.Must match the TLS Certificate.')
+param apiFQDN string
+@description('Set to selfsigned if self signed certificates should be used for the Api. Set to custom and copy the pfx file to deployment/bicep/gateway/certs/api.pfx if custom certificates are to be used')
+param apiCertType string
+@secure()
+param apiCertPassword string
+
+@description('The FQDN of the Portal.Must match the TLS Certificate.')
+param portalFQDN string
+@description('Set to selfsigned if self signed certificates should be used for the Portal. Set to custom and copy the pfx file to deployment/bicep/gateway/certs/portal.pfx if custom certificates are to be used')
+param portalCertType string
+@secure()
+param portalCertPassword string
+
+@description('The FQDN of the Management.Must match the TLS Certificate.')
+param managementFQDN string
+@description('Set to selfsigned if self signed certificates should be used for the Management. Set to custom and copy the pfx file to deployment/bicep/gateway/certs/management.pfx if custom certificates are to be used')
+param managementCertType string
+@secure()
+param managementCertPassword string
+
+@description('The FQDN of the Application Gateawy.Must match the TLS Certificate.')
+param appGatewayFQDN string = 'api.example.com'
+@description('Set to selfsigned if self signed certificates should be used for the Application Gateway. Set to custom and copy the pfx file to deployment/bicep/gateway/certs/appgw.pfx if custom certificates are to be used')
+param appGatewayCertType string
+
+@description('The common user identity name to be created.')
+param commonUserIdentityName string
+
 // Variables - ensure key vault name does not end with '-'
 var tempKeyVaultName = take('kv-${resourceSuffix}', 24) // Must be between 3-24 alphanumeric characters 
 var keyVaultName = endsWith(tempKeyVaultName, '-') ? substring(tempKeyVaultName, 0, length(tempKeyVaultName) - 1) : tempKeyVaultName
@@ -60,7 +92,7 @@ module appInsights './azmon.bicep' = {
   }
 }
 
-module vm_devopswinvm './createvmwindows.bicep' = if (toLower(CICDAgentType)!='none') {
+module vm_devopswinvm './createvmwindows.bicep' = if (toLower(CICDAgentType) != 'none') {
   name: 'devopsvm'
   scope: resourceGroup(resourceGroupName)
   params: {
@@ -89,6 +121,61 @@ module vm_jumpboxwinvm './createvmwindows.bicep' = {
   }
 }
 
+//certificates and user identity for apim and appgw
+resource commonUserIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-11-30' = {
+  name: commonUserIdentityName
+  location: location
+}
+
+module certificate './modules/certificate.bicep' = {
+  name: 'certificate'
+  scope: resourceGroup(resourceGroupName)
+  params: {
+    managedIdentity: commonUserIdentity
+    keyVaultName: keyVaultName
+    location: location
+    appGatewayFQDN: appGatewayFQDN
+    appGatewayCertType: appGatewayCertType
+    certPassword: certPassword
+  }
+}
+module certificateApi './modules/certificateApi.bicep' = {
+  name: 'certificateApi'
+  scope: resourceGroup(resourceGroupName)
+  params: {
+    managedIdentity: commonUserIdentity
+    keyVaultName: keyVaultName
+    location: location
+    appGatewayFQDN: apiFQDN
+    appGatewayCertType: apiCertType
+    certPassword: apiCertPassword
+  }
+}
+module certificatePortal './modules/certificatePortal.bicep' = {
+  name: 'certificatePortal'
+  scope: resourceGroup(resourceGroupName)
+  params: {
+    managedIdentity: commonUserIdentity
+    keyVaultName: keyVaultName
+    location: location
+    appGatewayFQDN: portalFQDN
+    appGatewayCertType: portalCertType
+    certPassword: portalCertPassword
+  }
+}
+module certificateManagement './modules/certificateManagement.bicep' = {
+  name: 'certificateManagement'
+  scope: resourceGroup(resourceGroupName)
+  params: {
+    managedIdentity: commonUserIdentity
+    keyVaultName: keyVaultName
+    location: location
+    appGatewayFQDN: managementFQDN
+    appGatewayCertType: managementCertType
+    certPassword: managementCertPassword
+  }
+}
+
 resource key_vault 'Microsoft.KeyVault/vaults@2019-09-01' = {
   name: keyVaultName
   location: location
@@ -97,7 +184,7 @@ resource key_vault 'Microsoft.KeyVault/vaults@2019-09-01' = {
     sku: {
       family: 'A'
       name: 'standard'
-    }    
+    }
     accessPolicies: [
       // {
       //   tenantId: 'string'
@@ -126,7 +213,11 @@ resource key_vault 'Microsoft.KeyVault/vaults@2019-09-01' = {
 output appInsightsConnectionString string = appInsights.outputs.appInsightsConnectionString
 output CICDAgentVmName string = vm_devopswinvm.name
 output jumpBoxvmName string = vm_jumpboxwinvm.name
-output appInsightsName string=appInsights.outputs.appInsightsName
-output appInsightsId string=appInsights.outputs.appInsightsId
-output appInsightsInstrumentationKey string=appInsights.outputs.appInsightsInstrumentationKey
+output appInsightsName string = appInsights.outputs.appInsightsName
+output appInsightsId string = appInsights.outputs.appInsightsId
+output appInsightsInstrumentationKey string = appInsights.outputs.appInsightsInstrumentationKey
 output keyVaultName string = key_vault.name
+output commonUserIdentityId string = commonUserIdentity.id
+output certificateApiSecretUri string = certificateApi.outputs.secretUri
+output certificateManagementSecretUri string = certificateManagement.outputs.secretUri
+output certificatePortalSecretUri string = certificatePortal.outputs.secretUri

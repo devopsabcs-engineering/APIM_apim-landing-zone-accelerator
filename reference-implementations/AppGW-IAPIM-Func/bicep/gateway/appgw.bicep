@@ -4,8 +4,7 @@
 @description('The name of the Application Gateawy to be created.')
 param appGatewayName string
 
-@description('The FQDN of the Application Gateawy.Must match the TLS Certificate.')
-param appGatewayFQDN string = 'api.example.com'
+
 
 @description('The location of the Application Gateawy to be created')
 param location string = resourceGroup().location
@@ -13,8 +12,6 @@ param location string = resourceGroup().location
 @description('The subnet resource id to use for Application Gateway.')
 param appGatewaySubnetId string
 
-@description('Set to selfsigned if self signed certificates should be used for the Application Gateway. Set to custom and copy the pfx file to deployment/bicep/gateway/certs/appgw.pfx if custom certificates are to be used')
-param appGatewayCertType string
 
 @description('The backend URL of the APIM.')
 param primaryBackendEndFQDN string = 'api-internal.example.com'
@@ -22,89 +19,21 @@ param primaryBackendEndFQDN string = 'api-internal.example.com'
 @description('The Url for the Application Gateway Health Probe.')
 param probeUrl string = '/status-0123456789abcdef'
 
-param keyVaultName string
-param keyVaultResourceGroupName string
+param appGatewayUserIdentityId string
 
-@secure()
-param certPassword string
+param certificateApiSecretUri string
+param certificatePortalSecretUri string
+param certificateManagementSecretUri string
 
-@description('The FQDN of the Api.Must match the TLS Certificate.')
 param apiFQDN string
-@description('Set to selfsigned if self signed certificates should be used for the Api. Set to custom and copy the pfx file to deployment/bicep/gateway/certs/api.pfx if custom certificates are to be used')
-param apiCertType string
-@secure()
-param apiCertPassword string
-
-@description('The FQDN of the Portal.Must match the TLS Certificate.')
 param portalFQDN string
-@description('Set to selfsigned if self signed certificates should be used for the Portal. Set to custom and copy the pfx file to deployment/bicep/gateway/certs/portal.pfx if custom certificates are to be used')
-param portalCertType string
-@secure()
-param portalCertPassword string
-
-@description('The FQDN of the Management.Must match the TLS Certificate.')
 param managementFQDN string
-@description('Set to selfsigned if self signed certificates should be used for the Management. Set to custom and copy the pfx file to deployment/bicep/gateway/certs/management.pfx if custom certificates are to be used')
-param managementCertType string
-@secure()
-param managementCertPassword string
+
 
 var appGatewayPrimaryPip = 'pip-${appGatewayName}'
-var appGatewayIdentityId = 'identity-${appGatewayName}'
 
-resource appGatewayIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-11-30' = {
-  name: appGatewayIdentityId
-  location: location
-}
 
-module certificate './modules/certificate.bicep' = {
-  name: 'certificate'
-  scope: resourceGroup(keyVaultResourceGroupName)
-  params: {
-    managedIdentity: appGatewayIdentity
-    keyVaultName: keyVaultName
-    location: location
-    appGatewayFQDN: appGatewayFQDN
-    appGatewayCertType: appGatewayCertType
-    certPassword: certPassword
-  }
-}
-module certificateApi './modules/certificateApi.bicep' = {
-  name: 'certificateApi'
-  scope: resourceGroup(keyVaultResourceGroupName)
-  params: {
-    managedIdentity: appGatewayIdentity
-    keyVaultName: keyVaultName
-    location: location
-    appGatewayFQDN: apiFQDN
-    appGatewayCertType: apiCertType
-    certPassword: apiCertPassword
-  }
-}
-module certificatePortal './modules/certificatePortal.bicep' = {
-  name: 'certificatePortal'
-  scope: resourceGroup(keyVaultResourceGroupName)
-  params: {
-    managedIdentity: appGatewayIdentity
-    keyVaultName: keyVaultName
-    location: location
-    appGatewayFQDN: portalFQDN
-    appGatewayCertType: portalCertType
-    certPassword: portalCertPassword
-  }
-}
-module certificateManagement './modules/certificateManagement.bicep' = {
-  name: 'certificateManagement'
-  scope: resourceGroup(keyVaultResourceGroupName)
-  params: {
-    managedIdentity: appGatewayIdentity
-    keyVaultName: keyVaultName
-    location: location
-    appGatewayFQDN: managementFQDN
-    appGatewayCertType: managementCertType
-    certPassword: managementCertPassword
-  }
-}
+
 
 resource appGatewayPublicIPAddress 'Microsoft.Network/publicIPAddresses@2019-09-01' = {
   name: appGatewayPrimaryPip
@@ -121,13 +50,13 @@ resource appGatewayPublicIPAddress 'Microsoft.Network/publicIPAddresses@2019-09-
 resource appGatewayName_resource 'Microsoft.Network/applicationGateways@2019-09-01' = {
   name: appGatewayName
   location: location
-  dependsOn: [
-    certificate
-  ]
+  // dependsOn: [
+  //   certificate
+  // ]
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {
-      '${appGatewayIdentity.id}': {}
+      '${appGatewayUserIdentityId}': {}
     }
   }
   properties: {
@@ -156,19 +85,19 @@ resource appGatewayName_resource 'Microsoft.Network/applicationGateways@2019-09-
       {
         name: 'gatewaycert' // apiFQDN
         properties: {
-          keyVaultSecretId: certificateApi.outputs.secretUri
+          keyVaultSecretId: certificateApiSecretUri
         }
       }
       {
         name: 'portalcert' // portalFQDN
         properties: {
-          keyVaultSecretId: certificatePortal.outputs.secretUri
+          keyVaultSecretId: certificatePortalSecretUri
         }
       }
       {
         name: 'managementcert' // managementFQDN
         properties: {
-          keyVaultSecretId: certificateManagement.outputs.secretUri
+          keyVaultSecretId: certificateManagementSecretUri
         }
       }
     ]

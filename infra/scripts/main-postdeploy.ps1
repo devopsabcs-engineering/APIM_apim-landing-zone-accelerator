@@ -72,38 +72,38 @@ Connect-AzAccount -Credential $psCred -TenantId $azureTenantId  -ServicePrincipa
 
 Write-Host "let us configure an app gateway for external access"
 
-$gatewayHostname = "api.$domainName"                 # API gateway host
-$portalHostname = "portal.$domainName"               # API developer portal host
-$managementHostname = "management.$domainName"               # API management endpoint host
+#$gatewayHostname = "api.$domainName"                 # API gateway host
+#$portalHostname = "portal.$domainName"               # API developer portal host
+#$managementHostname = "management.$domainName"               # API management endpoint host
 
-$gatewayCertPfxPath = "$pfxApiTasksecureFIlePath"
-$portalCertPfxPath = "$pfxPortalTasksecureFIlePath"
-$managementCertPfxPath = "$pfxManagementTasksecureFIlePath"
+#$gatewayCertPfxPath = "$pfxApiTasksecureFIlePath"
+#$portalCertPfxPath = "$pfxPortalTasksecureFIlePath"
+#$managementCertPfxPath = "$pfxManagementTasksecureFIlePath"
           
 # should use seperate pws
-$pw = "$pfxPassword"
-$certGatewayPwd = ConvertTo-SecureString -String $pw  -AsPlainText -Force
-$certPortalPwd = ConvertTo-SecureString -String $pw -AsPlainText -Force
-$certManagementPwd = ConvertTo-SecureString -String $pw -AsPlainText -Force
+#$pw = "$pfxPassword"
+#$certGatewayPwd = ConvertTo-SecureString -String $pw  -AsPlainText -Force
+#$certPortalPwd = ConvertTo-SecureString -String $pw -AsPlainText -Force
+#$certManagementPwd = ConvertTo-SecureString -String $pw -AsPlainText -Force
           
 # Path to trusted root CER file used in Application Gateway HTTP settings           
-$trustedRootCertCerPath = "$trustedrootcertsecureFIlePath" # Full path to contoso.net trusted root .cer file
-Get-Content $trustedRootCertCerPath
+#$trustedRootCertCerPath = "$trustedrootcertsecureFIlePath" # Full path to contoso.net trusted root .cer file
+#Get-Content $trustedRootCertCerPath
 
-$gatewayHostnameConfig = New-AzApiManagementCustomHostnameConfiguration -Hostname $gatewayHostname `
-    -HostnameType Proxy -PfxPath $gatewayCertPfxPath -PfxPassword $certGatewayPwd
-$portalHostnameConfig = New-AzApiManagementCustomHostnameConfiguration -Hostname $portalHostname `
-    -HostnameType DeveloperPortal -PfxPath $portalCertPfxPath -PfxPassword $certPortalPwd
-$managementHostnameConfig = New-AzApiManagementCustomHostnameConfiguration -Hostname $managementHostname `
-    -HostnameType Management -PfxPath $managementCertPfxPath -PfxPassword $certManagementPwd
+# $gatewayHostnameConfig = New-AzApiManagementCustomHostnameConfiguration -Hostname $gatewayHostname `
+#     -HostnameType Proxy -PfxPath $gatewayCertPfxPath -PfxPassword $certGatewayPwd
+# $portalHostnameConfig = New-AzApiManagementCustomHostnameConfiguration -Hostname $portalHostname `
+#     -HostnameType DeveloperPortal -PfxPath $portalCertPfxPath -PfxPassword $certPortalPwd
+# $managementHostnameConfig = New-AzApiManagementCustomHostnameConfiguration -Hostname $managementHostname `
+#     -HostnameType Management -PfxPath $managementCertPfxPath -PfxPassword $certManagementPwd
 
 $apimService = Get-AzApiManagement -ResourceGroupName $ResourceGroupNameApim -Name $apimServiceName
 
-$apimService.ProxyCustomHostnameConfiguration = $gatewayHostnameConfig
-$apimService.PortalCustomHostnameConfiguration = $portalHostnameConfig
-$apimService.ManagementCustomHostnameConfiguration = $managementHostnameConfig
+# $apimService.ProxyCustomHostnameConfiguration = $gatewayHostnameConfig
+# $apimService.PortalCustomHostnameConfiguration = $portalHostnameConfig
+# $apimService.ManagementCustomHostnameConfiguration = $managementHostnameConfig
 
-Set-AzApiManagement -InputObject $apimService
+# Set-AzApiManagement -InputObject $apimService
 
 Write-Host get vnet info
 $vnet = Get-AzVirtualNetwork -Name $appGatewayVnetName -ResourceGroupName $ResourceGroupNameNetwork
