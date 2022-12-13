@@ -1,0 +1,21 @@
+schema {
+  query: NoteQuery
+  mutation: NoteMutation
+}
+
+# Note Type
+type Note {
+  # Note Id
+  id: ID!
+  # Note Message
+  message: String
+}
+
+type NoteMutation {
+  createNote(message: String!): Note
+}
+
+type NoteQuery {
+  notes: [Note]
+  notesFromEF: [Note]
+}
