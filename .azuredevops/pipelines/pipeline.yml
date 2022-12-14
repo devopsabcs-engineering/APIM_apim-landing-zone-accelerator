@@ -25,6 +25,8 @@ variables:
   value: ${{ parameters.ReDeployInfraParam }}
 - name: mainTemplatePath
   value: '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/azure-resource-manager/main.json'
+#- name: mainTemplatePath
+#  value: '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/main.json'
 
 #resources:
 #  repositories:
@@ -87,7 +89,7 @@ stages:
           # Write your PowerShell commands here.
           
           Write-Host "Build template with strong Bicep"
-          az bicep build -f '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/main.bicep' --outfile '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/azure-resource-manager'
+          az bicep build -f '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/main.bicep' --outfile '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/azure-resource-manager/main.json'
           #Copy-Item -Path $(mainTemplateLocation) -Destination '$(Build.ArtifactStagingDirectory)/$(planName)/mainTemplate.json' -Force
           #$(System.DefaultWorkingDirectory)/$(ADO_REPO_ARM_TTK)/arm-ttk/Test-AzTemplate.sh $(Build.ArtifactStagingDirectory)/$(planName)
         failOnStderr: false
