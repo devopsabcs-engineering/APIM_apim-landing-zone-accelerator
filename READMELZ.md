@@ -23,15 +23,15 @@ In this repo you will also find reference implementations with supporting Infras
 ### Reference Implementation 1: App Gateway with internal APIM instance with Azure Functions as backend
 
 Architectural Diagram:
-![image](/docs/images/arch.png)
+![image](/docsLZ/images/arch.png)
 
 Resources Deployed:
-![image](/docs/images/deployed-items.png)
+![image](/docsLZ/images/deployed-items.png)
 
 Deployment Details:
 | Deployment Methodology| GitHub Action YAML| User Guide|
 |--------------|--------------|--------------|
-| [Bicep](/reference-implementations/AppGW-IAPIM-Func/bicep) |[es-apim.yml](/.github/workflows/es-apim.yml)| [README](/docs/README.md)
+| [Bicep](/reference-implementations/AppGW-IAPIM-Func/bicep) |[es-apim.yml](/.github/workflows/es-apim.yml)| [README](/docsLZ/README.md)
 | [ARM](/reference-implementations/AppGW-IAPIM-Func/azure-resource-manager/apim-arm.js) | Not provided* |
 | Terraform (Coming soon)||
 ---
