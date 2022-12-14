@@ -23,6 +23,8 @@ variables:
 - group: APIM_ESLZ_dev_vars
 - name: ReDeployInfra
   value: ${{ parameters.ReDeployInfraParam }}
+- name: mainTemplatePath
+  value: '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/azure-resource-manager/main.json'
 
 #resources:
 #  repositories:
@@ -41,13 +43,14 @@ stages:
     #- checkout: apimeslz
     - checkout: self
     - task: CmdLine@2
+      displayName: list source files
       inputs:
         script: |
           echo Write your commands here
           
           echo Hello world
           
-          ls $(Pipeline.Workspace)/s
+          ls $(Pipeline.Workspace)/s    
     - task: DownloadSecureFile@1
       name: appgwPfxDownloadTask
       inputs:
@@ -76,6 +79,28 @@ stages:
         cp '$(pfxManagementTask.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/management.pfx'
         ls '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs'
       displayName: copy appgw pfx cert from secure file
+    - task: PowerShell@2
+      displayName: Build Main Template json from Bicep
+      inputs:
+        targetType: 'inline'
+        script: |
+          # Write your PowerShell commands here.
+          
+          Write-Host "Build template with strong Bicep"
+          az bicep build -f '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/main.bicep' --outfile '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/azure-resource-manager'
+          #Copy-Item -Path $(mainTemplateLocation) -Destination '$(Build.ArtifactStagingDirectory)/$(planName)/mainTemplate.json' -Force
+          #$(System.DefaultWorkingDirectory)/$(ADO_REPO_ARM_TTK)/arm-ttk/Test-AzTemplate.sh $(Build.ArtifactStagingDirectory)/$(planName)
+        failOnStderr: false
+        pwsh: true    
+    - task: RunARMTTKTestsXPlat@1
+      displayName: Run Template Checker
+      inputs:
+        templatelocation: '$(mainTemplatePath)'
+        resultLocation: '$(System.DefaultWorkingDirectory)/results/main'
+        skipTests: 'Template Should Not Contain Blanks'
+        mainTemplates: 'main.json'
+        allTemplatesMain: false
+        cliOutputResults: true
     - task: PublishPipelineArtifact@1
       inputs:
         targetPath: '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep'
