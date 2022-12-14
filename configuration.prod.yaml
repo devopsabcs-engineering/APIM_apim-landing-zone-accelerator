@@ -30,7 +30,7 @@ loggers:
         description: prod application insights
         resourceId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-001/providers/microsoft.insights/components/appi-apimfifgmevnwrnwu"
         credentials:
-          instrumentationKey: "{{Logger-Credentials--62825ade46346113589affc1}}"
+          instrumentationKey: "{{Logger-Credentials--639918ba46346116dc7ad11d}}"
         isBuffered: true
 diagnostics:
    - name: applicationinsights
