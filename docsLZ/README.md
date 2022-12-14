@@ -21,7 +21,7 @@ OR
 git clone https://github.com/Azure/apim-landing-zone-accelerator.git
 ```
 
-![Clone Repo](/docs/images/clone-repo.png)
+![Clone Repo](/docsLZ/images/clone-repo.png)
 
 ### 2. Authentication from GitHub to Azure
 
@@ -61,13 +61,13 @@ az account show
 
 b.) Sign-in using Cloud Shell.
 
-![cloud shell](/docs/images/cloud_shell.png)
+![cloud shell](/docsLZ/images/cloud_shell.png)
 
 ```Powershell
 az account show
 ```
 
-![account show](/docs/images/az-account-show.jpg)
+![account show](/docsLZ/images/az-account-show.jpg)
 
 c.) create the Azure Active Directory application.
 
@@ -196,29 +196,29 @@ c) Push the latest changes to your **feature** branch and create a Pull Request 
 
 Alternatively, you can also trigger the workflow by going to **Actions** tab and run the `AzureBicepDeploy` workflow manually.
 
-![manual trigger](/docs/images/manual_trigger.png)
+![manual trigger](/docsLZ/images/manual_trigger.png)
 
 ### 7. Deployed Resources
 
 #### There will be four resource groups created as follows
 
-![resource group](/docs/images/resource_groups.png)
+![resource group](/docsLZ/images/resource_groups.png)
 
 #### Outputs from Backend
 
-![backend module](/docs/images/backend.png)
+![backend module](/docsLZ/images/backend.png)
 
 #### Outputs from Shared module
 
-![shared module](/docs/images/shared.png)
+![shared module](/docsLZ/images/shared.png)
 
 #### Outputs from APIM module
 
-![apim module](/docs/images/apim.png)
+![apim module](/docsLZ/images/apim.png)
 
 #### Outputs from Networking module
 
-![networking module](/docs/images/networking.png)
+![networking module](/docsLZ/images/networking.png)
 
 ### 8. Deploy the Function and APIs
 
