@@ -5,6 +5,7 @@ trigger:
   paths:
     exclude:
     - tools/*
+    - .azuredevops/*
 
 parameters:
   - name: API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH
