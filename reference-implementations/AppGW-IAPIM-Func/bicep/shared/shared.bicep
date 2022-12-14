@@ -78,6 +78,9 @@ param appGatewayCertType string
 @description('The common user identity name to be created.')
 param commonUserIdentityName string
 
+@description('Valid SKU indicator for the VM')
+param vmSize string = 'Standard_D4_v3'
+
 // Variables - ensure key vault name does not end with '-'
 var tempKeyVaultName = take('kv-${resourceSuffix}', 24) // Must be between 3-24 alphanumeric characters 
 var keyVaultName = endsWith(tempKeyVaultName, '-') ? substring(tempKeyVaultName, 0, length(tempKeyVaultName) - 1) : tempKeyVaultName
@@ -105,6 +108,8 @@ module vm_devopswinvm './createvmwindows.bicep' = if (toLower(CICDAgentType) != 
     personalAccessToken: personalAccessToken
     CICDAgentType: CICDAgentType
     deployAgent: true
+
+    vmSize: vmSize
   }
 }
 
@@ -118,6 +123,7 @@ module vm_jumpboxwinvm './createvmwindows.bicep' = {
     password: vmPassword
     CICDAgentType: CICDAgentType
     vmName: 'jumpbox-${environment}'
+    vmSize: vmSize
   }
 }
 

@@ -75,6 +75,9 @@ param managementCertType string
 @description('main domain name such as for certificates to access externally e.g. mngenv019702.onmicrosoft.com')
 param mainDomainName string
 
+@description('Valid SKU indicator for the VM')
+param vmSize string = 'Standard_D4_v3'
+
 // Variables
 var resourceSuffix = '${workloadName}-${environment}-${location}-003'
 var networkingResourceGroupName = 'rg-networking-${resourceSuffix}'
@@ -155,6 +158,7 @@ module shared './shared/shared.bicep' = {
     resourceSuffix: resourceSuffix
     vmPassword: vmPassword
     vmUsername: vmUsername
+    vmSize: vmSize
 
     apiCertPassword: apiCertificatePassword
     apiCertType: apiCertType
