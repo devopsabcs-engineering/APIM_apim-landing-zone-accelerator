@@ -10,6 +10,7 @@ paths:
       tags:
         - HealthCheck
       summary: /HealthCheck - GET
+      description: /HealthCheck - GET
       operationId: get-healthcheck
       responses:
         '200':
@@ -20,9 +21,7 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/HealthCheck'
-              examples:
-                default:
-                  value: 
+              example: ''
             application/json:
               schema:
                 type: array
@@ -51,6 +50,7 @@ paths:
       tags:
         - HealthCheck
       summary: /HealthCheck - POST
+      description: /HealthCheck - POST
       operationId: post-healthcheck
       requestBody:
         content:
@@ -92,6 +92,7 @@ paths:
       tags:
         - HealthCheck
       summary: '/HealthCheck/{id} - GET'
+      description: '/HealthCheck/{id} - GET'
       operationId: get-healthcheck-id
       parameters:
         - name: id
@@ -108,9 +109,7 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/HealthCheck'
-              examples:
-                default:
-                  value: 
+              example: ''
             application/json:
               schema:
                 type: array
@@ -139,6 +138,7 @@ paths:
       tags:
         - HealthCheck
       summary: '/HealthCheck/{id} - PUT'
+      description: '/HealthCheck/{id} - PUT'
       operationId: put-healthcheck-id
       parameters:
         - name: id
@@ -185,6 +185,7 @@ paths:
       tags:
         - HealthCheck
       summary: '/HealthCheck/{id} - DELETE'
+      description: '/HealthCheck/{id} - DELETE'
       operationId: delete-healthcheck-id
       parameters:
         - name: id
@@ -200,6 +201,7 @@ paths:
       tags:
         - HealthCheck
       summary: /HealthCheck/GetStatus - GET
+      description: /HealthCheck/GetStatus - GET
       operationId: get-healthcheck-getstatus
       responses:
         '200':
@@ -208,9 +210,7 @@ paths:
             text/plain:
               schema:
                 $ref: '#/components/schemas/HealthCheck'
-              examples:
-                default:
-                  value: 
+              example: ''
             application/json:
               schema:
                 $ref: '#/components/schemas/HealthCheck'
