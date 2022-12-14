@@ -13,11 +13,11 @@ param location string = resourceGroup().location
 param appGatewaySubnetId string
 
 
-@description('The backend URL of the APIM.')
-param primaryBackendEndFQDN string = 'api-internal.example.com'
+// @description('The backend URL of the APIM.')
+// param primaryBackendEndFQDN string = 'api-internal.example.com'
 
-@description('The Url for the Application Gateway Health Probe.')
-param probeUrl string = '/status-0123456789abcdef'
+// @description('The Url for the Application Gateway Health Probe.')
+// param probeUrl string = '/status-0123456789abcdef'
 
 param appGatewayUserIdentityId string
 

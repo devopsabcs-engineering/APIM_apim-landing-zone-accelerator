@@ -12,7 +12,7 @@ var subjectName='CN=${appGatewayFQDN}'
 var certData = appGatewayCertType == 'selfsigned' ? 'null' : loadFileAsBase64('../certs/api.pfx')
 var certPwd = appGatewayCertType == 'selfsigned' ? 'null' : certPassword
 
-resource accessPolicyGrant 'Microsoft.KeyVault/vaults/accessPolicies@2019-09-01' = {
+resource accessPolicyGrant 'Microsoft.KeyVault/vaults/accessPolicies@2022-07-01' = {
   name: '${keyVaultName}/add'
   properties: {
     accessPolicies: [

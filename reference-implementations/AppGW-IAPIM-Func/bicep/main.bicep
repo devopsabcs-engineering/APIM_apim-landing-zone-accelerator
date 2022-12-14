@@ -232,7 +232,7 @@ module appgwModule 'gateway/appgw.bicep' = {
     appGatewayName: appGatewayName
     location: location
     appGatewaySubnetId: networking.outputs.appGatewaySubnetid
-    primaryBackendEndFQDN: '${apimName}.azure-api.net'
+    //primaryBackendEndFQDN: '${apimName}.azure-api.net'
     //keyVaultName: shared.outputs.keyVaultName
     //keyVaultResourceGroupName: sharedRG.name
 
