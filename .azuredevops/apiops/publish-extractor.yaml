@@ -24,7 +24,7 @@ stages:
             displayName: Install .NET Core SDK
             inputs:
               version: 7.x
-              includePreviewVersions: true
+              includePreviewVersions: false
           - task: DotNetCoreCLI@2
             displayName: Publish .NET Core application
             inputs:
