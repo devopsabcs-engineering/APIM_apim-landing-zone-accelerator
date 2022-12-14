@@ -319,9 +319,9 @@ resource appGatewayName_resource 'Microsoft.Network/applicationGateways@2022-07-
             id: resourceId('Microsoft.Network/applicationGateways/sslCertificates', appGatewayName, 'gatewaycert')
           }
           hostName: apiFQDN
-          //hostnames: []
+          hostNames: []
           requireServerNameIndication: true
-          //customErrorConfigurations: []
+          customErrorConfigurations: []
         }
       }
       {
@@ -338,9 +338,9 @@ resource appGatewayName_resource 'Microsoft.Network/applicationGateways@2022-07-
             id: resourceId('Microsoft.Network/applicationGateways/sslCertificates', appGatewayName, 'portalcert')
           }
           hostName: portalFQDN
-          //hostnames: []
+          hostNames: []
           requireServerNameIndication: true
-          //customErrorConfigurations: []
+          customErrorConfigurations: []
         }
       }
       {
@@ -357,14 +357,14 @@ resource appGatewayName_resource 'Microsoft.Network/applicationGateways@2022-07-
             id: resourceId('Microsoft.Network/applicationGateways/sslCertificates', appGatewayName, 'managementcert')
           }
           hostName: managementFQDN
-          //hostnames: []
+          hostNames: []
           requireServerNameIndication: true
-          //customErrorConfigurations: []
+          customErrorConfigurations: []
         }
       }
 
     ]
-    //urlPathMaps: []
+    urlPathMaps: []
     requestRoutingRules: [
       // {
       //   name: 'apim'
@@ -493,14 +493,14 @@ resource appGatewayName_resource 'Microsoft.Network/applicationGateways@2022-07-
         }
       }
     ]
-    //rewriteRuleSets: []
-    //redirectConfigurations: []
+    rewriteRuleSets: []
+    redirectConfigurations: []
     webApplicationFirewallConfiguration: {
       enabled: true
       firewallMode: 'Prevention' // 'Detection'
       ruleSetType: 'OWASP'
       ruleSetVersion: '3.0'
-      //disabledRuleGroups: []
+      disabledRuleGroups: []
       requestBodyCheck: true
       maxRequestBodySizeInKb: 128
       fileUploadLimitInMb: 100

@@ -35,13 +35,13 @@ resource vnet_generic 'Microsoft.Network/virtualNetworks@2022-07-01' = {
         name: subnetName
         properties: {
           addressPrefix: '10.1.0.0/24'
-          //delegations: []
+          delegations: []
           privateEndpointNetworkPolicies: 'Enabled'
           privateLinkServiceNetworkPolicies: 'Enabled'
         }
       }
     ]
-    //virtualNetworkPeerings: []
+    virtualNetworkPeerings: []
     enableDdosProtection: false
   }
 }
