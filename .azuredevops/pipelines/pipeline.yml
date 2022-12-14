@@ -103,6 +103,11 @@ stages:
         mainTemplates: 'main.json'
         allTemplatesMain: false
         cliOutputResults: true
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFormat: 'NUnit'
+        testResultsFiles: '$(System.DefaultWorkingDirectory)/results/main/*-armttk.xml'
+      condition: always()
     - task: PublishPipelineArtifact@1
       inputs:
         targetPath: '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep'
