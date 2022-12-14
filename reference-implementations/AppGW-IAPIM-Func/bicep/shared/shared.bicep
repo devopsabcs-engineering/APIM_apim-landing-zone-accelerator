@@ -122,7 +122,7 @@ module vm_jumpboxwinvm './createvmwindows.bicep' = {
 }
 
 //certificates and user identity for apim and appgw
-resource commonUserIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-11-30' = {
+resource commonUserIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = {
   name: commonUserIdentityName
   location: location
 }
@@ -176,7 +176,7 @@ module certificateManagement './modules/certificateManagement.bicep' = {
   }
 }
 
-resource key_vault 'Microsoft.KeyVault/vaults@2019-09-01' = {
+resource key_vault 'Microsoft.KeyVault/vaults@2022-07-01' = {
   name: keyVaultName
   location: location
   properties: {

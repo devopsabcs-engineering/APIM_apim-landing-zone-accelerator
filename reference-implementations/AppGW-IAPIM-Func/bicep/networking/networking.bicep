@@ -79,7 +79,7 @@ var publicIPAddressName = 'pip-apimcs-${workloadName}-${deploymentEnvironment}-$
 var publicIPAddressNameBastion = 'pip-bastion-${workloadName}-${deploymentEnvironment}-${location}'
 
 // Resources - VNet - SubNets
-resource vnetApimCs 'Microsoft.Network/virtualNetworks@2021-02-01' = {
+resource vnetApimCs 'Microsoft.Network/virtualNetworks@2022-07-01' = {
   name: apimCSVNetName
   location: location
   tags: {
@@ -176,7 +176,7 @@ resource vnetApimCs 'Microsoft.Network/virtualNetworks@2021-02-01' = {
 // Network Security Groups (NSG)
 
 // Bastion NSG must have mininal set of rules below
-resource bastionNSG 'Microsoft.Network/networkSecurityGroups@2020-06-01' = {
+resource bastionNSG 'Microsoft.Network/networkSecurityGroups@2022-07-01' = {
   name: bastionSNNSG
   location: location
   properties: {
@@ -298,7 +298,7 @@ resource bastionNSG 'Microsoft.Network/networkSecurityGroups@2020-06-01' = {
   }
 }
 
-resource devOpsNSG 'Microsoft.Network/networkSecurityGroups@2020-06-01' = {
+resource devOpsNSG 'Microsoft.Network/networkSecurityGroups@2022-07-01' = {
   name: devOpsSNNSG
   location: location
   properties: {
@@ -306,7 +306,7 @@ resource devOpsNSG 'Microsoft.Network/networkSecurityGroups@2020-06-01' = {
     ]
   }
 }
-resource jumpBoxNSG 'Microsoft.Network/networkSecurityGroups@2020-06-01' = {
+resource jumpBoxNSG 'Microsoft.Network/networkSecurityGroups@2022-07-01' = {
   name: jumpBoxSNNSG
   location: location
   properties: {
@@ -314,7 +314,7 @@ resource jumpBoxNSG 'Microsoft.Network/networkSecurityGroups@2020-06-01' = {
     ]
   }
 }
-resource appGatewayNSG 'Microsoft.Network/networkSecurityGroups@2020-06-01' = {
+resource appGatewayNSG 'Microsoft.Network/networkSecurityGroups@2022-07-01' = {
   name: appGatewaySNNSG
   location: location
   properties: {
@@ -374,7 +374,7 @@ resource appGatewayNSG 'Microsoft.Network/networkSecurityGroups@2020-06-01' = {
     ]
   }
 }
-resource privateEndpointNSG 'Microsoft.Network/networkSecurityGroups@2020-06-01' = {
+resource privateEndpointNSG 'Microsoft.Network/networkSecurityGroups@2022-07-01' = {
   name: privateEndpointSNNSG
   location: location
   properties: {
@@ -383,7 +383,7 @@ resource privateEndpointNSG 'Microsoft.Network/networkSecurityGroups@2020-06-01'
   }
 }
 
-resource backEndNSG 'Microsoft.Network/networkSecurityGroups@2020-06-01' = {
+resource backEndNSG 'Microsoft.Network/networkSecurityGroups@2022-07-01' = {
   name: backEndSNNSG
   location: location
   properties: {
@@ -391,7 +391,7 @@ resource backEndNSG 'Microsoft.Network/networkSecurityGroups@2020-06-01' = {
     ]
   }
 }
-resource apimNSG 'Microsoft.Network/networkSecurityGroups@2020-06-01' = {
+resource apimNSG 'Microsoft.Network/networkSecurityGroups@2022-07-01' = {
   name: apimSNNSG
   location: location
   properties: {
@@ -466,7 +466,7 @@ resource apimNSG 'Microsoft.Network/networkSecurityGroups@2020-06-01' = {
 }
 
 // Public IP 
-resource pip 'Microsoft.Network/publicIPAddresses@2020-07-01' = {
+resource pip 'Microsoft.Network/publicIPAddresses@2022-07-01' = {
   name: publicIPAddressName
   location: location
   properties: {
@@ -475,7 +475,7 @@ resource pip 'Microsoft.Network/publicIPAddresses@2020-07-01' = {
 }
 
 // Mind the PIP for bastion being Standard SKU, Static IP
-resource pipBastion 'Microsoft.Network/publicIPAddresses@2020-07-01' = {
+resource pipBastion 'Microsoft.Network/publicIPAddresses@2022-07-01' = {
   name: publicIPAddressNameBastion
   location: location
   sku: {
@@ -488,7 +488,7 @@ resource pipBastion 'Microsoft.Network/publicIPAddresses@2020-07-01' = {
   }  
 }
 
-resource bastion 'Microsoft.Network/bastionHosts@2020-07-01' = {
+resource bastion 'Microsoft.Network/bastionHosts@2022-07-01' = {
   name: bastionName
   location: location 
   tags:  {

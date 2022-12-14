@@ -6,7 +6,7 @@ param storageName string
 param standardDomain string = 'windows.net'
 param domain string = 'privatelink.${groupId}.core.${standardDomain}'
 
-resource vnet 'Microsoft.Network/virtualNetworks@2021-02-01' existing = {
+resource vnet 'Microsoft.Network/virtualNetworks@2022-07-01' existing = {
   name: vnetName
   scope: resourceGroup(vnetRG)
 }
@@ -30,7 +30,7 @@ resource vnetLinks 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-0
   ]
 }
 
-resource dnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2020-03-01' = {
+resource dnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2022-07-01' = {
   name: '${privateEndpointName}/default'
   properties: {
     privateDnsZoneConfigs: [

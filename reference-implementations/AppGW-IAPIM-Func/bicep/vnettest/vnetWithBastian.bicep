@@ -5,7 +5,7 @@ param bastionHostName string='bastionhost'
 var name = '${namePrefix}-${uniqueString(resourceGroup().id)}'
 var subnetName = 'main-subnet'
 
-resource publicIp 'Microsoft.Network/publicIPAddresses@2020-06-01' = {
+resource publicIp 'Microsoft.Network/publicIPAddresses@2022-07-01' = {
   name: '${bastionHostName}-pip'
   location: location
   sku: {
@@ -16,7 +16,7 @@ resource publicIp 'Microsoft.Network/publicIPAddresses@2020-06-01' = {
   }
 }
 
-resource vnet_generic 'Microsoft.Network/virtualNetworks@2020-08-01' = {
+resource vnet_generic 'Microsoft.Network/virtualNetworks@2022-07-01' = {
   name: name
   location: location
   properties: {
@@ -41,14 +41,14 @@ resource vnet_generic 'Microsoft.Network/virtualNetworks@2020-08-01' = {
   }
 }
 
-resource subNet 'Microsoft.Network/virtualNetworks/subnets@2020-06-01' = {
+resource subNet 'Microsoft.Network/virtualNetworks/subnets@2022-07-01' = {
   name: '${vnet_generic.name}/AzureBastionSubnet'
   properties: {
     addressPrefix: bastionSubnetIpPrefix
   }
 }
 
-resource bastionHost 'Microsoft.Network/bastionHosts@2020-06-01' = {
+resource bastionHost 'Microsoft.Network/bastionHosts@2022-07-01' = {
   name: bastionHostName
   location: location
   properties: {

@@ -7,12 +7,12 @@ param apimRG string
  Retrieve APIM and Virtual Network
 */
 
-resource apim 'Microsoft.ApiManagement/service@2020-12-01' existing = {
+resource apim 'Microsoft.ApiManagement/service@2021-08-01' existing = {
   name: apimName
   scope: resourceGroup(apimRG)
 }
 
-resource vnet 'Microsoft.Network/virtualNetworks@2021-02-01' existing = {
+resource vnet 'Microsoft.Network/virtualNetworks@2022-07-01' existing = {
   name: vnetName
   scope: resourceGroup(vnetRG)
 }

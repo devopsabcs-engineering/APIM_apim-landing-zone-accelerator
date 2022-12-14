@@ -87,7 +87,7 @@ var privateEndpoint_funcappAPIMCSBackendMicroServiceA_name   = 'pep-func-code-be
 // Definitions
 //
 // Azure Storage Account
-resource storageAccounts_saapimcsbackend_name_resource 'Microsoft.Storage/storageAccounts@2021-06-01' = {
+resource storageAccounts_saapimcsbackend_name_resource 'Microsoft.Storage/storageAccounts@2022-09-01' = {
   name: storageAccounts_saapimcsbackend_name
   location: storageAccounts_location
   tags: {
@@ -186,12 +186,12 @@ module fileStoragePrivateEndpoint './networking.bicep' = {
   }
 }
 
-resource fileShare 'Microsoft.Storage/storageAccounts/fileServices/shares@2021-04-01' = {
+resource fileShare 'Microsoft.Storage/storageAccounts/fileServices/shares@2022-09-01' = {
   name: '${storageAccounts_saapimcsbackend_name_resource.name}/default/${functionContentShareName}'
 }
 
 // Azure Application Service Plan
-resource serverfarms_appsvcplanAPIMCSBackend_name_resource 'Microsoft.Web/serverfarms@2018-02-01' = {
+resource serverfarms_appsvcplanAPIMCSBackend_name_resource 'Microsoft.Web/serverfarms@2022-03-01' = {
   name: serverfarms_appsvcplanAPIMCSBackend_name
   location: serverfarms_appsvcplanAPIMCSBackend_location
   tags: {
@@ -218,7 +218,7 @@ resource serverfarms_appsvcplanAPIMCSBackend_name_resource 'Microsoft.Web/server
 }
 
 // Azure Function App (Linux, .NET Core 3.1)
-resource sites_funcappAPIMCSBackendMicroServiceA_name_resource 'Microsoft.Web/sites@2018-11-01' = {
+resource sites_funcappAPIMCSBackendMicroServiceA_name_resource 'Microsoft.Web/sites@2022-03-01' = {
   name: sites_funcappAPIMCSBackendMicroServiceA_name
   location: sites_funcappAPIMCSBackendMicroServiceA_location // 'West Europe'
   tags: {
@@ -297,7 +297,7 @@ resource sites_funcappAPIMCSBackendMicroServiceA_name_resource 'Microsoft.Web/si
 }
 
 // Hostname binding for Azure Function App (Linux, .NET Core 3.1)
-resource sites_funcappAPIMCSBackendMicroServiceA_name_sites_funcappAPIMCSBackendMicroServiceA_name_azurewebsites_net 'Microsoft.Web/sites/hostNameBindings@2018-11-01' = {
+resource sites_funcappAPIMCSBackendMicroServiceA_name_sites_funcappAPIMCSBackendMicroServiceA_name_azurewebsites_net 'Microsoft.Web/sites/hostNameBindings@2022-03-01' = {
   parent: sites_funcappAPIMCSBackendMicroServiceA_name_resource
   name: '${sites_funcappAPIMCSBackendMicroServiceA_name}.azurewebsites.net'
   properties: {
@@ -306,7 +306,7 @@ resource sites_funcappAPIMCSBackendMicroServiceA_name_sites_funcappAPIMCSBackend
   }
 }
 
-resource planNetworkConfig 'Microsoft.Web/sites/networkConfig@2021-01-01' = {
+resource planNetworkConfig 'Microsoft.Web/sites/networkConfig@2022-03-01' = {
   parent: sites_funcappAPIMCSBackendMicroServiceA_name_resource
   name: 'virtualNetwork'
   properties: {
@@ -317,12 +317,12 @@ resource planNetworkConfig 'Microsoft.Web/sites/networkConfig@2021-01-01' = {
 
 var privateDNSZoneName = 'privatelink.azurewebsites.net'
 
-resource vnet 'Microsoft.Network/virtualNetworks@2021-02-01' existing = {
+resource vnet 'Microsoft.Network/virtualNetworks@2022-07-01' existing = {
   name: vnetName
   scope: resourceGroup(vnetRG)
 }
 
-resource privateEndpoint 'Microsoft.Network/privateEndpoints@2021-03-01' = {
+resource privateEndpoint 'Microsoft.Network/privateEndpoints@2022-07-01' = {
   name: privateEndpoint_funcappAPIMCSBackendMicroServiceA_name
   location: location
   properties: {
@@ -343,12 +343,12 @@ resource privateEndpoint 'Microsoft.Network/privateEndpoints@2021-03-01' = {
   }
 }
 
-resource privateDnsZones 'Microsoft.Network/privateDnsZones@2018-09-01' = {
+resource privateDnsZones 'Microsoft.Network/privateDnsZones@2020-06-01' = {
   name: privateDNSZoneName
   location: 'global'
 }
 
-resource privateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2018-09-01' = {
+resource privateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
   name: '${privateDNSZoneName}/${uniqueString(vnet.id)}'
   location: 'global'
   properties: {
@@ -363,7 +363,7 @@ resource privateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLin
   ]
 }
 
-resource privateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2020-03-01' = {
+resource privateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2022-07-01' = {
   name: '${privateEndpoint_funcappAPIMCSBackendMicroServiceA_name}/default'
   properties: {
     privateDnsZoneConfigs: [

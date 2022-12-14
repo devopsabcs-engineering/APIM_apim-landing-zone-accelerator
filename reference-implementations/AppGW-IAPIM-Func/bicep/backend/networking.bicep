@@ -8,7 +8,7 @@ param storageAccountId string
 param privateDnsZoneName string
 param storageAcountName string
 
-resource privateEndpoint 'Microsoft.Network/privateEndpoints@2021-03-01' = {
+resource privateEndpoint 'Microsoft.Network/privateEndpoints@2022-07-01' = {
   name: privateEndpointName
   location: location
   properties: {

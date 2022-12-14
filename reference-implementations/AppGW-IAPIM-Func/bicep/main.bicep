@@ -90,22 +90,22 @@ var appGatewayName = 'appgw-${resourceSuffix}'
 
 var commonUserIdentityName = 'identity-${resourceSuffix}'
 
-resource networkingRG 'Microsoft.Resources/resourceGroups@2021-04-01' = {
+resource networkingRG 'Microsoft.Resources/resourceGroups@2022-09-01' = {
   name: networkingResourceGroupName
   location: location
 }
 
-resource backendRG 'Microsoft.Resources/resourceGroups@2021-04-01' = {
+resource backendRG 'Microsoft.Resources/resourceGroups@2022-09-01' = {
   name: backendResourceGroupName
   location: location
 }
 
-resource sharedRG 'Microsoft.Resources/resourceGroups@2021-04-01' = {
+resource sharedRG 'Microsoft.Resources/resourceGroups@2022-09-01' = {
   name: sharedResourceGroupName
   location: location
 }
 
-resource apimRG 'Microsoft.Resources/resourceGroups@2021-04-01' = {
+resource apimRG 'Microsoft.Resources/resourceGroups@2022-09-01' = {
   name: apimResourceGroupName
   location: location
 }

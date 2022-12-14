@@ -5,7 +5,7 @@ var subnetName = 'main-subnet'
 
 
 
-resource vnet_generic 'Microsoft.Network/virtualNetworks@2020-08-01' = {
+resource vnet_generic 'Microsoft.Network/virtualNetworks@2022-07-01' = {
   name: name
   location: location
   properties: {

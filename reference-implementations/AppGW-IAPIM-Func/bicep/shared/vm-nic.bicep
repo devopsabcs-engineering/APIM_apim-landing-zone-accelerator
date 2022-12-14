@@ -12,7 +12,7 @@ param privateIPAddress string =  '10.0.0.4'
 param nicName string
 
 // Resources
-resource nic 'Microsoft.Network/networkInterfaces@2021-02-01' = {
+resource nic 'Microsoft.Network/networkInterfaces@2022-07-01' = {
   name: nicName
   location: location
   properties: {

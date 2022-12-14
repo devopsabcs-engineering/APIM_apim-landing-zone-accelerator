@@ -54,7 +54,7 @@ param apimUserIdentityClientId string
  * Resources
 */
 
-resource apimName_resource 'Microsoft.ApiManagement/service@2020-12-01' = {
+resource apimName_resource 'Microsoft.ApiManagement/service@2022-04-01-preview' = {
   name: apimName
   location: location
   sku: {
@@ -139,7 +139,7 @@ resource apimName_resource 'Microsoft.ApiManagement/service@2020-12-01' = {
   }
 }
 
-resource apimName_appInsightsLogger_resource 'Microsoft.ApiManagement/service/loggers@2019-01-01' = {
+resource apimName_appInsightsLogger_resource 'Microsoft.ApiManagement/service/loggers@2022-04-01-preview' = {
   parent: apimName_resource
   name: appInsightsName
   properties: {
@@ -151,7 +151,7 @@ resource apimName_appInsightsLogger_resource 'Microsoft.ApiManagement/service/lo
   }
 }
 
-resource apimName_applicationinsights 'Microsoft.ApiManagement/service/diagnostics@2019-01-01' = {
+resource apimName_applicationinsights 'Microsoft.ApiManagement/service/diagnostics@2022-04-01-preview' = {
   parent: apimName_resource
   name: 'applicationinsights'
   properties: {

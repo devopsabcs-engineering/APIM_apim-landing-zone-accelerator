@@ -35,7 +35,7 @@ var appGatewayPrimaryPip = 'pip-${appGatewayName}'
 
 
 
-resource appGatewayPublicIPAddress 'Microsoft.Network/publicIPAddresses@2019-09-01' = {
+resource appGatewayPublicIPAddress 'Microsoft.Network/publicIPAddresses@2022-07-01' = {
   name: appGatewayPrimaryPip
   location: location
   sku: {
@@ -47,7 +47,7 @@ resource appGatewayPublicIPAddress 'Microsoft.Network/publicIPAddresses@2019-09-
   }
 }
 
-resource appGatewayName_resource 'Microsoft.Network/applicationGateways@2019-09-01' = {
+resource appGatewayName_resource 'Microsoft.Network/applicationGateways@2022-07-01' = {
   name: appGatewayName
   location: location
   // dependsOn: [
@@ -321,7 +321,7 @@ resource appGatewayName_resource 'Microsoft.Network/applicationGateways@2019-09-
             id: resourceId('Microsoft.Network/applicationGateways/sslCertificates', appGatewayName, 'gatewaycert')
           }
           hostName: apiFQDN
-          hostnames: []
+          //hostnames: []
           requireServerNameIndication: true
           customErrorConfigurations: []
         }
@@ -340,7 +340,7 @@ resource appGatewayName_resource 'Microsoft.Network/applicationGateways@2019-09-
             id: resourceId('Microsoft.Network/applicationGateways/sslCertificates', appGatewayName, 'portalcert')
           }
           hostName: portalFQDN
-          hostnames: []
+          //hostnames: []
           requireServerNameIndication: true
           customErrorConfigurations: []
         }
@@ -359,7 +359,7 @@ resource appGatewayName_resource 'Microsoft.Network/applicationGateways@2019-09-
             id: resourceId('Microsoft.Network/applicationGateways/sslCertificates', appGatewayName, 'managementcert')
           }
           hostName: managementFQDN
-          hostnames: []
+          //hostnames: []
           requireServerNameIndication: true
           customErrorConfigurations: []
         }
