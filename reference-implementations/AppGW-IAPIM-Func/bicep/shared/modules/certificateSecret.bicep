@@ -1,7 +1,7 @@
 param keyVaultName string
 param secretName   string
 
-resource keyVaultCertificate 'Microsoft.KeyVault/vaults/secrets@2021-06-01-preview' existing = {
+resource keyVaultCertificate 'Microsoft.KeyVault/vaults/secrets@2022-07-01' existing = {
   name: '${keyVaultName}/${secretName}'
 }
 

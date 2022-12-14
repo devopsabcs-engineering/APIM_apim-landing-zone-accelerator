@@ -128,7 +128,7 @@ module vm_jumpboxwinvm './createvmwindows.bicep' = {
 }
 
 //certificates and user identity for apim and appgw
-resource commonUserIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = {
+resource commonUserIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-11-30' = {
   name: commonUserIdentityName
   location: location
 }
