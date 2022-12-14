@@ -99,7 +99,7 @@ stages:
       inputs:
         templatelocation: '$(mainTemplatePath)'
         resultLocation: '$(System.DefaultWorkingDirectory)/results/main'
-        skipTests: 'URIs Should Be Properly Constructed,Template Should Not Contain Blanks'
+        skipTests: 'URIs Should Be Properly Constructed,Template Should Not Contain Blanks,Parameter Types Should Be Consistent'
         mainTemplates: 'main.json'
         allTemplatesMain: false
         cliOutputResults: true
