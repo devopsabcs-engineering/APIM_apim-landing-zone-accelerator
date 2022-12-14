@@ -4,14 +4,11 @@
 @description('The name of the Application Gateawy to be created.')
 param appGatewayName string
 
-
-
 @description('The location of the Application Gateawy to be created')
 param location string = resourceGroup().location
 
 @description('The subnet resource id to use for Application Gateway.')
 param appGatewaySubnetId string
-
 
 // @description('The backend URL of the APIM.')
 // param primaryBackendEndFQDN string = 'api-internal.example.com'
@@ -29,11 +26,7 @@ param apiFQDN string
 param portalFQDN string
 param managementFQDN string
 
-
 var appGatewayPrimaryPip = 'pip-${appGatewayName}'
-
-
-
 
 resource appGatewayPublicIPAddress 'Microsoft.Network/publicIPAddresses@2022-07-01' = {
   name: appGatewayPrimaryPip
@@ -41,6 +34,11 @@ resource appGatewayPublicIPAddress 'Microsoft.Network/publicIPAddresses@2022-07-
   sku: {
     name: 'Standard'
   }
+  zones: [
+    '1'
+    '2'
+    '3'
+  ]
   properties: {
     publicIPAddressVersion: 'IPv4'
     publicIPAllocationMethod: 'Static'

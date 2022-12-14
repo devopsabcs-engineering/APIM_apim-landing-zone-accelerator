@@ -1,7 +1,7 @@
 param namePrefix string = 'unique'
 param location string = resourceGroup().location
 param bastionSubnetIpPrefix string = '10.1.1.0/27'
-param bastionHostName string='bastionhost'
+param bastionHostName string = 'bastionhost'
 var name = '${namePrefix}-${uniqueString(resourceGroup().id)}'
 var subnetName = 'main-subnet'
 
@@ -11,6 +11,11 @@ resource publicIp 'Microsoft.Network/publicIPAddresses@2022-07-01' = {
   sku: {
     name: 'Standard'
   }
+  zones: [
+    '1'
+    '2'
+    '3'
+  ]
   properties: {
     publicIPAllocationMethod: 'Static'
   }
