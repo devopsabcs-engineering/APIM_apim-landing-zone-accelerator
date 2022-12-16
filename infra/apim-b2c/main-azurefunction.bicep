@@ -21,7 +21,7 @@ param appInsightsLocation string
   'dotnet'
   'java'
 ])
-param runtime string = 'node'
+param runtime string = 'dotnet'
 
 var functionAppName = appName
 var hostingPlanName = appName
@@ -73,15 +73,19 @@ resource functionApp 'Microsoft.Web/sites@2021-03-01' = {
         }
         {
           name: 'FUNCTIONS_EXTENSION_VERSION'
-          value: '~2'
+          value: '~4'
         }
-        {
-          name: 'WEBSITE_NODE_DEFAULT_VERSION'
-          value: '~10'
-        }
+        // {
+        //   name: 'WEBSITE_NODE_DEFAULT_VERSION'
+        //   value: '~10'
+        // }
         {
           name: 'APPINSIGHTS_INSTRUMENTATIONKEY'
           value: applicationInsights.properties.InstrumentationKey
+        }
+        {
+          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+          value: 'InstrumentationKey=${applicationInsights.properties.InstrumentationKey};IngestionEndpoint=https://${location}-1.in.applicationinsights.azure.com/;LiveEndpoint=https://${location}.livediagnostics.monitor.azure.com/'
         }
         {
           name: 'FUNCTIONS_WORKER_RUNTIME'
