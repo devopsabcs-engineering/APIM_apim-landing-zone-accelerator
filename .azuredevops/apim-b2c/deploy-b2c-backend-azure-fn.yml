@@ -16,7 +16,8 @@ variables:
   azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
 
   # Function app name
-  functionAppName: 'mlifepocapimb2c'
+  functionAppNameProd: 'mlifepocapimb2c'
+  functionAppNameDev: 'fnapp3m2fbh7dapcag'
 
   # Agent VM image name
   vmImageName: 'windows-2019'
@@ -55,7 +56,7 @@ stages:
     - publish: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
       artifact: drop
 
-- stage: Deploy
+- stage: Deploy_Dev
   displayName: Deploy stage
   dependsOn: Build
   condition: succeeded()
@@ -78,5 +79,30 @@ stages:
             inputs:
               azureSubscription: '$(azureSubscription)'
               appType: functionApp
-              appName: $(functionAppName)
+              appName: $(functionAppNameDev)
+              package: '$(Pipeline.Workspace)/drop/$(Build.BuildId).zip'
+- stage: Deploy_Prod
+  displayName: Deploy stage
+  dependsOn: Deploy_Dev
+  condition: succeeded()
+
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy
+    environment: 'APIM_B2C_backend_production'
+    pool:
+      vmImage: $(vmImageName)
+
+    strategy:
+      runOnce:
+        deploy:
+
+          steps:
+          - task: AzureFunctionApp@1
+            enabled: true # not ready to deploy yet!
+            displayName: 'Azure functions app deploy'
+            inputs:
+              azureSubscription: '$(azureSubscription)'
+              appType: functionApp
+              appName: $(functionAppNameProd)
               package: '$(Pipeline.Workspace)/drop/$(Build.BuildId).zip'
