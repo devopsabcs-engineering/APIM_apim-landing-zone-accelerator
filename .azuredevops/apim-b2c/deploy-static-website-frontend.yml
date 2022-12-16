@@ -16,34 +16,14 @@ variables:
   ARTIFACT_NAME: StaticWebsiteContent
 
 stages:
-- stage: Build
+- stage: Build_Dev
   displayName: Build
   jobs:
   - job: Transform
     displayName: Transform Input
     variables:
       project: 'src/ApimAzureAdB2CSoln/static-website-front-end'
-    steps:
-    - task: DotNetCoreCLI@2
-      enabled: false
-      displayName: Restore
-      inputs:
-        command: 'restore'
-        projects: $(project)
-    - task: DotNetCoreCLI@2
-      enabled: false
-      displayName: Build
-      inputs:
-        command: 'build'
-        projects: $(project)
-        workingDirectory: 'src'
-    - task: DotNetCoreCLI@2
-      displayName: Generate
-      enabled: false
-      inputs:
-        command: 'run'
-        projects: $(project)
-        workingDirectory: 'src'
+    steps:    
     - task: CopyFiles@2
       displayName: Copy
       inputs:
@@ -57,13 +37,63 @@ stages:
         artifact: '$(ARTIFACT_NAME)'
         publishLocation: 'pipeline'
 
-- stage: Release
+- stage: Release_Dev
   displayName: Release
-  dependsOn: Build  
+  dependsOn: Build_Dev  
   jobs:
   - deployment: DeployToStorage
     displayName: Deploy to Azure Storage
     environment: APIM_B2C_frontend_development
+    variables:
+      AZURE_STORAGE_ACCOUNT: stor3m2fbh7dapcag    
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureCLI@2
+            displayName: 'Delete Existing Files'
+            inputs:
+              azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+              scriptType: 'pscore'
+              scriptLocation: 'inlineScript'
+              inlineScript: 'az storage blob delete-batch -s `$web --account-name $(AZURE_STORAGE_ACCOUNT) --auth-mode login'
+          - task: AzureFileCopy@4
+            displayName: 'Copy Files to Storage'
+            inputs:
+              azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+              SourcePath: '$(Pipeline.Workspace)/$(ARTIFACT_NAME)/*'
+              Destination: 'AzureBlob'
+              storage: '$(AZURE_STORAGE_ACCOUNT)'
+              ContainerName: '$web'
+- stage: Build_Prod
+  dependsOn: Release_Dev
+  displayName: Build
+  jobs:
+  - job: Transform
+    displayName: Transform Input
+    variables:
+      project: 'src/ApimAzureAdB2CSoln/static-website-front-end'
+    steps:    
+    - task: CopyFiles@2
+      displayName: Copy
+      inputs:
+        SourceFolder: '$(Build.SourcesDirectory)/$(project)'
+        Contents: '**'
+        TargetFolder: '$(Build.ArtifactStagingDirectory)/output'
+    - task: PublishPipelineArtifact@1
+      displayName: Share
+      inputs:
+        targetPath: '$(Build.ArtifactStagingDirectory)/output'
+        artifact: '$(ARTIFACT_NAME)'
+        publishLocation: 'pipeline'
+
+- stage: Release_Prod
+  displayName: Release
+  dependsOn: Build_Prod  
+  jobs:
+  - deployment: DeployToStorage
+    displayName: Deploy to Azure Storage
+    environment: APIM_B2C_frontend_production
     variables:
       AZURE_STORAGE_ACCOUNT: femlifepocapimb2ce    
     strategy:
@@ -85,21 +115,3 @@ stages:
               Destination: 'AzureBlob'
               storage: '$(AZURE_STORAGE_ACCOUNT)'
               ContainerName: '$web'
-        #routeTraffic:
-        #  steps:
-        #  - task: PurgeAzureCDNEndpoint@2
-        #    displayName: 'Purge Azure CDN Endpoint'
-        #    inputs:
-        #      ConnectedServiceNameSelector: ConnectedServiceNameARM
-        #      ConnectedServiceNameARM: 'APIM_MicrosoftAzureExternal_multitenant'
-        #      ResourceGroupName: developmomentum
-        #      EndpointName: developmomentum
-        #      ProfileName: developmomentum
-        #      continueOnError: true
-        #  - task: tfx-cloudflare-purge@1
-        #    displayName: 'Purge Cloudflare Cache'
-        #    inputs:
-        #      username: 'adamshirt@outlook.com'
-        #      apikey: '$(CLOUDFLARE_API_KEY)'
-        #      zonename: developmomentum.com
-        #      continueOnError: true
