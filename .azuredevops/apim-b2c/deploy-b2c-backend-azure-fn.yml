@@ -57,7 +57,7 @@ stages:
       artifact: drop
 
 - stage: Deploy_Dev
-  displayName: Deploy stage
+  displayName: Deploy stage Dev
   dependsOn: Build
   condition: succeeded()
 
@@ -82,7 +82,7 @@ stages:
               appName: $(functionAppNameDev)
               package: '$(Pipeline.Workspace)/drop/$(Build.BuildId).zip'
 - stage: Deploy_Prod
-  displayName: Deploy stage
+  displayName: Deploy stage Prod
   dependsOn: Deploy_Dev
   condition: succeeded()
 
