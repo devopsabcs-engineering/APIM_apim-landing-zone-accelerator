@@ -99,6 +99,47 @@ resource functionApp 'Microsoft.Web/sites@2021-03-01' = {
       ]
       ftpsState: 'FtpsOnly'
       minTlsVersion: '1.2'
+      netFrameworkVersion: '6.0'
+
+      ipSecurityRestrictions: [
+        {
+          ipAddress: '20.220.216.182/32'
+          action: 'Allow'
+          tag: 'Default'
+          priority: 300
+          name: 'Dev Apim Public Virtual Apim'
+        }
+        {
+          ipAddress: '10.2.7.5/32'
+          action: 'Allow'
+          tag: 'Default'
+          priority: 310
+          name: 'Dev Apim Private Virtual Apim'
+        }
+        {
+          ipAddress: '20.175.184.156/32'
+          action: 'Allow'
+          tag: 'Default'
+          priority: 320
+          name: 'Prod Apim Public Virtual Apim'
+          description: 'public: 20.175.184.156'
+        }
+        {
+          ipAddress: '174.92.215.24/32'
+          action: 'Allow'
+          tag: 'Default'
+          priority: 330
+          name: 'Developer Public IP (temporary)'
+          description: 'Emmanuel Public IP - for azure portal access of azure fn'
+        }
+        {
+          ipAddress: 'Any'
+          action: 'Deny'
+          priority: 2147483647
+          name: 'Deny all'
+          description: 'Deny all access'
+        }
+      ]
     }
     httpsOnly: true
   }
