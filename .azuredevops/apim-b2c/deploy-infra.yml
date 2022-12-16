@@ -1,2 +1,30 @@
-az group create --name exampleRG --location eastus
-az deployment group create --resource-group exampleRG --template-file main.bicep --parameters appInsightsLocation=<app-location>
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+  paths:
+    include:
+      - infra/apim-b2c
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+- name: resourceGroupName
+  value: rg-mlife-poc-apim-b2c-dev
+- name: location
+  value: canadacentral
+- name: bicepFilePath
+  value: $(System.DefaultWorkingDirectory)/infra/apim-b2c/main-azurefunction.bicep
+
+steps:
+- task: AzureCLI@2
+  inputs:
+    azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+    scriptType: 'pscore'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      az group create --name $(resourceGroupName) --location $(location)
+      az deployment group create --resource-group $(resourceGroupName) --template-file $(bicepFilePath) --parameters appInsightsLocation=$(location)
