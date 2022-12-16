@@ -54,7 +54,7 @@ stages:
         pool:
           vmImage: ubuntu-latest
         # creates an environment if it doesn't exist
-        environment: 'Prod'
+        environment: 'APIM_LandingZone_Prod'
         strategy:
           # default deployment strategy, more coming...
           runOnce:
