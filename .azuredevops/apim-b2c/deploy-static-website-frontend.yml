@@ -17,7 +17,7 @@ variables:
 
 stages:
 - stage: Build_Dev
-  displayName: Build
+  displayName: Build Dev
   jobs:
   - job: Transform
     displayName: Transform Input
@@ -38,7 +38,7 @@ stages:
         publishLocation: 'pipeline'
 
 - stage: Release_Dev
-  displayName: Release
+  displayName: Release Dev
   dependsOn: Build_Dev  
   jobs:
   - deployment: DeployToStorage
@@ -67,7 +67,7 @@ stages:
               ContainerName: '$web'
 - stage: Build_Prod
   dependsOn: Release_Dev
-  displayName: Build
+  displayName: Build Prod
   jobs:
   - job: Transform
     displayName: Transform Input
@@ -88,7 +88,7 @@ stages:
         publishLocation: 'pipeline'
 
 - stage: Release_Prod
-  displayName: Release
+  displayName: Release Prod
   dependsOn: Build_Prod  
   jobs:
   - deployment: DeployToStorage
