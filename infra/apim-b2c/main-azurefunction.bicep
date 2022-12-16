@@ -154,3 +154,12 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
     Request_Source: 'rest'
   }
 }
+
+//also want the storage static website
+module modStorageStaticWebsite 'modules/storage-static-website.bicep' = {
+  name: 'staticwebsite'
+  //scope: resourceGroup()
+  params: {
+    location: location
+  }
+}
