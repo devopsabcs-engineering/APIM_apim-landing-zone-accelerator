@@ -13,7 +13,7 @@
               <div class="col-md-12">
  				<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
  					<div class="container-fluid">
- 						<a class="navbar-brand" href="#">Azure Active Directory B2C with Azure API Management v1.0.1</a>
+ 						<a class="navbar-brand" href="#">Azure Active Directory B2C with Azure API Management v1.0.2</a>
  						<div class="navbar-nav">
  							<button class="btn btn-success" id="signinbtn"  onClick="login()">Sign In</a>
  						</div>
@@ -54,7 +54,7 @@
      			},
      			api: {
      				scopes: ["https://partnercontosob2c.onmicrosoft.com/0712d5e5-8b89-48af-8079-b920b4b99166/Hello"], // The scope that we request for the API from B2C, this should be the backend API scope, with the full URI.
-     				backend: "https://apim-fifgmevnwrnwu.azure-api.net/mlifepocapimb2c/hello" // The location that we will call for the backend api, this should be hosted in API Management, suffixed with the name of the API operation (in the sample this is '/hello').
+     				backend: "https://api.mngenv019702.onmicrosoft.com/mlifepocapimb2c/hello" // The location that we will call for the backend api, this should be hosted in API Management, suffixed with the name of the API operation (in the sample this is '/hello').
      			}
      		}
      		document.getElementById("callapibtn").hidden = true;
