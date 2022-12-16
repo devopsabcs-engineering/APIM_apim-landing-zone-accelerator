@@ -58,7 +58,7 @@ stages:
   jobs:
   - deployment: Deploy
     displayName: Deploy
-    environment: 'development'
+    environment: 'APIM_B2C_backend_development'
     pool:
       vmImage: $(vmImageName)
 
