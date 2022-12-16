@@ -32,7 +32,7 @@ namespace Hello
 
             log.LogInformation("C# HTTP trigger function processed a request.");
 
-            return (ActionResult)new OkObjectResult($"Hello World, time and date are {DateTime.Now.ToString()}");
+            return (ActionResult)new OkObjectResult($"Hello World v1.0.1, time and date are {DateTime.Now.ToString()}");
 
             //return new OkObjectResult(responseMessage);
         }

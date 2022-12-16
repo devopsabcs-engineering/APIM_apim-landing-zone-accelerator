@@ -68,7 +68,7 @@ stages:
 
           steps:
           - task: AzureFunctionApp@1
-            enabled: false # not ready to deploy yet!
+            enabled: true # not ready to deploy yet!
             displayName: 'Azure functions app deploy'
             inputs:
               azureSubscription: '$(azureSubscription)'
