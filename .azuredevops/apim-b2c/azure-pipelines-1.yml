@@ -3,8 +3,13 @@
 # Add steps that analyze code, save build artifacts, deploy, and more:
 # https://docs.microsoft.com/en-us/azure/devops/pipelines/languages/dotnet-core
 
+#trigger:
+#- main
 trigger:
-- main
+  paths:
+    include:
+      - src/ApimAzureAdB2CSoln
+      #- tools/code/extractor
 
 variables:
   # Azure Resource Manager connection created during pipeline creation
