@@ -52,9 +52,9 @@ resource functionApp 'Microsoft.Web/sites@2021-03-01' = {
   name: functionAppName
   location: location
   kind: 'functionapp'
-  identity: {
-    type: 'SystemAssigned'
-  }
+  // identity: {
+  //   type: 'SystemAssigned'
+  // }
   properties: {
     serverFarmId: hostingPlan.id
     siteConfig: {
