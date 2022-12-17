@@ -13,7 +13,8 @@ pool:
   vmImage: 'windows-latest'
 
 variables:
-  ARTIFACT_NAME: StaticWebsiteContent
+  ARTIFACT_NAME_DEV: StaticWebsiteContentDev
+  ARTIFACT_NAME_PROD: StaticWebsiteContentProd
 
 stages:
 - stage: Build_Dev
@@ -48,7 +49,7 @@ stages:
       displayName: Share
       inputs:
         targetPath: '$(Build.ArtifactStagingDirectory)/output'
-        artifact: '$(ARTIFACT_NAME)'
+        artifact: '$(ARTIFACT_NAME_DEV)'
         publishLocation: 'pipeline'
 
 - stage: Release_Dev
@@ -75,7 +76,7 @@ stages:
             displayName: 'Copy Files to Storage'
             inputs:
               azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
-              SourcePath: '$(Pipeline.Workspace)/$(ARTIFACT_NAME)/*'
+              SourcePath: '$(Pipeline.Workspace)/$(ARTIFACT_NAME_DEV)/*'
               Destination: 'AzureBlob'
               storage: '$(AZURE_STORAGE_ACCOUNT)'
               ContainerName: '$web'
@@ -112,7 +113,7 @@ stages:
       displayName: Share
       inputs:
         targetPath: '$(Build.ArtifactStagingDirectory)/output'
-        artifact: '$(ARTIFACT_NAME)'
+        artifact: '$(ARTIFACT_NAME_PROD)'
         publishLocation: 'pipeline'
 
 - stage: Release_Prod
@@ -139,7 +140,7 @@ stages:
             displayName: 'Copy Files to Storage'
             inputs:
               azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
-              SourcePath: '$(Pipeline.Workspace)/$(ARTIFACT_NAME)/*'
+              SourcePath: '$(Pipeline.Workspace)/$(ARTIFACT_NAME_PROD)/*'
               Destination: 'AzureBlob'
               storage: '$(AZURE_STORAGE_ACCOUNT)'
               ContainerName: '$web'
