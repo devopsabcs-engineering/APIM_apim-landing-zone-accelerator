@@ -23,6 +23,8 @@ param appInsightsLocation string
 ])
 param runtime string = 'dotnet'
 
+param publicApimVirtualIp string
+
 var functionAppName = appName
 var hostingPlanName = appName
 var applicationInsightsName = appName
@@ -103,35 +105,36 @@ resource functionApp 'Microsoft.Web/sites@2022-03-01' = {
 
       ipSecurityRestrictions: [
         {
-          ipAddress: '20.220.216.182/32'
+          ipAddress: '${publicApimVirtualIp}/32'
           action: 'Allow'
           tag: 'Default'
           priority: 300
           name: 'Dev Apim Public Virtual Apim'
+          description: 'public apim virtual ip'
         }
-        {
-          ipAddress: '10.2.7.5/32'
-          action: 'Allow'
-          tag: 'Default'
-          priority: 310
-          name: 'Dev Apim Private Virtual Apim'
-        }
-        {
-          ipAddress: '20.175.184.156/32'
-          action: 'Allow'
-          tag: 'Default'
-          priority: 320
-          name: 'Prod Apim Public Virtual Apim'
-          description: 'public: 20.175.184.156'
-        }
-        {
-          ipAddress: '174.92.215.24/32'
-          action: 'Allow'
-          tag: 'Default'
-          priority: 330
-          name: 'Developer Public IP (temporary)'
-          description: 'Emmanuel Public IP - for azure portal access of azure fn'
-        }
+        // {
+        //   ipAddress: '10.2.7.5/32'
+        //   action: 'Allow'
+        //   tag: 'Default'
+        //   priority: 310
+        //   name: 'Dev Apim Private Virtual Apim'
+        // }
+        // {
+        //   ipAddress: '20.175.184.156/32'
+        //   action: 'Allow'
+        //   tag: 'Default'
+        //   priority: 320
+        //   name: 'Prod Apim Public Virtual Apim'
+        //   description: 'public: 20.175.184.156'
+        // }
+        // {
+        //   ipAddress: '174.92.215.24/32'
+        //   action: 'Allow'
+        //   tag: 'Default'
+        //   priority: 330
+        //   name: 'Developer Public IP (temporary)'
+        //   description: 'Emmanuel Public IP - for azure portal access of azure fn'
+        // }
         {
           ipAddress: 'Any'
           action: 'Deny'

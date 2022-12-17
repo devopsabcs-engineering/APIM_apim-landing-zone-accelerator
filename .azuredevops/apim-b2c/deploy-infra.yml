@@ -42,7 +42,7 @@ stages:
               scriptLocation: 'inlineScript'
               inlineScript: |
                 az group create --name $(resourceGroupNameDev) --location $(location)
-                az deployment group create --resource-group $(resourceGroupNameDev) --template-file $(bicepFilePath) --parameters appInsightsLocation=$(location)
+                az deployment group create --resource-group $(resourceGroupNameDev) --template-file $(bicepFilePath) --parameters appInsightsLocation=$(location) publicApimVirtualIp=$(publicApimVirtualIp)
 - stage: Deploy_Prod_Infra
   displayName: Deploy infra Prod
   dependsOn: Deploy_Dev_Infra
@@ -63,5 +63,5 @@ stages:
               scriptLocation: 'inlineScript'
               inlineScript: |
                 az group create --name $(resourceGroupNameProd) --location $(location)
-                az deployment group create --resource-group $(resourceGroupNameProd) --template-file $(bicepFilePath) --parameters appInsightsLocation=$(location)
+                az deployment group create --resource-group $(resourceGroupNameProd) --template-file $(bicepFilePath) --parameters appInsightsLocation=$(location) publicApimVirtualIp=$(publicApimVirtualIp)
           
