@@ -109,7 +109,7 @@ resource functionApp 'Microsoft.Web/sites@2022-03-01' = {
           action: 'Allow'
           tag: 'Default'
           priority: 300
-          name: 'Dev Apim Public Virtual Apim'
+          name: 'Apim Public Virtual IP'
           description: 'public apim virtual ip'
         }
         // {
