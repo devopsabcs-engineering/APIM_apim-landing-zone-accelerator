@@ -33,7 +33,8 @@ stages:
     strategy:
       runOnce:
         deploy:
-          steps:          
+          steps:
+          - checkout: self         
           - task: AzureCLI@2
             inputs:
               azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
@@ -53,7 +54,8 @@ stages:
     strategy:
       runOnce:
         deploy:
-          steps:          
+          steps:
+          - checkout: self           
           - task: AzureCLI@2
             inputs:
               azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
