@@ -23,7 +23,21 @@ stages:
     displayName: Transform Input
     variables:
       project: 'src/ApimAzureAdB2CSoln/static-website-front-end'
-    steps:    
+    steps:
+    - task: replacetokens@5
+      inputs:
+        rootDirectory: '$(project)'
+        targetFiles: '**/*.html'
+        encoding: 'auto'
+        tokenPattern: 'default'
+        writeBOM: true
+        actionOnMissing: 'warn'
+        keepToken: false
+        actionOnNoFiles: 'continue'
+        enableTransforms: false
+        enableRecursion: false
+        useLegacyPattern: false
+        enableTelemetry: true
     - task: CopyFiles@2
       displayName: Copy
       inputs:
@@ -73,7 +87,21 @@ stages:
     displayName: Transform Input
     variables:
       project: 'src/ApimAzureAdB2CSoln/static-website-front-end'
-    steps:    
+    steps:
+    - task: replacetokens@5
+      inputs:
+        rootDirectory: '$(project)'
+        targetFiles: '**/*.html'
+        encoding: 'auto'
+        tokenPattern: 'default'
+        writeBOM: true
+        actionOnMissing: 'warn'
+        keepToken: false
+        actionOnNoFiles: 'continue'
+        enableTransforms: false
+        enableRecursion: false
+        useLegacyPattern: false
+        enableTelemetry: true    
     - task: CopyFiles@2
       displayName: Copy
       inputs:
