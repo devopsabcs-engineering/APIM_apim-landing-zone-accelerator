@@ -16,7 +16,7 @@ variables:
   azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
 
   # Function app name
-  functionAppNameProd: 'mlifepocapimb2c'
+  functionAppNameProd: 'fnappqnzxwgg2niqda'
   functionAppNameDev: 'fnapp3m2fbh7dapcag'
 
   # Agent VM image name
