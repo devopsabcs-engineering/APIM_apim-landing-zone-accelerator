@@ -9,6 +9,7 @@
     "protocols": [
       "https"
     ],
+    "serviceUrl": "https://api.mngenv019702.onmicrosoft.com/fnapp3m2fbh7dapcag",
     "subscriptionKeyParameterNames": {
       "header": "Ocp-Apim-Subscription-Key",
       "query": "subscription-key"

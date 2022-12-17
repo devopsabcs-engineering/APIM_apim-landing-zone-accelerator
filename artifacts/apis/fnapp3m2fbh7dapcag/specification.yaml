@@ -9,10 +9,11 @@ paths:
   /Hello:
     get:
       summary: Hello
+      description: Hello
       operationId: get-hello
       responses:
         '200':
-          description: 
+          description: ''
 components:
   securitySchemes:
     apiKeyHeader:
