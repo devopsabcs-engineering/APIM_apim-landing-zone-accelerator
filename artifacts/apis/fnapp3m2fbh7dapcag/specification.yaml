@@ -1,0 +1,28 @@
+openapi: 3.0.1
+info:
+  title: fnapp3m2fbh7dapcag
+  description: Import from "fnapp3m2fbh7dapcag" Function App
+  version: '1.0'
+servers:
+  - url: https://api.mngenv019702.onmicrosoft.com/fnapp3m2fbh7dapcag
+paths:
+  /Hello:
+    get:
+      summary: Hello
+      operationId: get-hello
+      responses:
+        '200':
+          description: 
+components:
+  securitySchemes:
+    apiKeyHeader:
+      type: apiKey
+      name: Ocp-Apim-Subscription-Key
+      in: header
+    apiKeyQuery:
+      type: apiKey
+      name: subscription-key
+      in: query
+security:
+  - apiKeyHeader: [ ]
+  - apiKeyQuery: [ ]

@@ -1,0 +1,11 @@
+{
+  "properties": {
+    "displayName": "mlifepocapimb2c-key",
+    "secret": true,
+    "tags": [
+      "key",
+      "function",
+      "auto"
+    ]
+  }
+}

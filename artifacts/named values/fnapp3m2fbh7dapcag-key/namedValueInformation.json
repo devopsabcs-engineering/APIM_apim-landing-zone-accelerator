@@ -1,0 +1,11 @@
+{
+  "properties": {
+    "displayName": "fnapp3m2fbh7dapcag-key",
+    "secret": true,
+    "tags": [
+      "key",
+      "function",
+      "auto"
+    ]
+  }
+}
