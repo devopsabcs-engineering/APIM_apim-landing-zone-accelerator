@@ -13,37 +13,33 @@ pool:
   vmImage: 'windows-latest'
 
 variables:
-  ARTIFACT_NAME: StaticWebsiteContent
+  ARTIFACT_NAME_DEV: StaticWebsiteContentDev
+  ARTIFACT_NAME_PROD: StaticWebsiteContentProd
+  project: 'src/ApimAzureAdB2CSoln/static-website-front-end'
 
 stages:
-- stage: Build
-  displayName: Build
+- stage: Build_Dev
+  displayName: Build Dev
   jobs:
   - job: Transform
     displayName: Transform Input
     variables:
-      project: 'src/ApimAzureAdB2CSoln/static-website-front-end'
+      - group: APIM_b2c_frontend_dev_vars
     steps:
-    - task: DotNetCoreCLI@2
-      enabled: false
-      displayName: Restore
+    - task: replacetokens@5
       inputs:
-        command: 'restore'
-        projects: $(project)
-    - task: DotNetCoreCLI@2
-      enabled: false
-      displayName: Build
-      inputs:
-        command: 'build'
-        projects: $(project)
-        workingDirectory: 'src'
-    - task: DotNetCoreCLI@2
-      displayName: Generate
-      enabled: false
-      inputs:
-        command: 'run'
-        projects: $(project)
-        workingDirectory: 'src'
+        rootDirectory: '$(project)'
+        targetFiles: '**/*.html'
+        encoding: 'auto'
+        tokenPattern: 'default'
+        writeBOM: true
+        actionOnMissing: 'warn'
+        keepToken: false
+        actionOnNoFiles: 'continue'
+        enableTransforms: false
+        enableRecursion: false
+        useLegacyPattern: false
+        enableTelemetry: true
     - task: CopyFiles@2
       displayName: Copy
       inputs:
@@ -54,16 +50,80 @@ stages:
       displayName: Share
       inputs:
         targetPath: '$(Build.ArtifactStagingDirectory)/output'
-        artifact: '$(ARTIFACT_NAME)'
+        artifact: '$(ARTIFACT_NAME_DEV)'
         publishLocation: 'pipeline'
 
-- stage: Release
-  displayName: Release
-  dependsOn: Build  
+- stage: Release_Dev
+  displayName: Release Dev
+  dependsOn: Build_Dev  
   jobs:
   - deployment: DeployToStorage
     displayName: Deploy to Azure Storage
     environment: APIM_B2C_frontend_development
+    variables:
+      AZURE_STORAGE_ACCOUNT: stor3m2fbh7dapcag    
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureCLI@2
+            displayName: 'Delete Existing Files'
+            inputs:
+              azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+              scriptType: 'pscore'
+              scriptLocation: 'inlineScript'
+              inlineScript: 'az storage blob delete-batch -s `$web --account-name $(AZURE_STORAGE_ACCOUNT) --auth-mode login'
+          - task: AzureFileCopy@4
+            displayName: 'Copy Files to Storage'
+            inputs:
+              azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+              SourcePath: '$(Pipeline.Workspace)/$(ARTIFACT_NAME_DEV)/*'
+              Destination: 'AzureBlob'
+              storage: '$(AZURE_STORAGE_ACCOUNT)'
+              ContainerName: '$web'
+- stage: Build_Prod
+  dependsOn: Release_Dev
+  displayName: Build Prod
+  jobs:
+  - job: Transform
+    displayName: Transform Input
+    variables:
+      - group: APIM_b2c_frontend_prod_vars
+    steps:
+    - task: replacetokens@5
+      inputs:
+        rootDirectory: '$(project)'
+        targetFiles: '**/*.html'
+        encoding: 'auto'
+        tokenPattern: 'default'
+        writeBOM: true
+        actionOnMissing: 'warn'
+        keepToken: false
+        actionOnNoFiles: 'continue'
+        enableTransforms: false
+        enableRecursion: false
+        useLegacyPattern: false
+        enableTelemetry: true    
+    - task: CopyFiles@2
+      displayName: Copy
+      inputs:
+        SourceFolder: '$(Build.SourcesDirectory)/$(project)'
+        Contents: '**'
+        TargetFolder: '$(Build.ArtifactStagingDirectory)/output'
+    - task: PublishPipelineArtifact@1
+      displayName: Share
+      inputs:
+        targetPath: '$(Build.ArtifactStagingDirectory)/output'
+        artifact: '$(ARTIFACT_NAME_PROD)'
+        publishLocation: 'pipeline'
+
+- stage: Release_Prod
+  displayName: Release Prod
+  dependsOn: Build_Prod  
+  jobs:
+  - deployment: DeployToStorage
+    displayName: Deploy to Azure Storage
+    environment: APIM_B2C_frontend_production
     variables:
       AZURE_STORAGE_ACCOUNT: femlifepocapimb2ce    
     strategy:
@@ -81,25 +141,7 @@ stages:
             displayName: 'Copy Files to Storage'
             inputs:
               azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
-              SourcePath: '$(Pipeline.Workspace)/$(ARTIFACT_NAME)/*'
+              SourcePath: '$(Pipeline.Workspace)/$(ARTIFACT_NAME_PROD)/*'
               Destination: 'AzureBlob'
               storage: '$(AZURE_STORAGE_ACCOUNT)'
               ContainerName: '$web'
-        #routeTraffic:
-        #  steps:
-        #  - task: PurgeAzureCDNEndpoint@2
-        #    displayName: 'Purge Azure CDN Endpoint'
-        #    inputs:
-        #      ConnectedServiceNameSelector: ConnectedServiceNameARM
-        #      ConnectedServiceNameARM: 'APIM_MicrosoftAzureExternal_multitenant'
-        #      ResourceGroupName: developmomentum
-        #      EndpointName: developmomentum
-        #      ProfileName: developmomentum
-        #      continueOnError: true
-        #  - task: tfx-cloudflare-purge@1
-        #    displayName: 'Purge Cloudflare Cache'
-        #    inputs:
-        #      username: 'adamshirt@outlook.com'
-        #      apikey: '$(CLOUDFLARE_API_KEY)'
-        #      zonename: developmomentum.com
-        #      continueOnError: true
