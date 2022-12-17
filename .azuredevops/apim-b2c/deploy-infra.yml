@@ -29,7 +29,10 @@ stages:
   jobs:
   - deployment: Deploy
     displayName: Deploy
-    environment: 'APIM_B2C_backend_infra_development'    
+    environment: 'APIM_B2C_backend_infra_development'
+    variables:
+    - name: publicApimVirtualIp
+      value: '20.220.216.182'  
     strategy:
       runOnce:
         deploy:
@@ -50,7 +53,10 @@ stages:
   jobs:
   - deployment: Deploy
     displayName: Deploy
-    environment: 'APIM_B2C_backend_infra_production'    
+    environment: 'APIM_B2C_backend_infra_production'
+    variables:
+    - name: publicApimVirtualIp
+      value: '20.175.184.156'    
     strategy:
       runOnce:
         deploy:
