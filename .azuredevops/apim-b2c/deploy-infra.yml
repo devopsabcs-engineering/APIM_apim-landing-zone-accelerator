@@ -12,19 +12,58 @@ pool:
   vmImage: ubuntu-latest
 
 variables:
-- name: resourceGroupName
+- name: resourceGroupNameDev
   value: rg-mlife-poc-apim-b2c-dev
+- name: resourceGroupNameProd
+  value: rg-mlife-poc-apim-b2c-prod
 - name: location
   value: canadacentral
 - name: bicepFilePath
   value: $(System.DefaultWorkingDirectory)/infra/apim-b2c/main-azurefunction.bicep
 
-steps:
-- task: AzureCLI@2
-  inputs:
-    azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
-    scriptType: 'pscore'
-    scriptLocation: 'inlineScript'
-    inlineScript: |
-      az group create --name $(resourceGroupName) --location $(location)
-      az deployment group create --resource-group $(resourceGroupName) --template-file $(bicepFilePath) --parameters appInsightsLocation=$(location)
+stages:
+- stage: Deploy_Dev_Infra
+  displayName: Deploy infra Dev
+  dependsOn: []
+  condition: succeeded()
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy
+    environment: 'APIM_B2C_backend_infra_development'
+    pool:
+      vmImage: $(vmImageName)
+    strategy:
+      runOnce:
+        deploy:
+          steps:          
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+              scriptType: 'pscore'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                az group create --name $(resourceGroupNameDev) --location $(location)
+                az deployment group create --resource-group $(resourceGroupNameDev) --template-file $(bicepFilePath) --parameters appInsightsLocation=$(location)
+- stage: Deploy_Prod_Infra
+  displayName: Deploy infra Prod
+  dependsOn: Deploy_Dev_Infra
+  condition: succeeded()
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy
+    environment: 'APIM_B2C_backend_infra_production'
+    pool:
+      vmImage: $(vmImageName)
+    strategy:
+      runOnce:
+        deploy:
+          steps:          
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+              scriptType: 'pscore'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                az group create --name $(resourceGroupNameProd) --location $(location)
+                az deployment group create --resource-group $(resourceGroupNameProd) --template-file $(bicepFilePath) --parameters appInsightsLocation=$(location)
+          
