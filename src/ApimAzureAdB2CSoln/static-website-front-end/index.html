@@ -42,10 +42,10 @@
      		var config = {
      			msal: {
      				auth: {
-     					clientId: "24da0dc2-b38f-4bbd-8038-9b6a4688cbc6", // This is the client ID of your FRONTEND application that you registered with the SPA type in Azure Active Directory B2C
-     					authority:  "https://partnercontosob2c.b2clogin.com/tfp/partnercontosob2c.onmicrosoft.com/b2c_1_frontendapp_signupandsignin", // Formatted as https://{b2ctenantname}.b2clogin.com/tfp/{b2ctenantguid or full tenant name including onmicrosoft.com}/{signuporinpolicyname}
-     					redirectUri: "https://femlifepocapimb2ce.z9.web.core.windows.net/", // The storage hosting address of the SPA, a web-enabled v2 storage account - recorded earlier as the Primary Endpoint.
-     					knownAuthorities: ["partnercontosob2c.b2clogin.com"] // {b2ctenantname}.b2clogin.com
+     					clientId: "#{MSAL_AUTH_CLIENTID}#", // This is the client ID of your FRONTEND application that you registered with the SPA type in Azure Active Directory B2C
+     					authority:  "#{MSAL_AUTH_AUTHORITY}#", // Formatted as https://{b2ctenantname}.b2clogin.com/tfp/{b2ctenantguid or full tenant name including onmicrosoft.com}/{signuporinpolicyname}
+     					redirectUri: "#{MSAL_AUTH_REDIRECT_URI}#", // The storage hosting address of the SPA, a web-enabled v2 storage account - recorded earlier as the Primary Endpoint.
+     					knownAuthorities: ["#{MSAL_AUTH_KNOWN_AUTHORITIES}#"] // {b2ctenantname}.b2clogin.com
      				},
      				cache: {
      					cacheLocation: "sessionStorage",
@@ -53,8 +53,8 @@
      				}
      			},
      			api: {
-     				scopes: ["https://partnercontosob2c.onmicrosoft.com/0712d5e5-8b89-48af-8079-b920b4b99166/Hello"], // The scope that we request for the API from B2C, this should be the backend API scope, with the full URI.
-     				backend: "https://api.mngenv019702.onmicrosoft.com/mlifepocapimb2c/hello" // The location that we will call for the backend api, this should be hosted in API Management, suffixed with the name of the API operation (in the sample this is '/hello').
+     				scopes: ["#{API_SCOPES}#"], // The scope that we request for the API from B2C, this should be the backend API scope, with the full URI.
+     				backend: "#{API_BACKEND}#" // The location that we will call for the backend api, this should be hosted in API Management, suffixed with the name of the API operation (in the sample this is '/hello').
      			}
      		}
      		document.getElementById("callapibtn").hidden = true;
