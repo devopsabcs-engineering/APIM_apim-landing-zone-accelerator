@@ -15,6 +15,7 @@ pool:
 variables:
   ARTIFACT_NAME_DEV: StaticWebsiteContentDev
   ARTIFACT_NAME_PROD: StaticWebsiteContentProd
+  project: 'src/ApimAzureAdB2CSoln/static-website-front-end'
 
 stages:
 - stage: Build_Dev
@@ -23,7 +24,7 @@ stages:
   - job: Transform
     displayName: Transform Input
     variables:
-      project: 'src/ApimAzureAdB2CSoln/static-website-front-end'
+      - group: APIM_b2c_frontend_dev_vars
     steps:
     - task: replacetokens@5
       inputs:
@@ -87,7 +88,7 @@ stages:
   - job: Transform
     displayName: Transform Input
     variables:
-      project: 'src/ApimAzureAdB2CSoln/static-website-front-end'
+      - group: APIM_b2c_frontend_prod_vars
     steps:
     - task: replacetokens@5
       inputs:
