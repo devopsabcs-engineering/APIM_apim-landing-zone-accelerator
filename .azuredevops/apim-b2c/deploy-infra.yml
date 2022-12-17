@@ -29,9 +29,7 @@ stages:
   jobs:
   - deployment: Deploy
     displayName: Deploy
-    environment: 'APIM_B2C_backend_infra_development'
-    pool:
-      vmImage: $(vmImage)
+    environment: 'APIM_B2C_backend_infra_development'    
     strategy:
       runOnce:
         deploy:
@@ -51,9 +49,7 @@ stages:
   jobs:
   - deployment: Deploy
     displayName: Deploy
-    environment: 'APIM_B2C_backend_infra_production'
-    pool:
-      vmImage: $(vmImage)
+    environment: 'APIM_B2C_backend_infra_production'    
     strategy:
       runOnce:
         deploy:
