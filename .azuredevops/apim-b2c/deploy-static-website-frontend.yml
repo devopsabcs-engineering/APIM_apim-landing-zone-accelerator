@@ -125,7 +125,7 @@ stages:
     displayName: Deploy to Azure Storage
     environment: APIM_B2C_frontend_production
     variables:
-      AZURE_STORAGE_ACCOUNT: femlifepocapimb2ce    
+      AZURE_STORAGE_ACCOUNT: storqnzxwgg2niqda    
     strategy:
       runOnce:
         deploy:
