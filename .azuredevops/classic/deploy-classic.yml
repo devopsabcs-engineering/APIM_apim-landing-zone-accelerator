@@ -40,8 +40,11 @@ stages :
   - job: Set_tag_for_version
     displayName: set version once
     steps:
+    #- checkout: self
+    #  persistCredentials: true
     - checkout: self
-      persistCredentials: true
+      fetchDepth: 0
+      clean: true
     - task: gitversion/setup@0
       enabled: true
       displayName: 'Install GitTools'
