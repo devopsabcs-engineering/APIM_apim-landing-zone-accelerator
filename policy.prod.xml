@@ -12,9 +12,9 @@
 	<inbound>
 		<cors allow-credentials="true">
 			<allowed-origins>
-				<origin>https://stor3m2fbh7dapcag.z9.web.core.windows.net/</origin>
+				<origin>https://storqnzxwgg2niqda.z9.web.core.windows.net/</origin>
 				<origin>https://portal.MngEnv019702.onmicrosoft.com</origin>
-				<origin>https://apim-apimlz03-dev-canadacentral-003.developer.azure-api.net</origin>
+				<origin>https://apim-fifgmevnwrnwu.developer.azure-api.net</origin>
 			</allowed-origins>
 			<allowed-methods preflight-result-max-age="120">
 				<method>GET</method>
@@ -27,10 +27,10 @@
 			</expose-headers>
 		</cors>
 		<validate-jwt header-name="Authorization" failed-validation-httpcode="401" failed-validation-error-message="Unauthorized. Access token is missing or invalid." require-expiration-time="true" require-signed-tokens="true" clock-skew="300">
-			<openid-config url="https://partnercontosob2c.b2clogin.com/partnercontosob2c.onmicrosoft.com/v2.0/.well-known/openid-configuration?p=B2C_1_Frontendapp_dev_signupandsignin" />
+			<openid-config url="https://partnercontosob2c.b2clogin.com/partnercontosob2c.onmicrosoft.com/v2.0/.well-known/openid-configuration?p=B2C_1_Frontendapp_signupandsignin" />
 			<required-claims>
 				<claim name="aud">
-					<value>c78dd9c3-9bc5-4734-ba87-d2016b807816</value>
+					<value>0712d5e5-8b89-48af-8079-b920b4b99166</value>
 				</claim>
 			</required-claims>
 		</validate-jwt>
