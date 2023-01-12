@@ -53,3 +53,11 @@ apis:
         properties:
           verbosity: Error
           loggerId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-001/providers/Microsoft.ApiManagement/service/apim-fifgmevnwrnwu/loggers/appi-apimfifgmevnwrnwu"
+subscriptions:
+  - name: Dev-Sub
+    properties:
+      displayName: "Dev Subscription"
+      allowTracing: false
+      ownerId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-001/providers/Microsoft.ApiManagement/service/apim-fifgmevnwrnwu/users/63991e9646346116dc7ad1b8"
+      scope: /apis
+      state: active
