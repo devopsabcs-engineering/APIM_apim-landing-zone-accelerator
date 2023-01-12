@@ -39,8 +39,10 @@ stages :
   jobs:
   - job: Set_tag_for_version
     displayName: set version once
-    steps:
+    steps:    
     - checkout: self
+      fetchDepth: 0 #fix shallow issue with GitTools
+      clean: true
       persistCredentials: true
     - task: gitversion/setup@0
       enabled: true
