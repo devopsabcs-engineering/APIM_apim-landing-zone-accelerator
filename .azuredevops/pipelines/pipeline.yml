@@ -13,17 +13,20 @@ pool:
   vmImage: 'ubuntu-latest'
 
 parameters:
-  - name: ReDeployInfraParam
-    type: boolean
-    default: false
-    displayName: Re-Deploy the Infra
+- name: ReDeployInfraParam
+  type: boolean
+  default: false
+  displayName: Re-Deploy the Infra
+- name: InstanceNumber
+  type: string
+  default: '07'
 
 variables:
-- group: 'APIM_apim-landing-zone-accelerator_common_007'
+- group: 'APIM_apim-landing-zone-accelerator_common_0${{ parameters.InstanceNumber }}'
 - name: shortInstance
-  value: '07'
+  value: '${{ parameters.InstanceNumber }}'
 - name: longInstance
-  value: '007'
+  value: '0${{ parameters.InstanceNumber }}'
 - template: apim-eslz-vars.yml
 - group: APIM_ESLZ_dev_vars
 - name: ReDeployInfra
