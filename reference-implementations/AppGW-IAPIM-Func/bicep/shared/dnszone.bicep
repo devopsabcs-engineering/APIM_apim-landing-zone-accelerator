@@ -74,8 +74,8 @@ resource scmDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
   properties: {}
 }
 
-param mainPrivateDnsZone string // = 'mngenv019702.onmicrosoft.com'
-param mainVirtualNetworkId string // = '/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-networking-ApimLZ03-dev-canadacentral-003/providers/Microsoft.Network/virtualNetworks/vnet-apim-cs-ApimLZ03-dev-canadacentral'
+param mainPrivateDnsZone string
+param mainVirtualNetworkId string
 
 resource mainPrivateDnsZoneResource 'Microsoft.Network/privateDnsZones@2020-06-01' = {
   name: mainPrivateDnsZone

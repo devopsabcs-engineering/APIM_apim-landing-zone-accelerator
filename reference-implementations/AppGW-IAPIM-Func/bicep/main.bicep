@@ -78,8 +78,10 @@ param mainDomainName string
 @description('Valid SKU indicator for the VM')
 param vmSize string = 'Standard_D4_v3'
 
+param longInstance string = '005'
+
 // Variables
-var resourceSuffix = '${workloadName}-${environment}-${location}-003'
+var resourceSuffix = '${workloadName}-${environment}-${location}-${longInstance}'
 var networkingResourceGroupName = 'rg-networking-${resourceSuffix}'
 var sharedResourceGroupName = 'rg-shared-${resourceSuffix}'
 

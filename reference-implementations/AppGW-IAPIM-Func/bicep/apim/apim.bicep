@@ -61,18 +61,6 @@ resource apimName_resource 'Microsoft.ApiManagement/service@2021-08-01' = {
     capacity: capacity
     name: skuName
   }
-  // identity: {
-  //   type: 'UserAssigned'
-  //   userAssignedIdentities: {
-  //     // '/subscriptions/${subscription().subscriptionId}/resourceGroups/${resourceGroup().name}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/identity-appgw-ApimLZ03-dev-canadacentral-003': {
-  //     //   clientId: '1216d0de-27c4-49b9-a97d-4f0c16590cee'
-  //     //   principalId: '6b5cf262-62d7-45a8-b008-e403f29d4a27'
-  //     // }
-  //     '/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourcegroups/rg-apim-ApimLZ03-dev-canadacentral-003/providers/Microsoft.ManagedIdentity/userAssignedIdentities/identity-appgw-ApimLZ03-dev-canadacentral-003': {
-
-  //     }
-  //   }
-  // }
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {
