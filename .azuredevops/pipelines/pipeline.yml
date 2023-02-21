@@ -22,7 +22,7 @@ variables:
 - name: shortInstance
   value: '05'
 - name: longInstance
-  value: '05'
+  value: '005'
 - template: apim-eslz-vars.yml
 - group: APIM_ESLZ_dev_vars
 - name: ReDeployInfra
@@ -148,26 +148,26 @@ stages:
   - job: post_deploy_job
     variables:
     - name: appGatewayVnetName
-      value: vnet-apim-cs-ApimLZ03-dev-canadacentral
+      value: 'vnet-apim-cs-ApimLZ$(shortInstance)-dev-canadacentral'
     - name: ResourceGroupNameShared
-      value: rg-shared-ApimLZ03-dev-canadacentral-003
+      value: 'rg-shared-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
     - name: ResourceGroupNameNetwork
-      value: rg-networking-ApimLZ03-dev-canadacentral-003
+      value: 'rg-networking-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
     - name: domainName
       value: MngEnv019702.onmicrosoft.com
     - name: zoneName
       value: MngEnv019702.onmicrosoft.com
     - name: ResourceGroupNameApim 
-      value: rg-apim-ApimLZ03-dev-canadacentral-003
+      value: 'rg-apim-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
     - name: apimServiceName
-      value: apim-ApimLZ03-dev-canadacentral-003
+      value: 'apim-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
     #- name: Location
     #  value: canadacentral
     #- name: apimOrganization
     #  value: "Contoso MngEnv019702"
     #- name: apimAdminEmail
     #  value: "admin@MngEnv019702.onmicrosoft.com" # Administrator's email address
-    - group: APIM_apim-landing-zone-accelerator_common_003
+    - group: 'APIM_apim-landing-zone-accelerator_common_$(longInstance)'
     - name: ARTIFACTS_FEED_NAME
       value: APIM_landing_zone_tools
     steps:
@@ -205,32 +205,32 @@ stages:
 - stage: internal_vnet_tests
   dependsOn: [postdeploy]
   pool:
-   name: APIM_Internal_Vnet_Agents_003
+   name: 'APIM_Internal_Vnet_Agents_$(longInstance)'
   jobs:
   - job: do_health_tests
     displayName: perform internal vnet health test
     variables:
     - name: appGatewayVnetName
-      value: vnet-apim-cs-ApimLZ03-dev-canadacentral
+      value: 'vnet-apim-cs-ApimLZ$(shortInstance)-dev-canadacentral'
     - name: ResourceGroupNameShared
-      value: rg-shared-ApimLZ03-dev-canadacentral-003
+      value: 'rg-shared-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
     - name: ResourceGroupNameNetwork
-      value: rg-networking-ApimLZ03-dev-canadacentral-003
+      value: 'rg-networking-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
     - name: domainName
       value: MngEnv019702.onmicrosoft.com
     - name: zoneName
       value: MngEnv019702.onmicrosoft.com
     - name: ResourceGroupNameApim 
-      value: rg-apim-ApimLZ03-dev-canadacentral-003
+      value: 'rg-apim-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
     - name: apimServiceName
-      value: apim-ApimLZ03-dev-canadacentral-003    
-    - group: APIM_apim-landing-zone-accelerator_common_003
+      value: 'apim-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
+    - group: 'APIM_apim-landing-zone-accelerator_common_$(longInstance)'
     - name: ARTIFACTS_FEED_NAME
       value: APIM_landing_zone_tools
     - name: appGatewayName
-      value: appgw-ApimLZ03-dev-canadacentral-003
+      value: 'appgw-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
     - name: apimServiceName
-      value: apim-ApimLZ03-dev-canadacentral-003
+      value: 'apim-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
     - name: Location
       value: canadacentral
     - name: apimOrganization
@@ -238,7 +238,7 @@ stages:
     - name: apimAdminEmail
       value: "admin@MngEnv019702.onmicrosoft.com" # Administrator's email address
     - name: appGatewayPublicIpName
-      value: pip-appgw-ApimLZ03-dev-canadacentral-003
+      value: 'pip-appgw-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
     steps:
     - task: DownloadSecureFile@1
       name: trustedrootcert
@@ -293,26 +293,26 @@ stages:
     displayName: perform external vnet health test
     variables:
     - name: appGatewayVnetName
-      value: vnet-apim-cs-ApimLZ03-dev-canadacentral
+      value: 'vnet-apim-cs-ApimLZ$(shortInstance)-dev-canadacentral'
     - name: ResourceGroupNameShared
-      value: rg-shared-ApimLZ03-dev-canadacentral-003
+      value: 'rg-shared-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
     - name: ResourceGroupNameNetwork
-      value: rg-networking-ApimLZ03-dev-canadacentral-003
+      value: 'rg-networking-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
     - name: domainName
       value: MngEnv019702.onmicrosoft.com
     - name: zoneName
       value: MngEnv019702.onmicrosoft.com
     - name: ResourceGroupNameApim 
-      value: rg-apim-ApimLZ03-dev-canadacentral-003
+      value: 'rg-apim-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
     - name: apimServiceName
-      value: apim-ApimLZ03-dev-canadacentral-003    
-    - group: APIM_apim-landing-zone-accelerator_common_003
+      value: 'apim-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
+    - group: 'APIM_apim-landing-zone-accelerator_common_$(longInstance)'
     - name: ARTIFACTS_FEED_NAME
       value: APIM_landing_zone_tools
     - name: appGatewayName
-      value: appgw-ApimLZ03-dev-canadacentral-003
+      value: 'appgw-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
     - name: apimServiceName
-      value: apim-ApimLZ03-dev-canadacentral-003
+      value: 'apim-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
     - name: Location
       value: canadacentral
     - name: apimOrganization
@@ -320,7 +320,7 @@ stages:
     - name: apimAdminEmail
       value: "admin@MngEnv019702.onmicrosoft.com" # Administrator's email address
     - name: appGatewayPublicIpName
-      value: pip-appgw-ApimLZ03-dev-canadacentral-003
+      value: 'pip-appgw-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
     steps:
     - task: DownloadSecureFile@1
       name: trustedrootcert
@@ -375,26 +375,26 @@ stages:
     displayName: perform health test
     variables:
     - name: appGatewayVnetName
-      value: vnet-apim-cs-ApimLZ03-dev-canadacentral
+      value: 'vnet-apim-cs-ApimLZ$(shortInstance)-dev-canadacentral'
     - name: ResourceGroupNameShared
-      value: rg-shared-ApimLZ03-dev-canadacentral-003
+      value: 'rg-shared-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
     - name: ResourceGroupNameNetwork
-      value: rg-networking-ApimLZ03-dev-canadacentral-003
+      value: 'rg-networking-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
     - name: domainName
       value: MngEnv019702.onmicrosoft.com
     - name: zoneName
       value: MngEnv019702.onmicrosoft.com
     - name: ResourceGroupNameApim 
-      value: rg-apim-ApimLZ03-dev-canadacentral-003
+      value: 'rg-apim-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
     - name: apimServiceName
-      value: apim-ApimLZ03-dev-canadacentral-003    
-    - group: APIM_apim-landing-zone-accelerator_common_003
+      value: 'apim-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
+    - group: 'APIM_apim-landing-zone-accelerator_common_$(longInstance)'
     - name: ARTIFACTS_FEED_NAME
       value: APIM_landing_zone_tools
     - name: appGatewayName
-      value: appgw-ApimLZ03-dev-canadacentral-003
+      value: 'appgw-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
     - name: apimServiceName
-      value: apim-ApimLZ03-dev-canadacentral-003
+      value: 'apim-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
     - name: Location
       value: canadacentral
     - name: apimOrganization
@@ -402,7 +402,7 @@ stages:
     - name: apimAdminEmail
       value: "admin@MngEnv019702.onmicrosoft.com" # Administrator's email address
     - name: appGatewayPublicIpName
-      value: pip-appgw-ApimLZ03-dev-canadacentral-003
+      value: 'pip-appgw-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
     steps:
     #- checkout: self
     #  persistCredentials: true    
