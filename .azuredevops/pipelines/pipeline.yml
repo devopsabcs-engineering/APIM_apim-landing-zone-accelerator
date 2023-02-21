@@ -19,6 +19,10 @@ parameters:
     displayName: Re-Deploy the Infra
 
 variables:
+- name: shortInstance
+  value: '05'
+- name: longInstance
+  value: '05'
 - template: apim-eslz-vars.yml
 - group: APIM_ESLZ_dev_vars
 - name: ReDeployInfra
