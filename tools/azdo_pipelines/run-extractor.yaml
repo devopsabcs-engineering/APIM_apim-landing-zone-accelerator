@@ -1,11 +1,15 @@
 parameters:
+  - name: shortInstance
+    value: '05'
+  - name: longInstance
+    value: '005'
   - name: APIM_INSTANCE_NAME
     displayName: APIM instance name
-    default: 'apim-ApimLZ03-dev-canadacentral-003'
+    default: 'apim-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
     type: string
   - name: RESOURCE_GROUP_NAME
     displayName: APIM instance resource group name
-    default: 'rg-apim-ApimLZ03-dev-canadacentral-003'
+    default: 'rg-apim-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
     type: string
   - name: APIM_REPOSITORY_NAME
     type: string
