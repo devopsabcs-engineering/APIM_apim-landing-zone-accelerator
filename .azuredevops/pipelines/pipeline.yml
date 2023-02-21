@@ -19,11 +19,11 @@ parameters:
     displayName: Re-Deploy the Infra
 
 variables:
-- group: 'APIM_apim-landing-zone-accelerator_common_006'
+- group: 'APIM_apim-landing-zone-accelerator_common_007'
 - name: shortInstance
-  value: '06'
+  value: '07'
 - name: longInstance
-  value: '006'
+  value: '007'
 - template: apim-eslz-vars.yml
 - group: APIM_ESLZ_dev_vars
 - name: ReDeployInfra
