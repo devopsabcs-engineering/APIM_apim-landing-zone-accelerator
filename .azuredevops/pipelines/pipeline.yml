@@ -19,10 +19,11 @@ parameters:
     displayName: Re-Deploy the Infra
 
 variables:
+- group: 'APIM_apim-landing-zone-accelerator_common_006'
 - name: shortInstance
-  value: '05'
+  value: '06'
 - name: longInstance
-  value: '005'
+  value: '006'
 - template: apim-eslz-vars.yml
 - group: APIM_ESLZ_dev_vars
 - name: ReDeployInfra
@@ -167,7 +168,6 @@ stages:
     #  value: "Contoso MngEnv019702"
     #- name: apimAdminEmail
     #  value: "admin@MngEnv019702.onmicrosoft.com" # Administrator's email address
-    - group: 'APIM_apim-landing-zone-accelerator_common_005'
     - name: ARTIFACTS_FEED_NAME
       value: APIM_landing_zone_tools
     steps:
@@ -223,8 +223,7 @@ stages:
     - name: ResourceGroupNameApim 
       value: 'rg-apim-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
     - name: apimServiceName
-      value: 'apim-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
-    - group: 'APIM_apim-landing-zone-accelerator_common_005'
+      value: 'apim-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'    
     - name: ARTIFACTS_FEED_NAME
       value: APIM_landing_zone_tools
     - name: appGatewayName
@@ -306,7 +305,6 @@ stages:
       value: 'rg-apim-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
     - name: apimServiceName
       value: 'apim-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
-    - group: 'APIM_apim-landing-zone-accelerator_common_005'
     - name: ARTIFACTS_FEED_NAME
       value: APIM_landing_zone_tools
     - name: appGatewayName
@@ -388,7 +386,6 @@ stages:
       value: 'rg-apim-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
     - name: apimServiceName
       value: 'apim-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
-    - group: 'APIM_apim-landing-zone-accelerator_common_005'
     - name: ARTIFACTS_FEED_NAME
       value: APIM_landing_zone_tools
     - name: appGatewayName

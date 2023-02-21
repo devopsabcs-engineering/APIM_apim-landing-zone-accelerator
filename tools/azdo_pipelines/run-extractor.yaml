@@ -1,8 +1,8 @@
 parameters:
   - name: shortInstance
-    value: '05'
+    value: '06'
   - name: longInstance
-    value: '005'
+    value: '006'
   - name: APIM_INSTANCE_NAME
     displayName: APIM instance name
     default: 'apim-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'

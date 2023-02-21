@@ -78,7 +78,7 @@ param mainDomainName string
 @description('Valid SKU indicator for the VM')
 param vmSize string = 'Standard_D4_v3'
 
-param longInstance string = '005'
+param longInstance string = '006'
 
 // Variables
 var resourceSuffix = '${workloadName}-${environment}-${location}-${longInstance}'
