@@ -79,6 +79,7 @@ param mainDomainName string
 param vmSize string = 'Standard_D4_v3'
 
 param longInstance string = '007'
+param poolName string = 'APIM_Internal_Vnet_Agents_dev_007'
 
 // Variables
 var resourceSuffix = '${workloadName}-${environment}-${location}-${longInstance}'
@@ -177,6 +178,8 @@ module shared './shared/shared.bicep' = {
     appGatewayFQDN: appGatewayFqdn
     appGatewayCertType: appGatewayCertType
     certPassword: certificatePassword
+
+    poolName: poolName
   }
 }
 

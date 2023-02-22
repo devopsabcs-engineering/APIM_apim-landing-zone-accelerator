@@ -37,6 +37,8 @@ variables:
   value: '${{ parameters.InstanceNumber }}'
 - name: longInstance
   value: '0${{ parameters.InstanceNumber }}'
+- name: poolNameVar
+  value: 'APIM_Internal_Vnet_Agents_${{ parameters.Environment }}_0${{ parameters.InstanceNumber }}'
 - template: apim-eslz-vars.yml
 - group: APIM_ESLZ_${{ parameters.Environment }}_vars
 - name: ReDeployInfra
@@ -154,7 +156,7 @@ stages:
               inlineScript: |
                 echo "using serviceconnection :" $(serviceConnectionName)
                 echo "initial deployment may take up to one hour while subsequent ones are shorter"
-                az deployment sub create --location $(deploymentLocation) --name $(deploymentName) --template-file $(Pipeline.Workspace)/$(artifactName)/main.bicep --parameters workloadName=$(workloadNameVar) longInstance=$(longInstance) environment=${{ parameters.Environment }} CICDAgentType=$(CICDAgentType) accountName=$(accountName) appGatewayCertType=$(appGatewayCertType) appGatewayFqdn=$(appGatewayFqdn) certificatePassword=$(certificatePassword) personalAccessToken=$(personalAccessToken) vmPassword=$(vmPassword) vmUsername=$(vmUsername) apiFQDN=$(apiFQDN) apiCertificatePassword=$(apiCertificatePassword) apiCertType=$(apiCertType) portalFQDN=$(portalFQDN) portalCertificatePassword=$(portalCertificatePassword) portalCertType=$(portalCertType) managementFQDN=$(managementFQDN) managementCertificatePassword=$(managementCertificatePassword) managementCertType=$(managementCertType) mainDomainName=$(mainDomainName)
+                az deployment sub create --location $(deploymentLocation) --name $(deploymentName) --template-file $(Pipeline.Workspace)/$(artifactName)/main.bicep --parameters workloadName=$(workloadNameVar) longInstance=$(longInstance) poolName=$(poolNameVar) environment=${{ parameters.Environment }} CICDAgentType=$(CICDAgentType) accountName=$(accountName) appGatewayCertType=$(appGatewayCertType) appGatewayFqdn=$(appGatewayFqdn) certificatePassword=$(certificatePassword) personalAccessToken=$(personalAccessToken) vmPassword=$(vmPassword) vmUsername=$(vmUsername) apiFQDN=$(apiFQDN) apiCertificatePassword=$(apiCertificatePassword) apiCertType=$(apiCertType) portalFQDN=$(portalFQDN) portalCertificatePassword=$(portalCertificatePassword) portalCertType=$(portalCertType) managementFQDN=$(managementFQDN) managementCertificatePassword=$(managementCertificatePassword) managementCertType=$(managementCertType) mainDomainName=$(mainDomainName)
 - stage: postdeploy
   displayName: 'Post deploy scripts'
   dependsOn: deploy_artifacts
