@@ -1,11 +1,11 @@
 parameters:  
   - name: APIM_INSTANCE_NAME
     displayName: APIM instance name
-    default: 'apim-ApimLZ07-dev-canadacentral-0${{ parameters.InstanceNumber }}'
+    default: 'apim-ApimLZ07-dev-canadacentral-007'
     type: string
   - name: RESOURCE_GROUP_NAME
     displayName: APIM instance resource group name
-    default: 'rg-apim-ApimLZ07-dev-canadacentral-0${{ parameters.InstanceNumber }}'
+    default: 'rg-apim-ApimLZ07-dev-canadacentral-007'
     type: string
   - name: APIM_REPOSITORY_NAME
     type: string
