@@ -20,6 +20,14 @@ parameters:
 - name: InstanceNumber
   type: string
   default: '07'
+- name: Environment
+  type: string
+  default: dev
+  values:
+  - 'dev'
+  - 'uat'
+  - 'prod'
+  - 'dr'
 
 variables:
 - group: 'APIM_apim-landing-zone-accelerator_common_0${{ parameters.InstanceNumber }}'
@@ -30,7 +38,7 @@ variables:
 - name: longInstance
   value: '0${{ parameters.InstanceNumber }}'
 - template: apim-eslz-vars.yml
-- group: APIM_ESLZ_dev_vars
+- group: APIM_ESLZ_${{ parameters.Environment }}_vars
 - name: ReDeployInfra
   value: ${{ parameters.ReDeployInfraParam }}
 - name: mainTemplatePath
@@ -146,7 +154,7 @@ stages:
               inlineScript: |
                 echo "using serviceconnection :" $(serviceConnectionName)
                 echo "initial deployment may take up to one hour while subsequent ones are shorter"
-                az deployment sub create --location $(deploymentLocation) --name $(deploymentName) --template-file $(Pipeline.Workspace)/$(artifactName)/main.bicep --parameters workloadName=$(workloadNameVar) longInstance=$(longInstance) environment=$(eslzEnvironmentType) CICDAgentType=$(CICDAgentType) accountName=$(accountName) appGatewayCertType=$(appGatewayCertType) appGatewayFqdn=$(appGatewayFqdn) certificatePassword=$(certificatePassword) personalAccessToken=$(personalAccessToken) vmPassword=$(vmPassword) vmUsername=$(vmUsername) apiFQDN=$(apiFQDN) apiCertificatePassword=$(apiCertificatePassword) apiCertType=$(apiCertType) portalFQDN=$(portalFQDN) portalCertificatePassword=$(portalCertificatePassword) portalCertType=$(portalCertType) managementFQDN=$(managementFQDN) managementCertificatePassword=$(managementCertificatePassword) managementCertType=$(managementCertType) mainDomainName=$(mainDomainName)
+                az deployment sub create --location $(deploymentLocation) --name $(deploymentName) --template-file $(Pipeline.Workspace)/$(artifactName)/main.bicep --parameters workloadName=$(workloadNameVar) longInstance=$(longInstance) environment=${{ parameters.Environment }} CICDAgentType=$(CICDAgentType) accountName=$(accountName) appGatewayCertType=$(appGatewayCertType) appGatewayFqdn=$(appGatewayFqdn) certificatePassword=$(certificatePassword) personalAccessToken=$(personalAccessToken) vmPassword=$(vmPassword) vmUsername=$(vmUsername) apiFQDN=$(apiFQDN) apiCertificatePassword=$(apiCertificatePassword) apiCertType=$(apiCertType) portalFQDN=$(portalFQDN) portalCertificatePassword=$(portalCertificatePassword) portalCertType=$(portalCertType) managementFQDN=$(managementFQDN) managementCertificatePassword=$(managementCertificatePassword) managementCertType=$(managementCertType) mainDomainName=$(mainDomainName)
 - stage: postdeploy
   displayName: 'Post deploy scripts'
   dependsOn: deploy_artifacts
@@ -154,19 +162,19 @@ stages:
   - job: post_deploy_job
     variables:
     - name: appGatewayVnetName
-      value: 'vnet-apim-cs-ApimLZ$(shortInstance)-dev-canadacentral'
+      value: 'vnet-apim-cs-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral'
     - name: ResourceGroupNameShared
-      value: 'rg-shared-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
+      value: 'rg-shared-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: ResourceGroupNameNetwork
-      value: 'rg-networking-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
+      value: 'rg-networking-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: domainName
       value: MngEnv019702.onmicrosoft.com
     - name: zoneName
       value: MngEnv019702.onmicrosoft.com
     - name: ResourceGroupNameApim 
-      value: 'rg-apim-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
+      value: 'rg-apim-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: apimServiceName
-      value: 'apim-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
+      value: 'apim-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     #- name: Location
     #  value: canadacentral
     #- name: apimOrganization
@@ -216,25 +224,25 @@ stages:
     displayName: perform internal vnet health test
     variables:
     - name: appGatewayVnetName
-      value: 'vnet-apim-cs-ApimLZ$(shortInstance)-dev-canadacentral'
+      value: 'vnet-apim-cs-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral'
     - name: ResourceGroupNameShared
-      value: 'rg-shared-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
+      value: 'rg-shared-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: ResourceGroupNameNetwork
-      value: 'rg-networking-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
+      value: 'rg-networking-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: domainName
       value: MngEnv019702.onmicrosoft.com
     - name: zoneName
       value: MngEnv019702.onmicrosoft.com
     - name: ResourceGroupNameApim 
-      value: 'rg-apim-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
+      value: 'rg-apim-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: apimServiceName
-      value: 'apim-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'    
+      value: 'apim-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'    
     - name: ARTIFACTS_FEED_NAME
       value: APIM_landing_zone_tools
     - name: appGatewayName
-      value: 'appgw-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
+      value: 'appgw-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: apimServiceName
-      value: 'apim-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
+      value: 'apim-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: Location
       value: canadacentral
     - name: apimOrganization
@@ -242,7 +250,7 @@ stages:
     - name: apimAdminEmail
       value: "admin@MngEnv019702.onmicrosoft.com" # Administrator's email address
     - name: appGatewayPublicIpName
-      value: 'pip-appgw-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
+      value: 'pip-appgw-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     steps:
     - task: DownloadSecureFile@1
       name: trustedrootcert
@@ -297,25 +305,25 @@ stages:
     displayName: perform external vnet health test
     variables:
     - name: appGatewayVnetName
-      value: 'vnet-apim-cs-ApimLZ$(shortInstance)-dev-canadacentral'
+      value: 'vnet-apim-cs-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral'
     - name: ResourceGroupNameShared
-      value: 'rg-shared-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
+      value: 'rg-shared-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: ResourceGroupNameNetwork
-      value: 'rg-networking-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
+      value: 'rg-networking-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: domainName
       value: MngEnv019702.onmicrosoft.com
     - name: zoneName
       value: MngEnv019702.onmicrosoft.com
     - name: ResourceGroupNameApim 
-      value: 'rg-apim-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
+      value: 'rg-apim-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: apimServiceName
-      value: 'apim-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
+      value: 'apim-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: ARTIFACTS_FEED_NAME
       value: APIM_landing_zone_tools
     - name: appGatewayName
-      value: 'appgw-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
+      value: 'appgw-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: apimServiceName
-      value: 'apim-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
+      value: 'apim-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: Location
       value: canadacentral
     - name: apimOrganization
@@ -323,7 +331,7 @@ stages:
     - name: apimAdminEmail
       value: "admin@MngEnv019702.onmicrosoft.com" # Administrator's email address
     - name: appGatewayPublicIpName
-      value: 'pip-appgw-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
+      value: 'pip-appgw-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     steps:
     - task: DownloadSecureFile@1
       name: trustedrootcert
@@ -378,25 +386,25 @@ stages:
     displayName: perform health test
     variables:
     - name: appGatewayVnetName
-      value: 'vnet-apim-cs-ApimLZ$(shortInstance)-dev-canadacentral'
+      value: 'vnet-apim-cs-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral'
     - name: ResourceGroupNameShared
-      value: 'rg-shared-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
+      value: 'rg-shared-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: ResourceGroupNameNetwork
-      value: 'rg-networking-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
+      value: 'rg-networking-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: domainName
       value: MngEnv019702.onmicrosoft.com
     - name: zoneName
       value: MngEnv019702.onmicrosoft.com
     - name: ResourceGroupNameApim 
-      value: 'rg-apim-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
+      value: 'rg-apim-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: apimServiceName
-      value: 'apim-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
+      value: 'apim-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: ARTIFACTS_FEED_NAME
       value: APIM_landing_zone_tools
     - name: appGatewayName
-      value: 'appgw-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
+      value: 'appgw-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: apimServiceName
-      value: 'apim-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
+      value: 'apim-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: Location
       value: canadacentral
     - name: apimOrganization
@@ -404,7 +412,7 @@ stages:
     - name: apimAdminEmail
       value: "admin@MngEnv019702.onmicrosoft.com" # Administrator's email address
     - name: appGatewayPublicIpName
-      value: 'pip-appgw-ApimLZ$(shortInstance)-dev-canadacentral-$(longInstance)'
+      value: 'pip-appgw-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     steps:
     #- checkout: self
     #  persistCredentials: true    

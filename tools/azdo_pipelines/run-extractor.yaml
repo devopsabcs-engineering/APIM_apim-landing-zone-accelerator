@@ -1,14 +1,22 @@
 parameters:  
   - name: shortInstance
     default: '07'
-    type: string  
+    type: string
+  - name: Environment
+    type: string
+    default: dev    
+    values:
+    - 'dev'
+    - 'uat'
+    - 'prod'
+    - 'dr' 
   - name: APIM_INSTANCE_NAME
     displayName: APIM instance name
-    default: 'apim-ApimLZ${{ parameters.InstanceNumber }}-dev-canadacentral-0${{ parameters.InstanceNumber }}'
+    default: 'apim-ApimLZ${{ parameters.InstanceNumber }}-${{ parameters.Environment }}-canadacentral-0${{ parameters.InstanceNumber }}'
     type: string
   - name: RESOURCE_GROUP_NAME
     displayName: APIM instance resource group name
-    default: 'rg-apim-ApimLZ${{ parameters.InstanceNumber }}-dev-canadacentral-0${{ parameters.InstanceNumber }}'
+    default: 'rg-apim-ApimLZ${{ parameters.InstanceNumber }}-${{ parameters.Environment }}-canadacentral-0${{ parameters.InstanceNumber }}'
     type: string
   - name: APIM_REPOSITORY_NAME
     type: string
