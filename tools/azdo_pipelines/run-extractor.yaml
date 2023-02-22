@@ -8,8 +8,8 @@ parameters:
     values:
     - 'dev'
     - 'uat'
-    - 'prod'
-    - 'dr' 
+    - 'prd'
+    - 'dsr' 
   - name: APIM_INSTANCE_NAME
     displayName: APIM instance name
     default: 'apim-ApimLZ${{ parameters.InstanceNumber }}-${{ parameters.Environment }}-canadacentral-0${{ parameters.InstanceNumber }}'

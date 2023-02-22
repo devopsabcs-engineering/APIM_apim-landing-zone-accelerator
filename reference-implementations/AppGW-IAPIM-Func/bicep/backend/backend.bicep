@@ -10,8 +10,8 @@ param workloadName string
 @allowed([
   'dev'
   'uat'
-  'prod'
-  'dr'
+  'prd'
+  'dsr'
 ])
 param environment string
 
@@ -34,15 +34,15 @@ var owner = 'APIM Const Set'
 // Azure Storage Sizing
 //
 // - name: must be globally unique
-var storageAccounts_saapimcsbackend_name  = toLower(take(replace('stbknd${workloadName}${environment}${location}', '-',''), 24))
+var storageAccounts_saapimcsbackend_name = toLower(take(replace('stbknd${workloadName}${environment}${location}', '-', ''), 24))
 // - location
 var storageAccounts_location = location
 // - SKU name
-var storageAccounts_skuName  = 'Standard_LRS'
+var storageAccounts_skuName = 'Standard_LRS'
 // - SKU tier
 // var storageAccounts_skuTier  = 'Standard'
 // - kind
-var storageAccounts_kind  = 'StorageV2'
+var storageAccounts_kind = 'StorageV2'
 var functionContentShareName = 'func-contents'
 
 //
@@ -59,29 +59,27 @@ var privateEndpoint_storageaccount_table_Name = 'pep-sa-table-${workloadName}-${
 // Azure Application Service Plan
 //
 // - name
-var serverfarms_appsvcplanAPIMCSBackend_name  = 'plan-be-${workloadName}-${environment}-${location}'
+var serverfarms_appsvcplanAPIMCSBackend_name = 'plan-be-${workloadName}-${environment}-${location}'
 // - location
-var serverfarms_appsvcplanAPIMCSBackend_location  = location
+var serverfarms_appsvcplanAPIMCSBackend_location = location
 // Azure Application Service Plan sizing
 // - SKU name
-var serverfarms_appsvcplanAPIMCSBackend_skuName  = 'P2v2' // dev - 'B1'
+var serverfarms_appsvcplanAPIMCSBackend_skuName = 'P2v2' // dev - 'B1'
 // - SKU tier
-var serverfarms_appsvcplanAPIMCSBackend_skuTier  = 'PremiumV2' // dev - 'Basic'
+var serverfarms_appsvcplanAPIMCSBackend_skuTier = 'PremiumV2' // dev - 'Basic'
 // - SKU size
-var serverfarms_appsvcplanAPIMCSBackend_skuSize  = 'P2v2' // dev - 'B1'
+var serverfarms_appsvcplanAPIMCSBackend_skuSize = 'P2v2' // dev - 'B1'
 // - SKU family
-var serverfarms_appsvcplanAPIMCSBackend_skuFamily  = 'Pv2' // dev - 'B'
+var serverfarms_appsvcplanAPIMCSBackend_skuFamily = 'Pv2' // dev - 'B'
 // - SKU capacity
-var serverfarms_appsvcplanAPIMCSBackend_skuCapacity  = 1
-
+var serverfarms_appsvcplanAPIMCSBackend_skuCapacity = 1
 
 var sites_funcappAPIMCSBackendMicroServiceA_name = 'func-code-be-${workloadName}-${environment}-${location}'
-var sites_funcappAPIMCSBackendMicroServiceA_location  = location
-var sites_funcappAPIMCSBackendMicroServiceA_siteHostname   = 'func-code-be-${workloadName}-${environment}-${location}.azurewebsites.net'
-var sites_funcappAPIMCSBackendMicroServiceA_repositoryHostname   = 'func-code-be-${workloadName}-${environment}-${location}.scm.azurewebsites.net'
-var sites_funcappAPIMCSBackendMicroServiceA_siteName   = 'funccodebe${workloadName}${environment}${location}'
-var privateEndpoint_funcappAPIMCSBackendMicroServiceA_name   = 'pep-func-code-be-${workloadName}-${environment}-${location}'
-
+var sites_funcappAPIMCSBackendMicroServiceA_location = location
+var sites_funcappAPIMCSBackendMicroServiceA_siteHostname = 'func-code-be-${workloadName}-${environment}-${location}.azurewebsites.net'
+var sites_funcappAPIMCSBackendMicroServiceA_repositoryHostname = 'func-code-be-${workloadName}-${environment}-${location}.scm.azurewebsites.net'
+var sites_funcappAPIMCSBackendMicroServiceA_siteName = 'funccodebe${workloadName}${environment}${location}'
+var privateEndpoint_funcappAPIMCSBackendMicroServiceA_name = 'pep-func-code-be-${workloadName}-${environment}-${location}'
 
 //
 // Definitions
@@ -124,7 +122,6 @@ resource storageAccounts_saapimcsbackend_name_resource 'Microsoft.Storage/storag
     accessTier: 'Hot'
   }
 }
-
 
 module queueStoragePrivateEndpoint './networking.bicep' = {
   name: privateEndpoint_storageaccount_queue_Name
@@ -198,7 +195,7 @@ resource serverfarms_appsvcplanAPIMCSBackend_name_resource 'Microsoft.Web/server
     Owner: owner
   }
   sku: {
-    name:  serverfarms_appsvcplanAPIMCSBackend_skuName
+    name: serverfarms_appsvcplanAPIMCSBackend_skuName
     tier: serverfarms_appsvcplanAPIMCSBackend_skuTier
     size: serverfarms_appsvcplanAPIMCSBackend_skuSize
     family: serverfarms_appsvcplanAPIMCSBackend_skuFamily
@@ -277,7 +274,7 @@ resource sites_funcappAPIMCSBackendMicroServiceA_name_resource 'Microsoft.Web/si
           name: 'WEBSITE_VNET_ROUTE_ALL'
           value: '1'
         }
-      ]      
+      ]
     }
     scmSiteAlsoStopped: false
     clientAffinityEnabled: false

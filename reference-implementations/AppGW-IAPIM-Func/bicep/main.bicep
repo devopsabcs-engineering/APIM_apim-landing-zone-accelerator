@@ -9,8 +9,8 @@ param workloadName string
 @allowed([
   'dev'
   'uat'
-  'prod'
-  'dr'
+  'prd'
+  'dsr'
 ])
 param environment string
 

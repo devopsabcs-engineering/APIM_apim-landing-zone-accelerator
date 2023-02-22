@@ -26,8 +26,8 @@ parameters:
   values:
   - 'dev'
   - 'uat'
-  - 'prod'
-  - 'dr'
+  - 'prd'
+  - 'dsr'
 
 variables:
 - group: 'APIM_apim-landing-zone-accelerator_common_0${{ parameters.InstanceNumber }}'
