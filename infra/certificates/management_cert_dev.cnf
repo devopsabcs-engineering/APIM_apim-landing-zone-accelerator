@@ -1,0 +1,10 @@
+default_bit = 4096
+distinguished_name = req_distinguished_name
+prompt = no
+
+[req_distinguished_name]
+countryName             = CA
+stateOrProvinceName     = Quebec
+localityName            = Montreal
+organizationName        = Contoso
+commonName              = management-dev.MngEnv019702.com
