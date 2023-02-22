@@ -24,7 +24,7 @@ parameters:
       - publish-all-artifacts-in-repo
 
 variables:
-  - group: APIM_apim-automation-landing-zone
+  - group: APIM_apim-automation-landing-zone_007
   - name: System.Debug
     value: true
 
