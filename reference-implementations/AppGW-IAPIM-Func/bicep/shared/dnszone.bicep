@@ -3,6 +3,15 @@ param vnetRG string
 param apimName string
 param apimRG string
 
+@description('The environment for which the deployment is being executed')
+@allowed([
+  'dev'
+  'uat'
+  'prd'
+  'dsr'
+])
+param environment string
+
 /*
  Retrieve APIM and Virtual Network
 */
@@ -85,7 +94,7 @@ resource mainPrivateDnsZoneResource 'Microsoft.Network/privateDnsZones@2020-06-0
 
 resource externalApiRecord 'Microsoft.Network/privateDnsZones/A@2020-06-01' = {
   parent: mainPrivateDnsZoneResource
-  name: 'api'
+  name: 'api-${environment}'
   properties: {
     ttl: 3600
     aRecords: [
@@ -98,7 +107,7 @@ resource externalApiRecord 'Microsoft.Network/privateDnsZones/A@2020-06-01' = {
 
 resource externalManagementRecord 'Microsoft.Network/privateDnsZones/A@2020-06-01' = {
   parent: mainPrivateDnsZoneResource
-  name: 'management'
+  name: 'management-${environment}'
   properties: {
     ttl: 3600
     aRecords: [
@@ -111,7 +120,7 @@ resource externalManagementRecord 'Microsoft.Network/privateDnsZones/A@2020-06-0
 
 resource externalPortalRecord 'Microsoft.Network/privateDnsZones/A@2020-06-01' = {
   parent: mainPrivateDnsZoneResource
-  name: 'portal'
+  name: 'portal-${environment}'
   properties: {
     ttl: 3600
     aRecords: [

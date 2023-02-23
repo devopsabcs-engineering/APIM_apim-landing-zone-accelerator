@@ -227,6 +227,8 @@ module dnsZoneModule 'shared/dnszone.bicep' = {
 
     mainPrivateDnsZone: mainDomainName
     mainVirtualNetworkId: networking.outputs.apimCSVNetId
+
+    environment: environment
   }
 }
 
