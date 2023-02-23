@@ -69,7 +69,7 @@ stages:
           echo here are the certs generated
           ls ./cert
           echo copy pem to cer
-          cp ./cert/cacert.pem ./cert/cacert.cer
+          cp ./cert/cacert_custom_domain.pem ./cert/cacert_custom_domain.cer
     - task: CmdLine@2
       displayName: convert to pfx
       inputs:
