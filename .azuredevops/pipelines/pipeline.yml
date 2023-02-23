@@ -252,9 +252,9 @@ stages:
     - name: ResourceGroupNameNetwork
       value: 'rg-networking-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: domainName
-      value: MngEnv019702.onmicrosoft.com
+      value: MngEnv019702.com
     - name: zoneName
-      value: MngEnv019702.onmicrosoft.com
+      value: MngEnv019702.com
     - name: ResourceGroupNameApim 
       value: 'rg-apim-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: apimServiceName
@@ -298,7 +298,7 @@ stages:
         scriptType: 'pscore'
         scriptLocation: 'scriptPath'
         scriptPath: '$(System.DefaultWorkingDirectory)/infra/scripts/health-test-internal.ps1'
-        arguments: '-Location $(Location) -ResourceGroupNameApim $(ResourceGroupNameApim) -zoneName $(zoneName) -appGatewayName $(appGatewayName) -apimServiceName $(apimServiceName) -domainName $(domainName) -apimOrganization "$(apimOrganization)" -apimAdminEmail $(apimAdminEmail) -pfxPassword $(pfxPassword) -azureApplicationId $(azureApplicationId) -azureTenantId $(azureTenantId) -azureClientSecret $(azureClientSecret) -appGatewayPublicIpName $(appGatewayPublicIpName)'
+        arguments: '-Location $(Location) -ResourceGroupNameApim $(ResourceGroupNameApim) -zoneName $(zoneName) -appGatewayName $(appGatewayName) -apimServiceName $(apimServiceName) -domainName $(domainName) -apimOrganization "$(apimOrganization)" -apimAdminEmail $(apimAdminEmail) -pfxPassword $(pfxPassword) -azureApplicationId $(azureApplicationId) -azureTenantId $(azureTenantId) -azureClientSecret $(azureClientSecret) -appGatewayPublicIpName $(appGatewayPublicIpName) -environment ${{ parameters.Environment }}'
     - task: UniversalPackages@0
       displayName: Download rest api tools
       inputs:
@@ -333,9 +333,9 @@ stages:
     - name: ResourceGroupNameNetwork
       value: 'rg-networking-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: domainName
-      value: MngEnv019702.onmicrosoft.com
+      value: MngEnv019702.com
     - name: zoneName
-      value: MngEnv019702.onmicrosoft.com
+      value: MngEnv019702.com
     - name: ResourceGroupNameApim 
       value: 'rg-apim-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: apimServiceName
@@ -379,7 +379,7 @@ stages:
         scriptType: 'pscore'
         scriptLocation: 'scriptPath'
         scriptPath: '$(System.DefaultWorkingDirectory)/infra/scripts/health-test-external.ps1'
-        arguments: '-Location $(Location) -ResourceGroupNameApim $(ResourceGroupNameApim) -zoneName $(zoneName) -appGatewayName $(appGatewayName) -apimServiceName $(apimServiceName) -domainName $(domainName) -apimOrganization "$(apimOrganization)" -apimAdminEmail $(apimAdminEmail) -pfxPassword $(pfxPassword) -azureApplicationId $(azureApplicationId) -azureTenantId $(azureTenantId) -azureClientSecret $(azureClientSecret) -appGatewayPublicIpName $(appGatewayPublicIpName)'
+        arguments: '-Location $(Location) -ResourceGroupNameApim $(ResourceGroupNameApim) -zoneName $(zoneName) -appGatewayName $(appGatewayName) -apimServiceName $(apimServiceName) -domainName $(domainName) -apimOrganization "$(apimOrganization)" -apimAdminEmail $(apimAdminEmail) -pfxPassword $(pfxPassword) -azureApplicationId $(azureApplicationId) -azureTenantId $(azureTenantId) -azureClientSecret $(azureClientSecret) -appGatewayPublicIpName $(appGatewayPublicIpName) -environment ${{ parameters.Environment }}'
     - task: UniversalPackages@0
       displayName: Download rest api tools
       inputs:
@@ -414,9 +414,9 @@ stages:
     - name: ResourceGroupNameNetwork
       value: 'rg-networking-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: domainName
-      value: MngEnv019702.onmicrosoft.com
+      value: MngEnv019702.com
     - name: zoneName
-      value: MngEnv019702.onmicrosoft.com
+      value: MngEnv019702.com
     - name: ResourceGroupNameApim 
       value: 'rg-apim-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: apimServiceName
@@ -446,7 +446,7 @@ stages:
         scriptType: 'pscore'
         scriptLocation: 'scriptPath'
         scriptPath: '$(System.DefaultWorkingDirectory)/infra/scripts/health-test.ps1'
-        arguments: '-Location $(Location) -ResourceGroupNameApim $(ResourceGroupNameApim) -zoneName $(zoneName) -appGatewayName $(appGatewayName) -apimServiceName $(apimServiceName) -domainName $(domainName) -apimOrganization "$(apimOrganization)" -apimAdminEmail $(apimAdminEmail) -pfxPassword $(pfxPassword) -azureApplicationId $(azureApplicationId) -azureTenantId $(azureTenantId) -azureClientSecret $(azureClientSecret)'
+        arguments: '-Location $(Location) -ResourceGroupNameApim $(ResourceGroupNameApim) -zoneName $(zoneName) -appGatewayName $(appGatewayName) -apimServiceName $(apimServiceName) -domainName $(domainName) -apimOrganization "$(apimOrganization)" -apimAdminEmail $(apimAdminEmail) -pfxPassword $(pfxPassword) -azureApplicationId $(azureApplicationId) -azureTenantId $(azureTenantId) -azureClientSecret $(azureClientSecret) -environment ${{ parameters.Environment }}'
 
     - task: AzureCLI@2
       enabled: false

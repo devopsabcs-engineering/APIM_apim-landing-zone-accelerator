@@ -49,7 +49,9 @@ Param(
     [String]$azureTenantId,
 
     [PARAMETER(Mandatory = $True, Position = 16, HelpMessage = "azureClientSecret")]
-    [String]$azureClientSecret
+    [String]$azureClientSecret,
+    [PARAMETER(Mandatory = $True, Position = 18, HelpMessage = "environment")]
+    [String]$environment
 )     
 
 Write-Host install az

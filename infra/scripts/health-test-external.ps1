@@ -51,7 +51,9 @@ Param(
     [PARAMETER(Mandatory = $True, Position = 16, HelpMessage = "azureClientSecret")]
     [String]$azureClientSecret,
     [PARAMETER(Mandatory = $True, Position = 17, HelpMessage = "appGatewayPublicIpName")]
-    [String]$appGatewayPublicIpName
+    [String]$appGatewayPublicIpName,
+    [PARAMETER(Mandatory = $True, Position = 18, HelpMessage = "environment")]
+    [String]$environment
 )     
 Write-Host install az powershell modules
 
@@ -65,9 +67,9 @@ Write-Host generate hosts file
 
 Write-Host but first we quickly check private dns zones
 
-$gatewayHostname = "api.$domainName"                 # API gateway host
-$portalHostname = "portal.$domainName"               # API developer portal host
-$managementHostname = "management.$domainName"               # API management endpoint host
+$gatewayHostname = "api-$environment.$domainName"                 # API gateway host
+$portalHostname = "portal-$environment.$domainName"               # API developer portal host
+$managementHostname = "management-$environment.$domainName"               # API management endpoint host
 
 Write-Host "do nslookup thrice..."
 
