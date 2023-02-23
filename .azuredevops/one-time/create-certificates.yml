@@ -40,11 +40,11 @@ stages:
     - task: DownloadSecureFile@1
       name: caKeyTask
       inputs:
-        secureFile: 'APIM_apim-landing-zone-accelerator_ca.key'
+        secureFile: 'APIM_apim-landing-zone-accelerator_ca_custom_domain.key'
     - task: DownloadSecureFile@1
       name: caCertTask
       inputs:
-        secureFile: 'APIM_apim-landing-zone-accelerator_cacert.pem'
+        secureFile: 'APIM_apim-landing-zone-accelerator_cacert_custom_domain.pem'
     - task: CmdLine@2
       displayName: Grab the Ca Root Cert and Key
       inputs:
@@ -53,11 +53,11 @@ stages:
           
           echo Hello world
           
-          cp $(caKeyTask.secureFIlePath) $(System.DefaultWorkingDirectory)/infra/certificates/cert/ca.key
-          cp $(caCertTask.secureFIlePath) $(System.DefaultWorkingDirectory)/infra/certificates/cert/cacert.pem
+          cp $(caKeyTask.secureFIlePath) $(System.DefaultWorkingDirectory)/infra/certificates/cert/ca_custom_domain.key
+          cp $(caCertTask.secureFIlePath) $(System.DefaultWorkingDirectory)/infra/certificates/cert/cacert_custom_domain.pem
           ls "$(certGenFolderOutput)"
     - task: CmdLine@2
-      displayName: Create a root CA certificate and 3 custom certs for management dev portal and api gateway
+      displayName: Create a root CA certificate and multiple custom certs for management dev portal and api gateway in dev and prod
       inputs:
         script: |      
           cd $(certGenFolder)
@@ -79,9 +79,14 @@ stages:
           echo Hello world
           cd $(System.DefaultWorkingDirectory)/infra/certificates/cert
           mkdir pfx
-          openssl pkcs12 -password pass:$(pfxPassword) -export -out ./pfx/api.pfx -inkey api.key -in api.crt
-          openssl pkcs12 -password pass:$(pfxPassword) -export -out ./pfx/portal.pfx -inkey portal.key -in portal.crt
-          openssl pkcs12 -password pass:$(pfxPassword) -export -out ./pfx/management.pfx -inkey management.key -in management.crt
+          openssl pkcs12 -password pass:$(pfxPassword) -export -out ./pfx/api_dev.pfx -inkey api_dev.key -in api_dev.crt
+          openssl pkcs12 -password pass:$(pfxPassword) -export -out ./pfx/portal_dev.pfx -inkey portal_dev.key -in portal_dev.crt
+          openssl pkcs12 -password pass:$(pfxPassword) -export -out ./pfx/management_dev.pfx -inkey management_dev.key -in management_dev.crt
+          openssl pkcs12 -password pass:$(pfxPassword) -export -out ./pfx/appgateway_dev.pfx -inkey appgateway_dev.key -in appgateway_dev.crt
+          openssl pkcs12 -password pass:$(pfxPassword) -export -out ./pfx/api_prd.pfx -inkey api_prd.key -in api_prd.crt
+          openssl pkcs12 -password pass:$(pfxPassword) -export -out ./pfx/portal_prd.pfx -inkey portal_prd.key -in portal_prd.crt
+          openssl pkcs12 -password pass:$(pfxPassword) -export -out ./pfx/management_prd.pfx -inkey management_prd.key -in management_prd.crt
+          openssl pkcs12 -password pass:$(pfxPassword) -export -out ./pfx/appgateway_prd.pfx -inkey appgateway_prd.key -in appgateway_prd.crt
     - task: CopyFiles@2
       inputs:
         SourceFolder: '$(System.DefaultWorkingDirectory)/infra/certificates/cert'
