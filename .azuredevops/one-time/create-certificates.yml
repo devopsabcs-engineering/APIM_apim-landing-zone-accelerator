@@ -16,8 +16,6 @@ variables:
   value: $(System.DefaultWorkingDirectory)/infra/certificates/cert
 - name: pfxFolder
   value: $(System.DefaultWorkingDirectory)/infra/certificates/cert/pfx
-#- name: pfxPassword
-#  value: Test12345!
 - group: APIM_apim-landing-zone-accelerator_common
 - name: ResourceGroupName 
   value: rg-apim-ApimESLZ-dev-canadacentral-001 
