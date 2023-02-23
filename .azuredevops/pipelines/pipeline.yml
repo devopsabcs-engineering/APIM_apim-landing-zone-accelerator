@@ -74,31 +74,51 @@ stages:
           
           ls $(Pipeline.Workspace)/s    
     - task: DownloadSecureFile@1
-      name: appgwPfxDownloadTask
+      name: appgwPfxDownloadTask_dev
       inputs:
-        secureFile: 'APIM_apim-landing-zone-accelerator_appgateway_${{ parameters.Environment }}.pfx'
+        secureFile: 'APIM_apim-landing-zone-accelerator_appgateway_dev.pfx'
     - task: DownloadSecureFile@1
-      name: pfxApiTask
+      name: pfxApiTask_dev
       inputs:
-        secureFile: 'APIM_apim-landing-zone-accelerator_api_${{ parameters.Environment }}.pfx'
+        secureFile: 'APIM_apim-landing-zone-accelerator_api_dev.pfx'
     - task: DownloadSecureFile@1
-      name: pfxManagementTask
+      name: pfxManagementTask_dev
       inputs:
-        secureFile: 'APIM_apim-landing-zone-accelerator_management_${{ parameters.Environment }}.pfx'
+        secureFile: 'APIM_apim-landing-zone-accelerator_management_dev.pfx'
     - task: DownloadSecureFile@1
-      name: pfxPortalTask
+      name: pfxPortalTask_dev
       inputs:
-        secureFile: 'APIM_apim-landing-zone-accelerator_portal_${{ parameters.Environment }}.pfx'
+        secureFile: 'APIM_apim-landing-zone-accelerator_portal_dev.pfx'
+    - task: DownloadSecureFile@1
+      name: appgwPfxDownloadTask_prd
+      inputs:
+        secureFile: 'APIM_apim-landing-zone-accelerator_appgateway_prd.pfx'
+    - task: DownloadSecureFile@1
+      name: pfxApiTask_prd
+      inputs:
+        secureFile: 'APIM_apim-landing-zone-accelerator_api_prd.pfx'
+    - task: DownloadSecureFile@1
+      name: pfxManagementTask_prd
+      inputs:
+        secureFile: 'APIM_apim-landing-zone-accelerator_management_prd.pfx'
+    - task: DownloadSecureFile@1
+      name: pfxPortalTask_prd
+      inputs:
+        secureFile: 'APIM_apim-landing-zone-accelerator_portal_prd.pfx'
     - task: DownloadSecureFile@1
       name: trustedrootcert
       inputs:
         secureFile: 'APIM_apim-landing-zone-accelerator_cacert_custom_domain.pem'
     - bash: |
         mkdir '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs'
-        cp '$(appgwPfxDownloadTask.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/appgateway_${{ parameters.Environment }}.pfx'
-        cp '$(pfxApiTask.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/api_${{ parameters.Environment }}.pfx'
-        cp '$(pfxPortalTask.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/portal_${{ parameters.Environment }}.pfx'
-        cp '$(pfxManagementTask.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/management_${{ parameters.Environment }}.pfx'
+        cp '$(appgwPfxDownloadTask.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/appgateway_dev.pfx'
+        cp '$(pfxApiTask.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/api_dev.pfx'
+        cp '$(pfxPortalTask.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/portal_dev.pfx'
+        cp '$(pfxManagementTask.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/management_dev.pfx'
+        cp '$(appgwPfxDownloadTask.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/appgateway_prd.pfx'
+        cp '$(pfxApiTask.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/api_prd.pfx'
+        cp '$(pfxPortalTask.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/portal_prd.pfx'
+        cp '$(pfxManagementTask.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/management_prd.pfx'
         ls '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs'
       displayName: copy appgw pfx cert from secure file
     - task: PowerShell@2
