@@ -111,14 +111,14 @@ stages:
         secureFile: 'APIM_apim-landing-zone-accelerator_cacert_custom_domain.pem'
     - bash: |
         mkdir '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs'
-        cp '$(appgwPfxDownloadTask.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/appgateway_dev.pfx'
-        cp '$(pfxApiTask.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/api_dev.pfx'
-        cp '$(pfxPortalTask.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/portal_dev.pfx'
-        cp '$(pfxManagementTask.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/management_dev.pfx'
-        cp '$(appgwPfxDownloadTask.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/appgateway_prd.pfx'
-        cp '$(pfxApiTask.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/api_prd.pfx'
-        cp '$(pfxPortalTask.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/portal_prd.pfx'
-        cp '$(pfxManagementTask.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/management_prd.pfx'
+        cp '$(appgwPfxDownloadTask_dev.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/appgateway_dev.pfx'
+        cp '$(pfxApiTask_dev.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/api_dev.pfx'
+        cp '$(pfxPortalTask_dev.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/portal_dev.pfx'
+        cp '$(pfxManagementTask_dev.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/management_dev.pfx'
+        cp '$(appgwPfxDownloadTask_prd.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/appgateway_prd.pfx'
+        cp '$(pfxApiTask_prd.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/api_prd.pfx'
+        cp '$(pfxPortalTask_prd.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/portal_prd.pfx'
+        cp '$(pfxManagementTask_prd.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/management_prd.pfx'
         ls '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs'
       displayName: copy appgw pfx cert from secure file
     - task: PowerShell@2
