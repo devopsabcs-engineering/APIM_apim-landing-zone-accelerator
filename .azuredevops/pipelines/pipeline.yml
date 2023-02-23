@@ -158,6 +158,7 @@ stages:
   displayName: 'Deploy all bicep artifacts'
   jobs:
   - deployment: 
+    timeoutInMinutes: 120
     displayName: 'Deploy APIM ESLZ artifacts to Azure subscription'
     environment: $(environmentName)
     strategy:
