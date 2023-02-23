@@ -22,9 +22,9 @@ class Program
 
     // service name and base url - https://aka.ms/smapi#BaseURL
     //static string serviceName = "apim-ApimESLZ-dev-canadacentral-002";
-    static string serviceName = "management";
+    //static string serviceName = "management";
     //static string baseUrl = string.Format("https://{0}.management.azure-api.net", serviceName);
-    static string baseUrl = string.Format("https://{0}.MngEnv019702.onmicrosoft.com", serviceName);
+    static string baseUrl;// = string.Format("https://{0}.MngEnv019702.com", serviceName);
 
     // You can get an access token from the API Management portal or you can programmatically generate it. For
     // more instructions on both approaches, see http://aka.ms/smapi#Authentication
@@ -38,6 +38,8 @@ class Program
 
     static void Main(string[] args)
     {
+        baseUrl = Environment.GetEnvironmentVariable("APIM_LandingZone_RestApi_ManagementApiUrl");
+
         // Programmatically generate the access token used to call the API Management REST API.
         // See "To programmatically create an access token" for instructions on how to get
         // the values for id and key:
