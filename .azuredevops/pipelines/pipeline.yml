@@ -76,29 +76,29 @@ stages:
     - task: DownloadSecureFile@1
       name: appgwPfxDownloadTask
       inputs:
-        secureFile: 'APIM_apim-landing-zone-accelerator_VNEXT_appgw.pfx'
+        secureFile: 'APIM_apim-landing-zone-accelerator_appgateway_${{ parameters.Environment }}.pfx'
     - task: DownloadSecureFile@1
       name: pfxApiTask
       inputs:
-        secureFile: 'APIM_apim-landing-zone-accelerator_api.pfx'
+        secureFile: 'APIM_apim-landing-zone-accelerator_api_${{ parameters.Environment }}.pfx'
     - task: DownloadSecureFile@1
       name: pfxManagementTask
       inputs:
-        secureFile: 'APIM_apim-landing-zone-accelerator_management.pfx'
+        secureFile: 'APIM_apim-landing-zone-accelerator_management_${{ parameters.Environment }}.pfx'
     - task: DownloadSecureFile@1
       name: pfxPortalTask
       inputs:
-        secureFile: 'APIM_apim-landing-zone-accelerator_portal.pfx'
+        secureFile: 'APIM_apim-landing-zone-accelerator_portal_${{ parameters.Environment }}.pfx'
     - task: DownloadSecureFile@1
       name: trustedrootcert
       inputs:
-        secureFile: 'APIM_apim-landing-zone-accelerator_cacert.pem'
+        secureFile: 'APIM_apim-landing-zone-accelerator_cacert_custom_domain.pem'
     - bash: |
         mkdir '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs'
-        cp '$(appgwPfxDownloadTask.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/appgw.pfx'
-        cp '$(pfxApiTask.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/api.pfx'
-        cp '$(pfxPortalTask.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/portal.pfx'
-        cp '$(pfxManagementTask.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/management.pfx'
+        cp '$(appgwPfxDownloadTask.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/appgateway_${{ parameters.Environment }}.pfx'
+        cp '$(pfxApiTask.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/api_${{ parameters.Environment }}.pfx'
+        cp '$(pfxPortalTask.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/portal_${{ parameters.Environment }}.pfx'
+        cp '$(pfxManagementTask.secureFIlePath)' '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs/management_${{ parameters.Environment }}.pfx'
         ls '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/shared/certs'
       displayName: copy appgw pfx cert from secure file
     - task: PowerShell@2
@@ -195,19 +195,19 @@ stages:
       - task: DownloadSecureFile@1
         name: pfxApiTask
         inputs:
-          secureFile: 'APIM_apim-landing-zone-accelerator_api.pfx'
+          secureFile: 'APIM_apim-landing-zone-accelerator_api_${{ parameters.Environment }}.pfx'
       - task: DownloadSecureFile@1
         name: pfxManagementTask
         inputs:
-          secureFile: 'APIM_apim-landing-zone-accelerator_management.pfx'
+          secureFile: 'APIM_apim-landing-zone-accelerator_management_${{ parameters.Environment }}.pfx'
       - task: DownloadSecureFile@1
         name: pfxPortalTask
         inputs:
-          secureFile: 'APIM_apim-landing-zone-accelerator_portal.pfx'
+          secureFile: 'APIM_apim-landing-zone-accelerator_portal_${{ parameters.Environment }}.pfx'
       - task: DownloadSecureFile@1
         name: trustedrootcert
         inputs:
-          secureFile: 'APIM_apim-landing-zone-accelerator_cacert.pem'      
+          secureFile: 'APIM_apim-landing-zone-accelerator_cacert_custom_domain.pem'      
       - task: AzureCLI@2
         enabled: ${{ variables.ReDeployInfra }}
         displayName: post deploy
@@ -257,7 +257,7 @@ stages:
     - task: DownloadSecureFile@1
       name: trustedrootcert
       inputs:
-        secureFile: 'APIM_apim-landing-zone-accelerator_cacert.pem'
+        secureFile: 'APIM_apim-landing-zone-accelerator_cacert_custom_domain.pem'
     - task: CmdLine@2
       displayName: show hostname to prove internal    
       inputs:
@@ -338,7 +338,7 @@ stages:
     - task: DownloadSecureFile@1
       name: trustedrootcert
       inputs:
-        secureFile: 'APIM_apim-landing-zone-accelerator_cacert.pem'
+        secureFile: 'APIM_apim-landing-zone-accelerator_cacert_custom_domain.pem'
     - task: CmdLine@2
       displayName: show hostname to prove external
       inputs:

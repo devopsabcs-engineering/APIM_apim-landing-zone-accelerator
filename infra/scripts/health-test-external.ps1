@@ -133,7 +133,7 @@ Get-Content C:\Windows\System32\drivers\etc\hosts
 
 ping $gatewayHostname
 
-$cacertFilePath = "./infra/scripts/cacert.pem"
+$cacertFilePath = "./infra/scripts/cacert_custom_domain.pem"
 Get-Content $cacertFilePath
 
 #do not check for certification revocation status

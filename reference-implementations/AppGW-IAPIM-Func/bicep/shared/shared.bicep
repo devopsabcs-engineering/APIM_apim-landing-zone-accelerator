@@ -137,8 +137,8 @@ resource commonUserIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@20
   location: location
 }
 
-module certificate './modules/certificate.bicep' = {
-  name: 'certificate'
+module certificateAppGatewayDev './modules/certificateAppGatewayDev.bicep' = if (toLower(environment) == 'dev') {
+  name: 'certificateAppGatewayDev'
   scope: resourceGroup(resourceGroupName)
   params: {
     managedIdentity: commonUserIdentity
@@ -149,8 +149,20 @@ module certificate './modules/certificate.bicep' = {
     certPassword: certPassword
   }
 }
-module certificateApi './modules/certificateApi.bicep' = {
-  name: 'certificateApi'
+module certificateAppGatewayPrd './modules/certificateAppGatewayPrd.bicep' = if (toLower(environment) == 'prd') {
+  name: 'certificateAppGatewayPrd'
+  scope: resourceGroup(resourceGroupName)
+  params: {
+    managedIdentity: commonUserIdentity
+    keyVaultName: keyVaultName
+    location: location
+    appGatewayFQDN: appGatewayFQDN
+    appGatewayCertType: appGatewayCertType
+    certPassword: certPassword
+  }
+}
+module certificateApiDev './modules/certificateApiDev.bicep' = if (toLower(environment) == 'dev') {
+  name: 'certificateApiDev'
   scope: resourceGroup(resourceGroupName)
   params: {
     managedIdentity: commonUserIdentity
@@ -161,8 +173,20 @@ module certificateApi './modules/certificateApi.bicep' = {
     certPassword: apiCertPassword
   }
 }
-module certificatePortal './modules/certificatePortal.bicep' = {
-  name: 'certificatePortal'
+module certificateApiPrd './modules/certificateApiPrd.bicep' = if (toLower(environment) == 'prd') {
+  name: 'certificateApiPrd'
+  scope: resourceGroup(resourceGroupName)
+  params: {
+    managedIdentity: commonUserIdentity
+    keyVaultName: keyVaultName
+    location: location
+    appGatewayFQDN: apiFQDN
+    appGatewayCertType: apiCertType
+    certPassword: apiCertPassword
+  }
+}
+module certificatePortalDev './modules/certificatePortalDev.bicep' = if (toLower(environment) == 'dev') {
+  name: 'certificatePortalDev'
   scope: resourceGroup(resourceGroupName)
   params: {
     managedIdentity: commonUserIdentity
@@ -173,8 +197,33 @@ module certificatePortal './modules/certificatePortal.bicep' = {
     certPassword: portalCertPassword
   }
 }
-module certificateManagement './modules/certificateManagement.bicep' = {
-  name: 'certificateManagement'
+module certificatePortalPrd './modules/certificatePortalPrd.bicep' = if (toLower(environment) == 'prd') {
+  name: 'certificatePortalPrd'
+  scope: resourceGroup(resourceGroupName)
+  params: {
+    managedIdentity: commonUserIdentity
+    keyVaultName: keyVaultName
+    location: location
+    appGatewayFQDN: portalFQDN
+    appGatewayCertType: portalCertType
+    certPassword: portalCertPassword
+  }
+}
+module certificateManagementDev './modules/certificateManagementDev.bicep' = if (toLower(environment) == 'dev') {
+  name: 'certificateManagementDev'
+  scope: resourceGroup(resourceGroupName)
+  params: {
+    managedIdentity: commonUserIdentity
+    keyVaultName: keyVaultName
+    location: location
+    appGatewayFQDN: managementFQDN
+    appGatewayCertType: managementCertType
+    certPassword: managementCertPassword
+  }
+}
+
+module certificateManagementPrd './modules/certificateManagementPrd.bicep' = if (toLower(environment) == 'prd') {
+  name: 'certificateManagementPrd'
   scope: resourceGroup(resourceGroupName)
   params: {
     managedIdentity: commonUserIdentity
@@ -230,6 +279,7 @@ output keyVaultName string = key_vault.name
 output commonUserIdentityId string = commonUserIdentity.id
 output commonUserIdentityClientId string = commonUserIdentity.properties.clientId
 output commonUserIdentityPrincipalId string = commonUserIdentity.properties.principalId
-output certificateApiSecretUri string = certificateApi.outputs.secretUri
-output certificateManagementSecretUri string = certificateManagement.outputs.secretUri
-output certificatePortalSecretUri string = certificatePortal.outputs.secretUri
+output certificateApiSecretUri string = (toLower(environment) == 'dev') ? certificateApiDev.outputs.secretUri : (toLower(environment) == 'prd') ? certificateApiPrd.outputs.secretUri : 'not set'
+output certificateAppGatewaySecretUri string = (toLower(environment) == 'dev') ? certificateAppGatewayDev.outputs.secretUri : (toLower(environment) == 'prd') ? certificateAppGatewayPrd.outputs.secretUri : 'not set'
+output certificateManagementSecretUri string = (toLower(environment) == 'dev') ? certificateManagementDev.outputs.secretUri : (toLower(environment) == 'prd') ? certificateManagementPrd.outputs.secretUri : 'not set'
+output certificatePortalSecretUri string = (toLower(environment) == 'dev') ? certificatePortalDev.outputs.secretUri : (toLower(environment) == 'prd') ? certificatePortalPrd.outputs.secretUri : 'not set'
