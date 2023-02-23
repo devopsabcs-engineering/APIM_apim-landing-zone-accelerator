@@ -40,6 +40,8 @@ class Program
     {
         baseUrl = Environment.GetEnvironmentVariable("APIM_LandingZone_RestApi_ManagementApiUrl");
 
+        Console.WriteLine($"Management Api Url: {baseUrl}");
+
         // Programmatically generate the access token used to call the API Management REST API.
         // See "To programmatically create an access token" for instructions on how to get
         // the values for id and key:
@@ -47,6 +49,9 @@ class Program
         // id - the value from the identifier text box in the credentials section of the
         //      API Management REST API tab of the Security section.
         var id = Environment.GetEnvironmentVariable("APIM_LandingZone_RestApi_Identifier");
+
+        Console.WriteLine($"Identifier: {id}");
+
         // key - either the primary or secondary key from that same tab.
         var key = Environment.GetEnvironmentVariable("APIM_LandingZone_RestApi_PrimaryKey");
         // expiry - the expiration date and time of the generated access token. In this example
