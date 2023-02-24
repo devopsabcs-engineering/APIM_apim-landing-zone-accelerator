@@ -16,7 +16,7 @@ parameters:
 - name: ReDeployInfraParam
   type: boolean
   default: false
-  displayName: Re-Deploy the Infra
+  displayName: Initial or Re-Deployment of the APIM Infra
 - name: InstanceNumber
   type: string
   default: '07'
