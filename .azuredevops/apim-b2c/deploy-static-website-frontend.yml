@@ -13,9 +13,14 @@ pool:
   vmImage: 'windows-latest'
 
 variables:
-  ARTIFACT_NAME_DEV: StaticWebsiteContentDev
-  ARTIFACT_NAME_PROD: StaticWebsiteContentProd
-  project: 'src/ApimAzureAdB2CSoln/static-website-front-end'
+- name: ARTIFACT_NAME_DEV
+  value: StaticWebsiteContentDev
+- name: ARTIFACT_NAME_PROD
+  value: StaticWebsiteContentProd
+- name: project
+  value: 'src/ApimAzureAdB2CSoln/static-website-front-end'
+- name: serviceConnectionName   # Name of the serviceconnection to the target ESLZ Azure subscription
+  value: APIM_MicrosoftAzureExternal_multitenant
 
 stages:
 - stage: Build_Dev
@@ -69,14 +74,14 @@ stages:
           - task: AzureCLI@2
             displayName: 'Delete Existing Files'
             inputs:
-              azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+              azureSubscription: '$(serviceConnectionName)'
               scriptType: 'pscore'
               scriptLocation: 'inlineScript'
               inlineScript: 'az storage blob delete-batch -s `$web --account-name $(AZURE_STORAGE_ACCOUNT) --auth-mode login'
           - task: AzureFileCopy@4
             displayName: 'Copy Files to Storage'
             inputs:
-              azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+              azureSubscription: '$(serviceConnectionName)'
               SourcePath: '$(Pipeline.Workspace)/$(ARTIFACT_NAME_DEV)/*'
               Destination: 'AzureBlob'
               storage: '$(AZURE_STORAGE_ACCOUNT)'
@@ -133,14 +138,14 @@ stages:
           - task: AzureCLI@2
             displayName: 'Delete Existing Files'
             inputs:
-              azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+              azureSubscription: '$(serviceConnectionName)'
               scriptType: 'pscore'
               scriptLocation: 'inlineScript'
               inlineScript: 'az storage blob delete-batch -s `$web --account-name $(AZURE_STORAGE_ACCOUNT) --auth-mode login'
           - task: AzureFileCopy@4
             displayName: 'Copy Files to Storage'
             inputs:
-              azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+              azureSubscription: '$(serviceConnectionName)'
               SourcePath: '$(Pipeline.Workspace)/$(ARTIFACT_NAME_PROD)/*'
               Destination: 'AzureBlob'
               storage: '$(AZURE_STORAGE_ACCOUNT)'

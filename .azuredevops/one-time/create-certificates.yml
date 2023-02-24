@@ -17,10 +17,12 @@ variables:
 - name: pfxFolder
   value: $(System.DefaultWorkingDirectory)/infra/certificates/cert/pfx
 - group: APIM_apim-landing-zone-accelerator_common
+- name: workloadPrefix
+  value: 'ekLZ' # up to 6 chars e.g. ApimLZ
 - name: ResourceGroupName 
-  value: rg-apim-ApimLZ09-dev-canadacentral-009 
+  value: rg-apim-$(workloadPrefix)09-dev-canadacentral-009 
 - name: apimServiceName
-  value: apim-ApimLZ09-dev-canadacentral-009
+  value: apim-$(workloadPrefix)09-dev-canadacentral-009
 - name: domainName
   value: MngEnv019702.com
 - name: environment

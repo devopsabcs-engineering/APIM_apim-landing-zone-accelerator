@@ -37,7 +37,6 @@ param apimUserIdentityId string
 @secure()
 param apiCertificatePassword string
 param apiFqdn string
-// 'https://kv-apimlz03-dev-canadace${environment().suffixes.keyvaultDns}/secrets/management-mngenv019702-onmicrosoft-com'
 param apiCertificateKeyVaultId string
 @secure()
 param portalCertificatePassword string

@@ -32,6 +32,8 @@ variables:
 - group: APIM_apim-landing-zone-accelerator_common
 - name: ARTIFACTS_FEED_NAME
   value: APIM_landing_zone_tools
+- name: serviceConnectionName   # Name of the serviceconnection to the target ESLZ Azure subscription
+  value: APIM_MicrosoftAzureExternal_multitenant
 
 stages :
 - stage: get_and_set_version
@@ -106,7 +108,7 @@ stages :
       enabled: false
       displayName: Do the Dew - Idempotent
       inputs:
-        azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+        azureSubscription: '$(serviceConnectionName)'
         scriptType: 'pscore'
         scriptLocation: 'scriptPath'
         scriptPath: '$(System.DefaultWorkingDirectory)/infra/scripts/main.ps1'
@@ -132,7 +134,7 @@ stages :
       enabled: true
       displayName: Perform the Backend Health Tests
       inputs:
-        azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+        azureSubscription: '$(serviceConnectionName)'
         scriptType: 'pscore'
         scriptLocation: 'scriptPath'
         scriptPath: '$(System.DefaultWorkingDirectory)/infra/scripts/health-test-internal.ps1'
@@ -184,7 +186,7 @@ stages :
       enabled: true
       displayName: Perform the Backend Health Tests
       inputs:
-        azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+        azureSubscription: '$(serviceConnectionName)'
         scriptType: 'pscore'
         scriptLocation: 'scriptPath'
         scriptPath: '$(System.DefaultWorkingDirectory)/infra/scripts/health-test-external.ps1'
@@ -222,7 +224,7 @@ stages :
       enabled: false
       displayName: Perform the Backend Health Tests
       inputs:
-        azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+        azureSubscription: '$(serviceConnectionName)'
         scriptType: 'pscore'
         scriptLocation: 'scriptPath'
         scriptPath: '$(System.DefaultWorkingDirectory)/infra/scripts/health-test.ps1'
@@ -235,7 +237,7 @@ stages :
         azureApplicationId: $(azureApplicationId)
         azureTenantId: $(azureTenantId)
       inputs:
-        azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+        azureSubscription: '$(serviceConnectionName)'
         scriptType: 'pscore'
         scriptLocation: 'inlineScript'
         inlineScript: |

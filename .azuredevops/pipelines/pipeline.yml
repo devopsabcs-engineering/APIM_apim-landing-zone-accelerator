@@ -31,8 +31,10 @@ parameters:
 
 variables:
 - group: 'APIM_apim-landing-zone-accelerator_${{ parameters.Environment }}_0${{ parameters.InstanceNumber }}'
+- name: workloadPrefix
+  value: 'ekLZ' # up to 6 chars e.g. ApimLZ
 - name: workloadNameVar
-  value: 'ApimLZ${{ parameters.InstanceNumber }}'
+  value: '$(workloadPrefix)${{ parameters.InstanceNumber }}'
 - name: shortInstance
   value: '${{ parameters.InstanceNumber }}'
 - name: longInstance
@@ -47,6 +49,8 @@ variables:
   value: '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/azure-resource-manager/main.json'
 #- name: mainTemplatePath
 #  value: '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/bicep/main.json'
+- name: serviceConnectionName   # Name of the serviceconnection to the target ESLZ Azure subscription
+  value: APIM_MicrosoftAzureExternal_multitenant
 
 #resources:
 #  repositories:
@@ -185,19 +189,19 @@ stages:
   - job: post_deploy_job
     variables:
     - name: appGatewayVnetName
-      value: 'vnet-apim-cs-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral'
+      value: 'vnet-apim-cs-$(workloadPrefix)$(shortInstance)-${{ parameters.Environment }}-canadacentral'
     - name: ResourceGroupNameShared
-      value: 'rg-shared-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
+      value: 'rg-shared-$(workloadPrefix)$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: ResourceGroupNameNetwork
-      value: 'rg-networking-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
+      value: 'rg-networking-$(workloadPrefix)$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: domainName
       value: MngEnv019702.onmicrosoft.com
     - name: zoneName
       value: MngEnv019702.onmicrosoft.com
     - name: ResourceGroupNameApim 
-      value: 'rg-apim-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
+      value: 'rg-apim-$(workloadPrefix)$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: apimServiceName
-      value: 'apim-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
+      value: 'apim-$(workloadPrefix)$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     #- name: Location
     #  value: canadacentral
     #- name: apimOrganization
@@ -233,7 +237,7 @@ stages:
         enabled: ${{ variables.ReDeployInfra }}
         displayName: post deploy
         inputs:
-          azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+          azureSubscription: '$(serviceConnectionName)'
           scriptType: 'pscore'
           scriptLocation: 'scriptPath'
           scriptPath: '$(System.DefaultWorkingDirectory)/infra/scripts/main-postdeploy.ps1'
@@ -247,25 +251,25 @@ stages:
     displayName: perform internal vnet health test
     variables:
     - name: appGatewayVnetName
-      value: 'vnet-apim-cs-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral'
+      value: 'vnet-apim-cs-$(workloadPrefix)$(shortInstance)-${{ parameters.Environment }}-canadacentral'
     - name: ResourceGroupNameShared
-      value: 'rg-shared-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
+      value: 'rg-shared-$(workloadPrefix)$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: ResourceGroupNameNetwork
-      value: 'rg-networking-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
+      value: 'rg-networking-$(workloadPrefix)$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: domainName
       value: MngEnv019702.com
     - name: zoneName
       value: MngEnv019702.com
     - name: ResourceGroupNameApim 
-      value: 'rg-apim-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
+      value: 'rg-apim-$(workloadPrefix)$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: apimServiceName
-      value: 'apim-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'    
+      value: 'apim-$(workloadPrefix)$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'    
     - name: ARTIFACTS_FEED_NAME
       value: APIM_landing_zone_tools
     - name: appGatewayName
-      value: 'appgw-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
+      value: 'appgw-$(workloadPrefix)$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: apimServiceName
-      value: 'apim-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
+      value: 'apim-$(workloadPrefix)$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: Location
       value: canadacentral
     - name: apimOrganization
@@ -273,7 +277,7 @@ stages:
     - name: apimAdminEmail
       value: "admin@MngEnv019702.onmicrosoft.com" # Administrator's email address
     - name: appGatewayPublicIpName
-      value: 'pip-appgw-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
+      value: 'pip-appgw-$(workloadPrefix)$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     steps:
     - task: DownloadSecureFile@1
       name: trustedrootcert
@@ -295,7 +299,7 @@ stages:
       enabled: true
       displayName: Perform the Backend Health Tests
       inputs:
-        azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+        azureSubscription: '$(serviceConnectionName)'
         scriptType: 'pscore'
         scriptLocation: 'scriptPath'
         scriptPath: '$(System.DefaultWorkingDirectory)/infra/scripts/health-test-internal.ps1'
@@ -328,25 +332,25 @@ stages:
     displayName: perform external vnet health test
     variables:
     - name: appGatewayVnetName
-      value: 'vnet-apim-cs-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral'
+      value: 'vnet-apim-cs-$(workloadPrefix)$(shortInstance)-${{ parameters.Environment }}-canadacentral'
     - name: ResourceGroupNameShared
-      value: 'rg-shared-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
+      value: 'rg-shared-$(workloadPrefix)$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: ResourceGroupNameNetwork
-      value: 'rg-networking-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
+      value: 'rg-networking-$(workloadPrefix)$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: domainName
       value: MngEnv019702.com
     - name: zoneName
       value: MngEnv019702.com
     - name: ResourceGroupNameApim 
-      value: 'rg-apim-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
+      value: 'rg-apim-$(workloadPrefix)$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: apimServiceName
-      value: 'apim-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
+      value: 'apim-$(workloadPrefix)$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: ARTIFACTS_FEED_NAME
       value: APIM_landing_zone_tools
     - name: appGatewayName
-      value: 'appgw-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
+      value: 'appgw-$(workloadPrefix)$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: apimServiceName
-      value: 'apim-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
+      value: 'apim-$(workloadPrefix)$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: Location
       value: canadacentral
     - name: apimOrganization
@@ -354,7 +358,7 @@ stages:
     - name: apimAdminEmail
       value: "admin@MngEnv019702.onmicrosoft.com" # Administrator's email address
     - name: appGatewayPublicIpName
-      value: 'pip-appgw-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
+      value: 'pip-appgw-$(workloadPrefix)$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     steps:
     - task: DownloadSecureFile@1
       name: trustedrootcert
@@ -376,7 +380,7 @@ stages:
       enabled: true
       displayName: Perform the Backend Health Tests
       inputs:
-        azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+        azureSubscription: '$(serviceConnectionName)'
         scriptType: 'pscore'
         scriptLocation: 'scriptPath'
         scriptPath: '$(System.DefaultWorkingDirectory)/infra/scripts/health-test-external.ps1'
@@ -409,25 +413,25 @@ stages:
     displayName: perform health test
     variables:
     - name: appGatewayVnetName
-      value: 'vnet-apim-cs-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral'
+      value: 'vnet-apim-cs-$(workloadPrefix)$(shortInstance)-${{ parameters.Environment }}-canadacentral'
     - name: ResourceGroupNameShared
-      value: 'rg-shared-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
+      value: 'rg-shared-$(workloadPrefix)$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: ResourceGroupNameNetwork
-      value: 'rg-networking-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
+      value: 'rg-networking-$(workloadPrefix)$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: domainName
       value: MngEnv019702.com
     - name: zoneName
       value: MngEnv019702.com
     - name: ResourceGroupNameApim 
-      value: 'rg-apim-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
+      value: 'rg-apim-$(workloadPrefix)$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: apimServiceName
-      value: 'apim-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
+      value: 'apim-$(workloadPrefix)$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: ARTIFACTS_FEED_NAME
       value: APIM_landing_zone_tools
     - name: appGatewayName
-      value: 'appgw-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
+      value: 'appgw-$(workloadPrefix)$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: apimServiceName
-      value: 'apim-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
+      value: 'apim-$(workloadPrefix)$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     - name: Location
       value: canadacentral
     - name: apimOrganization
@@ -435,7 +439,7 @@ stages:
     - name: apimAdminEmail
       value: "admin@MngEnv019702.onmicrosoft.com" # Administrator's email address
     - name: appGatewayPublicIpName
-      value: 'pip-appgw-ApimLZ$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
+      value: 'pip-appgw-$(workloadPrefix)$(shortInstance)-${{ parameters.Environment }}-canadacentral-$(longInstance)'
     steps:
     #- checkout: self
     #  persistCredentials: true    
@@ -443,7 +447,7 @@ stages:
       enabled: false
       displayName: Perform the Backend Health Tests
       inputs:
-        azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+        azureSubscription: '$(serviceConnectionName)'
         scriptType: 'pscore'
         scriptLocation: 'scriptPath'
         scriptPath: '$(System.DefaultWorkingDirectory)/infra/scripts/health-test.ps1'
@@ -456,7 +460,7 @@ stages:
         azureApplicationId: $(azureApplicationId)
         azureTenantId: $(azureTenantId)
       inputs:
-        azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+        azureSubscription: '$(serviceConnectionName)'
         scriptType: 'pscore'
         scriptLocation: 'inlineScript'
         inlineScript: |

@@ -20,6 +20,8 @@ variables:
   value: canadacentral
 - name: bicepFilePath
   value: $(System.DefaultWorkingDirectory)/infra/apim-b2c/main-azurefunction.bicep
+- name: serviceConnectionName   # Name of the serviceconnection to the target ESLZ Azure subscription
+  value: APIM_MicrosoftAzureExternal_multitenant
 
 stages:
 - stage: Deploy_Dev_Infra
@@ -40,7 +42,7 @@ stages:
           - checkout: self         
           - task: AzureCLI@2
             inputs:
-              azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+              azureSubscription: '$(serviceConnectionName)'
               scriptType: 'pscore'
               scriptLocation: 'inlineScript'
               inlineScript: |
@@ -64,7 +66,7 @@ stages:
           - checkout: self           
           - task: AzureCLI@2
             inputs:
-              azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+              azureSubscription: '$(serviceConnectionName)'
               scriptType: 'pscore'
               scriptLocation: 'inlineScript'
               inlineScript: |
