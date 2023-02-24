@@ -25,17 +25,17 @@ param windowsOSVersion string = '2016-Datacenter'
 param vmName string
 
 @description('Indicator to guide whether the CI/CD agent script should be run or not')
-param deployAgent bool=false
+param deployAgent bool = false
 
 @description('The Azure DevOps or GitHub account name')
-param accountName string=''
+param accountName string = ''
 
 @description('The personal access token to connect to Azure DevOps or Github')
 @secure()
-param personalAccessToken string=''
+param personalAccessToken string = ''
 
 @description('The name Azure DevOps or GitHub pool for this build agent to join. Use \'Default\' if you don\'t have a separate pool.')
-param poolName string = 'Default'
+param poolName string //= 'Default'
 
 @description('The CI/CD platform to be used, and for which an agent will be configured for the ASE deployment. Specify \'none\' if no agent needed')
 @allowed([
@@ -114,7 +114,7 @@ resource vm_CustomScript 'Microsoft.Compute/virtualMachines/extensions@2022-08-0
     settings: {
       fileUris: [
         artifactsLocation
-      ]   
+      ]
     }
     protectedSettings: {
       commandToExecute: 'powershell.exe -ExecutionPolicy Unrestricted -Command ./agentsetup.ps1 -url ${accountName} -pat ${personalAccessToken} -agent ${AgentName} -pool ${poolName} -agenttype ${CICDAgentType} '

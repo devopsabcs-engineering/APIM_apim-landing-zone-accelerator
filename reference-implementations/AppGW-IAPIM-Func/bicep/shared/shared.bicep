@@ -113,6 +113,7 @@ module vm_devopswinvm './createvmwindows.bicep' = if (toLower(CICDAgentType) != 
     deployAgent: true
 
     vmSize: vmSize
+    poolName: poolName
   }
 }
 
