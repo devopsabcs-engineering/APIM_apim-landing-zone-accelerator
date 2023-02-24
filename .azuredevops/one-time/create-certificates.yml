@@ -123,6 +123,7 @@ stages:
           
           dir
           dir "$(System.DefaultWorkingDirectory)/infra/certificates"
+          echo "and in pfx folder $(pfxFolder)"
           dir "$(pfxFolder)"
     - task: AzurePowerShell@5
       enabled: true
