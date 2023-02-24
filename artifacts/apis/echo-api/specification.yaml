@@ -1,10 +1,10 @@
 openapi: 3.0.1
 info:
   title: Echo API
-  description: sample info.description to appease API linter
+  description: need a definition for linting
   version: '1.0'
 servers:
-  - url: https://api.mngenv019702.onmicrosoft.com/echo
+  - url: https://api-dev.mngenv019702.com/echo
 paths:
   /resource:
     get:

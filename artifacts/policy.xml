@@ -9,7 +9,22 @@
     - Policies are applied in the order of their appearance, from the top down.
 -->
 <policies>
-	<inbound />
+	<inbound>
+		<cors allow-credentials="true">
+			<allowed-origins>
+				<origin>https://portal-dev.mngenv019702.com</origin>
+			</allowed-origins>
+			<allowed-methods preflight-result-max-age="300">
+				<method>*</method>
+			</allowed-methods>
+			<allowed-headers>
+				<header>*</header>
+			</allowed-headers>
+			<expose-headers>
+				<header>*</header>
+			</expose-headers>
+		</cors>
+	</inbound>
 	<backend>
 		<forward-request />
 	</backend>

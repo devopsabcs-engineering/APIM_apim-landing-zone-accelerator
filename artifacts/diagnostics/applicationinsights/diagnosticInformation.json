@@ -1,9 +1,33 @@
 {
   "properties": {
     "alwaysLog": "allErrors",
+    "backend": {
+      "request": {
+        "dataMasking": {
+          "queryParams": [
+            {
+              "mode": "Hide",
+              "value": "*"
+            }
+          ]
+        }
+      }
+    },
+    "frontend": {
+      "request": {
+        "dataMasking": {
+          "queryParams": [
+            {
+              "mode": "Hide",
+              "value": "*"
+            }
+          ]
+        }
+      }
+    },
     "httpCorrelationProtocol": "Legacy",
     "logClientIp": true,
-    "loggerId": "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-ApimLZ07-dev-canadacentral-007/providers/Microsoft.ApiManagement/service/apim-ApimLZ07-dev-canadacentral-007/loggers/appi-ApimLZ07-dev-canadacentral-007",
+    "loggerId": "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-ekLZ11-dev-canadacentral-011/providers/Microsoft.ApiManagement/service/apim-ekLZ11-dev-canadacentral-011/loggers/appi-ekLZ11-dev-canadacentral-011",
     "sampling": {
       "percentage": 100,
       "samplingType": "Fixed"
