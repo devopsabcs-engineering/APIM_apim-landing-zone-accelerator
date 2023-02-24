@@ -18,9 +18,13 @@ variables:
   value: $(System.DefaultWorkingDirectory)/infra/certificates/cert/pfx
 - group: APIM_apim-landing-zone-accelerator_common
 - name: ResourceGroupName 
-  value: rg-apim-ApimESLZ-dev-canadacentral-001 
+  value: rg-apim-ApimLZ09-dev-canadacentral-009 
 - name: apimServiceName
-  value: apim-ApimESLZ-dev-canadacentral-001
+  value: apim-ApimLZ09-dev-canadacentral-009
+- name: domainName
+  value: MngEnv019702.com
+- name: environment
+  value: dev
 
 stages:
 - stage: gencerts
@@ -131,12 +135,12 @@ stages:
           # You can also pass predefined and custom variables to this script using arguments
           
           Write-Host "Hello World"
-          $gatewayHostname = "api.MngEnv019702.onmicrosoft.com"                 # API gateway host
-          $portalHostname = "portal.MngEnv019702.onmicrosoft.com"               # API developer portal host
-          $managementHostname = "management.MngEnv019702.onmicrosoft.com"               # API management endpoint host
-          $gatewayCertPfxPath = "$(pfxFolder)/api.pfx" # Full path to api.contoso.net .pfx file
-          $portalCertPfxPath = "$(pfxFolder)/portal.pfx"   # Full path to portal.contoso.net .pfx file
-          $managementCertPfxPath = "$(pfxFolder)/management.pfx"   # Full path to management.contoso.net .pfx file
+          $gatewayHostname = "api-$(environment).$(domainName)"                 # API gateway host
+          $portalHostname = "portal-$(environment).$(domainName)"               # API developer portal host
+          $managementHostname = "management-$(environment).$(domainName)"               # API management endpoint host
+          $gatewayCertPfxPath = "$(pfxFolder)/api-$(environment).pfx" # Full path to api.contoso.net .pfx file
+          $portalCertPfxPath = "$(pfxFolder)/portal-$(environment).pfx"   # Full path to portal.contoso.net .pfx file
+          $managementCertPfxPath = "$(pfxFolder)/management-$(environment).pfx"   # Full path to management.contoso.net .pfx file
           $gatewayCertPfxPassword = "$(pfxPassword)"   # Password for api.contoso.net pfx certificate
           $portalCertPfxPassword = "$(pfxPassword)"    # Password for portal.contoso.net pfx certificate
           $managementCertPfxPassword = "$(pfxPassword)"    # Password for management.contoso.net pfx certificate
