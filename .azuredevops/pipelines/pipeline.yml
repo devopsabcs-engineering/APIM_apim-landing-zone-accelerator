@@ -61,6 +61,8 @@ variables:
   value: APIM_MicrosoftAzureExternal_multitenant
 - name: deploymentLocation
   value: ${{ parameters.Location }}
+- name: deploymentName          # Name of deployment to label ARM deployments in the Azure Portal
+  value: 'api-management-ESLZ-${{ parameters.Location }}-${{ parameters.Environment }}-$(workloadPrefix)${{ parameters.InstanceNumber }}'
 
 #resources:
 #  repositories:
