@@ -28,14 +28,15 @@ parameters:
   - 'uat'
   - 'prd'
   - 'dsr'
-- name: Location
+- name: Location #https://learn.microsoft.com/en-us/azure/reliability/migrate-api-mgt#prerequisites
   type: string
   default: canadacentral
   values:
   - 'canadacentral'
-  - 'canadaeast'
-  - 'westus'
-  - 'eastus'
+  - 'eastus'  
+  - 'eastus2'
+  - 'westus2'
+  - 'westus3'
 
 variables:
 - group: 'APIM_apim-landing-zone-accelerator_${{ parameters.Environment }}_0${{ parameters.InstanceNumber }}'

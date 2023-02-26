@@ -10,14 +10,15 @@ pool:
   vmImage: ubuntu-latest
 
 parameters:
-- name: Location
+- name: Location #https://learn.microsoft.com/en-us/azure/reliability/migrate-api-mgt#prerequisites
   type: string
   default: canadacentral
   values:
   - 'canadacentral'
-  - 'canadaeast'
-  - 'westus'
-  - 'eastus'
+  - 'eastus'  
+  - 'eastus2'
+  - 'westus2'
+  - 'westus3'
 - name: InstanceNumber
   type: string
   default: '07'
