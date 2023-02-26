@@ -9,6 +9,28 @@ trigger:
 pool:
   vmImage: ubuntu-latest
 
+parameters:
+- name: Location
+  type: string
+  default: canadacentral
+  values:
+  - 'canadacentral'
+  - 'canadaeast'
+  - 'westus'
+  - 'eastus'
+- name: InstanceNumber
+  type: string
+  default: '07'
+- name: Environment
+  type: string
+  default: dev
+  values:
+  - 'dev'
+  - 'uat'
+  - 'prd'
+  - 'dsr'
+
+
 variables:
 - name: certGenFolder
   value: $(System.DefaultWorkingDirectory)/infra/certificates
@@ -20,13 +42,13 @@ variables:
 - name: workloadPrefix
   value: 'ekLZ' # up to 6 chars e.g. ApimLZ
 - name: ResourceGroupName 
-  value: rg-apim-$(workloadPrefix)09-dev-canadacentral-009 
+  value: rg-apim-$(workloadPrefix)${{ parameters.InstanceNumber }}-${{ parameters.Environment }}-${{ parameters.Location }}-0${{ parameters.InstanceNumber }}
 - name: apimServiceName
-  value: apim-$(workloadPrefix)09-dev-canadacentral-009
+  value: apim-$(workloadPrefix)${{ parameters.InstanceNumber }}-${{ parameters.Environment }}-${{ parameters.Location }}-0${{ parameters.InstanceNumber }}
 - name: domainName
   value: MngEnv019702.com
 - name: environment
-  value: dev
+  value: ${{ parameters.Environment }}
 
 stages:
 - stage: gencerts

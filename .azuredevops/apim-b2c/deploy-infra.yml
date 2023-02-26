@@ -11,13 +11,23 @@ trigger:
 pool:
   vmImage: ubuntu-latest
 
+parameters:
+- name: Location
+  type: string
+  default: canadacentral
+  values:
+  - 'canadacentral'
+  - 'canadaeast'
+  - 'westus'
+  - 'eastus'
+
 variables:
 - name: resourceGroupNameDev
   value: rg-mlife-poc-apim-b2c-dev
 - name: resourceGroupNameProd
   value: rg-mlife-poc-apim-b2c-prod
 - name: location
-  value: canadacentral
+  value: ${{ parameters.Location }}
 - name: bicepFilePath
   value: $(System.DefaultWorkingDirectory)/infra/apim-b2c/main-azurefunction.bicep
 - name: serviceConnectionName   # Name of the serviceconnection to the target ESLZ Azure subscription
