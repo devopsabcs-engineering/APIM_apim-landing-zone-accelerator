@@ -346,15 +346,13 @@ stages:
           
           Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))          
         pwsh: true
-    - task: PowerShell@2
+    - task: CmdLine@2
       displayName: install curl and git
       inputs:
-        targetType: 'inline'
         script: |
-          Write-Host "install curl and git using chocolatey"
+          echo "install curl and git using chocolatey"
           choco install curl /quiet
           choco install git /quiet
-        pwsh: true
     - task: PowerShell@2
       displayName: install Az PS module
       inputs:
