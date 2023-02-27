@@ -351,8 +351,8 @@ stages:
       inputs:
         script: |
           echo "install curl and git using chocolatey"
-          choco install curl /quiet
-          choco install git /quiet
+          choco install curl -y --force
+          choco install git -y --force
     - task: PowerShell@2
       displayName: install Az PS module
       inputs:
