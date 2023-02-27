@@ -1,7 +1,6 @@
 openapi: 3.0.1
 info:
   title: Echo API
-  description: need a definition for linting
   version: '1.0'
 servers:
   - url: https://api-dev.mngenv019702.com/echo

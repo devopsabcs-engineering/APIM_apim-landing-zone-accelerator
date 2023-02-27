@@ -1,0 +1,10 @@
+{
+  "properties": {
+    "credentials": {
+      "instrumentationKey": "{{Logger-Credentials--63fba640985c6f0ee8269b5a}}"
+    },
+    "isBuffered": true,
+    "loggerType": "applicationInsights",
+    "resourceId": "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-shared-ekLZ11-dev-westus3-011/providers/Microsoft.Insights/components/appi-ekLZ11-dev-westus3-011"
+  }
+}
