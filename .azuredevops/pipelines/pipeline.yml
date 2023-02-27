@@ -340,8 +340,26 @@ stages:
           Write-Host "Hello World"
           
           Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-          choco install /quiet curl
-          choco install /quiet git
+          choco install curl /quiet
+          choco install git /quiet
+        pwsh: true
+    - task: PowerShell@2
+      displayName: install curl and git
+      inputs:
+        targetType: 'inline'
+        script: |
+          Write-Host "install curl and git using chocolatey"
+          choco install curl /quiet
+          choco install git /quiet
+        pwsh: true
+    - task: PowerShell@2
+      displayName: install Az PS module
+      inputs:
+        targetType: 'inline'
+        script: |
+          Write-Host "install Az module"
+          $ProgressPreference = "SilentlyContinue"
+          Install-Module -Name Az
         pwsh: true
     - task: AzureCLI@2
       enabled: true
