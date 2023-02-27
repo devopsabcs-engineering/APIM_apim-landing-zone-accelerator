@@ -1,4 +1,4 @@
-apimServiceName: apim-ekLZ11-prd-canadacentral-011
+apimServiceName: apim-ekLZ11-prd-eastus-011
 namedValues:
   - name: environment
     properties:
@@ -24,11 +24,11 @@ namedValues:
       displayName: helloworldfromlogicapp_manual-invoke_634e022983908257b35630b0
       value: "{#helloworldfromlogicapp#}"  
 loggers:
-    - name: appi-ekLZ11-prd-canadacentral-011
+    - name: appi-ekLZ11-prd-eastus-011
       properties:
         loggerType: applicationInsights
         description: prod application insights
-        resourceId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-ekLZ11-prd-canadacentral-011/providers/microsoft.insights/components/appi-ekLZ11-prd-canadacentral-011"
+        resourceId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-ekLZ11-prd-eastus-011/providers/microsoft.insights/components/appi-ekLZ11-prd-eastus-011"
         credentials:
           instrumentationKey: "{{Logger-Credentials--639918ba46346116dc7ad11d}}"
         isBuffered: true
@@ -36,7 +36,7 @@ diagnostics:
    - name: applicationinsights
      properties:
        verbosity: Error
-       loggerId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-ekLZ11-prd-canadacentral-011/providers/Microsoft.ApiManagement/service/apim-ekLZ11-prd-canadacentral-011/loggers/appi-ekLZ11-prd-canadacentral-011"
+       loggerId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-ekLZ11-prd-eastus-011/providers/Microsoft.ApiManagement/service/apim-ekLZ11-prd-eastus-011/loggers/appi-ekLZ11-prd-eastus-011"
 # backends:
 #   - name: helloworldfromfuncapp
 #     properties:
@@ -52,12 +52,12 @@ apis:
       - name: applicationinsights
         properties:
           verbosity: Error
-          loggerId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-ekLZ11-prd-canadacentral-011/providers/Microsoft.ApiManagement/service/apim-ekLZ11-prd-canadacentral-011/loggers/appi-ekLZ11-prd-canadacentral-011"
+          loggerId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-ekLZ11-prd-eastus-011/providers/Microsoft.ApiManagement/service/apim-ekLZ11-prd-eastus-011/loggers/appi-ekLZ11-prd-eastus-011"
 subscriptions:
   - name: Dev-Sub
     properties:
       displayName: "Dev Subscription"
       allowTracing: false
-      ownerId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-ekLZ11-prd-canadacentral-011/providers/Microsoft.ApiManagement/service/apim-ekLZ11-prd-canadacentral-011/users/63991e9646346116dc7ad1b8"
+      ownerId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-ekLZ11-prd-eastus-011/providers/Microsoft.ApiManagement/service/apim-ekLZ11-prd-eastus-011/users/63991e9646346116dc7ad1b8"
       scope: /apis
       state: active
