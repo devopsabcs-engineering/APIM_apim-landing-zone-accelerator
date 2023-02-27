@@ -21,6 +21,10 @@ parameters:
   type: boolean
   default: false
   displayName: Install PSCore on DevOps Agent
+- name: InstallChocolatey
+  type: boolean
+  default: false
+  displayName: Install Chocolatey
 - name: InstanceNumber
   type: string
   default: '07'
@@ -332,6 +336,7 @@ stages:
           msiexec.exe /package PowerShell-7.3.2-win-x64.msi /quiet ADD_EXPLORER_CONTEXT_MENU_OPENPOWERSHELL=1 ADD_FILE_CONTEXT_MENU_RUNPOWERSHELL=1 ENABLE_PSREMOTING=1 REGISTER_MANIFEST=1 USE_MU=1 ENABLE_MU=1 ADD_PATH=1
     - task: PowerShell@2
       displayName: install chocolatey
+      enabled: ${{ parameters.InstallChocolatey }}
       inputs:
         targetType: 'inline'
         script: |
@@ -339,9 +344,7 @@ stages:
           
           Write-Host "Hello World"
           
-          Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-          choco install curl /quiet
-          choco install git /quiet
+          Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))          
         pwsh: true
     - task: PowerShell@2
       displayName: install curl and git
