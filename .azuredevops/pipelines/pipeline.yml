@@ -25,6 +25,10 @@ parameters:
   type: boolean
   default: false
   displayName: Install Chocolatey
+- name: InstallPrerequisiteSoftware
+  type: boolean
+  default: false
+  displayName: Install Prerequisite Software
 - name: InstanceNumber
   type: string
   default: '07'
@@ -348,6 +352,7 @@ stages:
         pwsh: true
     - task: CmdLine@2
       displayName: install curl and git
+      enabled: ${{ parameters.InstallPrerequisiteSoftware }}
       inputs:
         script: |
           echo "install curl and git using chocolatey"
@@ -355,6 +360,7 @@ stages:
           choco install git -y --force
     - task: PowerShell@2
       displayName: install Az PS module
+      enabled: ${{ parameters.InstallPrerequisiteSoftware }}
       inputs:
         targetType: 'inline'
         script: |
