@@ -17,6 +17,10 @@ parameters:
   type: boolean
   default: false
   displayName: Initial or Re-Deployment of the APIM Infra
+- name: InstallPowerShellCore
+  type: boolean
+  default: false
+  displayName: Install PSCore on DevOps Agent
 - name: InstanceNumber
   type: string
   default: '07'
@@ -59,6 +63,8 @@ variables:
 - group: APIM_ESLZ_${{ parameters.Environment }}_vars
 - name: ReDeployInfra
   value: ${{ parameters.ReDeployInfraParam }}
+- name: InstallPowerShellCore
+  value: ${{ parameters.InstallPowerShellCore }}
 - name: mainTemplatePath
   value: '$(Pipeline.Workspace)/s/reference-implementations/AppGW-IAPIM-Func/azure-resource-manager/main.json'
 #- name: mainTemplatePath
@@ -317,6 +323,7 @@ stages:
           certutil -addstore "Root" "$(trustedrootcert.secureFIlePath)"
     - task: CmdLine@2
       displayName: install power shell core
+      enabled: ${{ variables.InstallPowerShellCore }}
       inputs:
         script: |
           echo install power shell core
