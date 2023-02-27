@@ -359,8 +359,8 @@ stages:
         targetType: 'inline'
         script: |
           Write-Host "install Az module"
-          $ProgressPreference = "SilentlyContinue"
-          Install-Module -Name Az
+          Write-Host install az powershell modules
+          Install-Module -Name Az -AllowClobber -Scope CurrentUser -Force
         pwsh: true
     - task: AzureCLI@2
       enabled: true
