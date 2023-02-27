@@ -96,7 +96,7 @@ stages:
           
           echo Hello world
           
-          ls $(Pipeline.Workspace)/s    
+          ls $(Pipeline.Workspace)/s
     - task: DownloadSecureFile@1
       name: appgwPfxDownloadTask_dev
       inputs:
@@ -157,7 +157,7 @@ stages:
           #Copy-Item -Path $(mainTemplateLocation) -Destination '$(Build.ArtifactStagingDirectory)/$(planName)/mainTemplate.json' -Force
           #$(System.DefaultWorkingDirectory)/$(ADO_REPO_ARM_TTK)/arm-ttk/Test-AzTemplate.sh $(Build.ArtifactStagingDirectory)/$(planName)
         failOnStderr: false
-        pwsh: true    
+        pwsh: true
     - task: RunARMTTKTestsXPlat@1
       displayName: Run Template Checker
       inputs:
@@ -252,7 +252,7 @@ stages:
       - task: DownloadSecureFile@1
         name: trustedrootcert
         inputs:
-          secureFile: 'APIM_apim-landing-zone-accelerator_cacert_custom_domain.pem'      
+          secureFile: 'APIM_apim-landing-zone-accelerator_cacert_custom_domain.pem'
       - task: AzureCLI@2
         enabled: ${{ variables.ReDeployInfra }}
         displayName: post deploy
@@ -283,7 +283,7 @@ stages:
     - name: ResourceGroupNameApim 
       value: 'rg-apim-$(workloadPrefix)$(shortInstance)-${{ parameters.Environment }}-${{ parameters.Location }}-$(longInstance)'
     - name: apimServiceName
-      value: 'apim-$(workloadPrefix)$(shortInstance)-${{ parameters.Environment }}-${{ parameters.Location }}-$(longInstance)'    
+      value: 'apim-$(workloadPrefix)$(shortInstance)-${{ parameters.Environment }}-${{ parameters.Location }}-$(longInstance)'
     - name: ARTIFACTS_FEED_NAME
       value: APIM_landing_zone_tools
     - name: appGatewayName
@@ -304,7 +304,7 @@ stages:
       inputs:
         secureFile: 'APIM_apim-landing-zone-accelerator_cacert_custom_domain.pem'
     - task: CmdLine@2
-      displayName: show hostname to prove internal    
+      displayName: show hostname to prove internal
       inputs:
         script: |
           echo Write your commands here
@@ -313,14 +313,14 @@ stages:
           
           hostname
           echo import a home grown cert to root
-          type $(trustedrootcert.secureFIlePath)          
+          type $(trustedrootcert.secureFIlePath)
           certutil -addstore "Root" "$(trustedrootcert.secureFIlePath)"
     - task: CmdLine@2
-      displayName: install power shell core    
+      displayName: install power shell core
       inputs:
         script: |
           echo install power shell core
-          powershell -c "Invoke-WebRequest -Uri 'https://github.com/PowerShell/PowerShell/releases/download/v7.3.2/PowerShell-7.3.2-win-x64.msi' -OutFile 'PowerShell-7.3.2-win-x64.msi'"
+          powershell -c "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri 'https://github.com/PowerShell/PowerShell/releases/download/v7.3.2/PowerShell-7.3.2-win-x64.msi' -OutFile 'PowerShell-7.3.2-win-x64.msi'"
           
           msiexec.exe /package PowerShell-7.3.2-win-x64.msi /quiet ADD_EXPLORER_CONTEXT_MENU_OPENPOWERSHELL=1 ADD_FILE_CONTEXT_MENU_RUNPOWERSHELL=1 ENABLE_PSREMOTING=1 REGISTER_MANIFEST=1 USE_MU=1 ENABLE_MU=1 ADD_PATH=1
     - task: PowerShell@2
@@ -362,7 +362,7 @@ stages:
           echo Write your commands here
           
           echo Hello world
-          dir "$(Pipeline.Workspace)/restapitool"          
+          dir "$(Pipeline.Workspace)/restapitool"
           $(Pipeline.Workspace)/restapitool/ApimManagementApi.exe
 - stage: external_vnet_tests
   dependsOn: [internal_vnet_tests]
@@ -415,7 +415,7 @@ stages:
           
           hostname
           echo import a cert to root
-          type $(trustedrootcert.secureFIlePath)          
+          type $(trustedrootcert.secureFIlePath)
           certutil -addstore "Root" "$(trustedrootcert.secureFIlePath)"
     - task: AzureCLI@2
       enabled: true
@@ -443,7 +443,7 @@ stages:
           echo Write your commands here
           
           echo Hello world
-          dir "$(Pipeline.Workspace)/restapitool"          
+          dir "$(Pipeline.Workspace)/restapitool"
           $(Pipeline.Workspace)/restapitool/ApimManagementApi.exe
 - stage: integrated_tests
   dependsOn: [external_vnet_tests]
