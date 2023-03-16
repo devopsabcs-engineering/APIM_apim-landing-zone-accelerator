@@ -1,0 +1,74 @@
+{
+    "accountName": {
+        "secret": "false",
+        "value": "https://dev.azure.com/devopsabcs"
+    },
+    "apiCertificatePassword": {
+        "secret": "false",
+        "value": "Test12345!"
+    },
+    "apiCertType": {
+        "secret": "false",
+        "value": "custom"
+    },
+    "apiFQDN": {
+        "secret": "false",
+        "value": "api-prd.mngenv019702.com"
+    },
+    "appGatewayCertType": {
+        "secret": "false",
+        "value": "selfsigned"
+    },
+    "appGatewayFqdn": {
+        "secret": "false",
+        "value": "appgateway-prd.mngenv019702.com"
+    },
+    "certificatePassword": {
+        "secret": "false",
+        "value": "Test12345!"
+    },
+    "CICDAgentType": {
+        "secret": "false",
+        "value": "azuredevops"
+    },
+    "mainDomainName": {
+        "secret": "false",
+        "value": "mngenv019702.com"
+    },
+    "managementCertificatePassword": {
+        "secret": "false",
+        "value": "Test12345!"
+    },
+    "managementCertType": {
+        "secret": "false",
+        "value": "selfsigned"
+    },
+    "managementFQDN": {
+        "secret": "false",
+        "value": "management-prd.mngenv019702.com"
+    },
+    "personalAccessToken": {
+        "secret": "false",
+        "value": "FIX ME THEN HIDE ME"
+    },
+    "portalCertificatePassword": {
+        "secret": "false",
+        "value": "Test12345!"
+    },
+    "portalCertType": {
+        "secret": "false",
+        "value": "custom"
+    },
+    "portalFQDN": {
+        "secret": "false",
+        "value": "portal-prd.mngenv019702.com"
+    },
+    "vmPassword": {
+        "secret": "false",
+        "value": "Test12345!"
+    },
+    "vmUsername": {
+        "secret": "false",
+        "value": "vmadmin"
+    }
+}

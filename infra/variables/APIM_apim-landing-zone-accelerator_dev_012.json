@@ -1,0 +1,30 @@
+{
+    "APIM_LandingZone_RestApi_Identifier": {
+        "secret": "false",
+        "value": "integration"
+    },
+    "APIM_LandingZone_RestApi_ManagementApiUrl": {
+        "secret": "false",
+        "value": "https://management-dev.MngEnv019702.com"
+    },
+    "APIM_LandingZone_RestApi_PrimaryKey": {
+        "secret": "false",
+        "value": "FIX THEN HIDE ME"
+    },
+    "azureApplicationId": {
+        "secret": "false",
+        "value": "a4e2825f-4715-4fed-a159-ae6f1589cf4e"
+    },
+    "azureClientSecret": {
+        "secret": "false",
+        "value": "FIX THEN HIDE ME"
+    },
+    "azureTenantId": {
+        "secret": "false",
+        "value": "1d75057c-84d5-42f5-a316-390c6e1e9fe7"
+    },
+    "pfxPassword": {
+        "secret": "false",
+        "value": "Test12345!"
+    }
+}

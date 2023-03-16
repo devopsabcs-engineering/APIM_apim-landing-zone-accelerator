@@ -1,0 +1,22 @@
+{
+    "APIM_NAME": {
+        "secret": "false",
+        "value": "apim-ekLZ11-dev-westus3-012"
+    },
+    "apiops_release_version": {
+        "secret": "false",
+        "value": "v4.1.0"
+    },
+    "RESOURCE_GROUP_NAME": {
+        "secret": "false",
+        "value": "rg-apim-ekLZ11-dev-westus3-012"
+    },
+    "RESOURCE_GROUP_NAME_Prod": {
+        "secret": "false",
+        "value": "rg-apim-ekLZ11-prd-eastus-012"
+    },
+    "SERVICE_CONNECTION_NAME": {
+        "secret": "false",
+        "value": "APIM_MicrosoftAzureExternal_multitenant"
+    }
+}
