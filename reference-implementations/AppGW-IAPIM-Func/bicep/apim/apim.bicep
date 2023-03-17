@@ -67,6 +67,9 @@ resource apimName_resource 'Microsoft.ApiManagement/service@2021-08-01' = {
     }
   }
   properties: {
+    apiVersionConstraint: {
+      minApiVersion: '2019-12-01' //minApiVersion is required for APIM -- can make this "202#-##-##" to be more strict
+    }
     virtualNetworkType: 'Internal'
     publisherEmail: publisherEmail
     publisherName: publisherName
