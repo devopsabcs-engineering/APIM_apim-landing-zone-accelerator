@@ -41,7 +41,7 @@
     },
     "managementCertType": {
         "secret": "false",
-        "value": "selfsigned"
+        "value": "custom"
     },
     "managementFQDN": {
         "secret": "false",
