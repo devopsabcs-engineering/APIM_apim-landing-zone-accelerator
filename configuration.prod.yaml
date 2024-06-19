@@ -1,9 +1,57 @@
-apimServiceName: apim-ekLZ11-prd-eastus-011
+apimServiceName: apim-gk7dxthmtgpwg
 namedValues:
-  - name: environment
+  - name: apimDeveloperPortal
     properties:
-      displayName: environment
-      value: "https://www.search2.com"
+      displayName: "apimDeveloperPortal"
+      value: "https://apim-gk7dxthmtgpwg.developer.azure-api.net"
+  - name: aadpolicy-well-known-openid-003
+    properties:
+      displayName: "aadpolicy-well-known-openid-003"
+      value: "https://login.microsoftonline.com/apiMngEnv019702v003.onmicrosoft.com/v2.0/.well-known/openid-configuration"
+  - name: aadbackend-api-application-client-id-003
+    properties:
+      displayName: "aadbackend-api-application-client-id-003"
+      value: "06aa66ae-b557-4030-82ac-ac4a93aea167"
+  - name: aadPrimaryStorageEndpoint-003
+    properties:
+      displayName: "aadPrimaryStorageEndpoint-003"
+      value: "https://stweb6pmfs7sugoyna.z9.web.core.windows.net/"  
+  - name: aadpolicy-well-known-openid-005
+    properties:
+      displayName: "aadpolicy-well-known-openid-005"
+      value: "https://login.microsoftonline.com/apiMngEnv019702v005.onmicrosoft.com/v2.0/.well-known/openid-configuration"
+  - name: aadbackend-api-application-client-id-005
+    properties:
+      displayName: "aadbackend-api-application-client-id-005"
+      value: "1b7218db-146a-438f-868c-267c045894fe"
+  - name: aadPrimaryStorageEndpoint-005
+    properties:
+      displayName: "aadPrimaryStorageEndpoint-005"
+      value: "https://stweb26rklbpvtfsdi.z9.web.core.windows.net/"  
+  - name: b2cpolicy-well-known-openid-010
+    properties:
+      displayName: "b2cpolicy-well-known-openid-010"
+      value: "https://testekb2c010.b2clogin.com/testekb2c010.onmicrosoft.com/v2.0/.well-known/openid-configuration?p=B2C_1_frontendapp_prd_signupandsignin"
+  - name: b2cbackend-api-application-client-id-010
+    properties:
+      displayName: "b2cbackend-api-application-client-id-010"
+      value: "202500eb-e9b7-49cc-bff0-0a78b03a8b2e"
+  - name: b2cPrimaryStorageEndpoint-010
+    properties:
+      displayName: "b2cPrimaryStorageEndpoint-010"
+      value: "https://stwebzrslpgboxnenq.z9.web.core.windows.net/"
+  - name: b2cpolicy-well-known-openid-011
+    properties:
+      displayName: "b2cpolicy-well-known-openid-011"
+      value: "https://testekb2c011.b2clogin.com/testekb2c011.onmicrosoft.com/v2.0/.well-known/openid-configuration?p=B2C_1_frontendapp_prd_signupandsignin"
+  - name: b2cbackend-api-application-client-id-011
+    properties:
+      displayName: "b2cbackend-api-application-client-id-011"
+      value: "839a279f-bee5-4d99-ab15-7a27f807ef86"
+  - name: b2cPrimaryStorageEndpoint-011
+    properties:
+      displayName: "b2cPrimaryStorageEndpoint-011"
+      value: "https://stwebxd2jatrnn34pi.z9.web.core.windows.net/"
   - name: mysecretvalue
     properties:
       displayName: mysecretvalue
@@ -22,26 +70,38 @@ namedValues:
   - name: 634e022983908257b35630b0
     properties:
       displayName: helloworldfromlogicapp_manual-invoke_634e022983908257b35630b0
-      value: "{#helloworldfromlogicapp#}"  
+      value: "{#helloworldfromlogicapp#}"
 loggers:
-    - name: appi-ekLZ11-prd-eastus-011
-      properties:
-        loggerType: applicationInsights
-        description: prod application insights
-        resourceId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-ekLZ11-prd-eastus-011/providers/microsoft.insights/components/appi-ekLZ11-prd-eastus-011"
-        credentials:
-          instrumentationKey: "{{Logger-Credentials--639918ba46346116dc7ad11d}}"
-        isBuffered: true
+  - name: appi-apimgk7dxthmtgpwg
+    properties:
+      loggerType: applicationInsights
+      description: prod application insights
+      resourceId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-002/providers/microsoft.insights/components/appi-apimgk7dxthmtgpwg"
+      credentials:
+        instrumentationKey: "{{Logger-Credentials--639918ba46346116dc7ad11d}}"
+      isBuffered: true
 diagnostics:
-   - name: applicationinsights
-     properties:
-       verbosity: Error
-       loggerId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-ekLZ11-prd-eastus-011/providers/Microsoft.ApiManagement/service/apim-ekLZ11-prd-eastus-011/loggers/appi-ekLZ11-prd-eastus-011"
-# backends:
-#   - name: helloworldfromfuncapp
-#     properties:
-#       url: "https://helloworldfromprodfuncapp.azurewebsites.net/api"
-#       resourceid: "https://management.azure.com/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-ApimLZ07-prd-canadacentral-007/providers/Microsoft.Web/sites/helloworldfromprodfuncapp"
+  - name: applicationinsights
+    properties:
+      verbosity: Error
+      loggerId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-gk7dxthmtgpwg/loggers/appi-apimgk7dxthmtgpwg"
+backends:
+  - name: func-aad-003
+    properties:
+      url: "https://func-spqjtnfjnt7xo.azurewebsites.net/api"
+      resourceid: "https://management.azure.com/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-poc-apim-aad-prd-003/providers/Microsoft.Web/sites/func-spqjtnfjnt7xo"
+  - name: func-aad-005
+    properties:
+      url: "https://func-26rklbpvtfsdi.azurewebsites.net/api"
+      resourceid: "https://management.azure.com/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-poc-apim-aad-prd-005/providers/Microsoft.Web/sites/func-26rklbpvtfsdi"
+  - name: func-b2c-010
+    properties:
+      url: "https://func-zrslpgboxnenq.azurewebsites.net/api"
+      resourceid: "https://management.azure.com/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-poc-apim-b2c-prd-010/providers/Microsoft.Web/sites/func-zrslpgboxnenq"
+  - name: func-b2c-011
+    properties:
+      url: "https://func-xd2jatrnn34pi.azurewebsites.net/api"
+      resourceid: "https://management.azure.com/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-poc-apim-b2c-prd-011/providers/Microsoft.Web/sites/func-xd2jatrnn34pi"
 #   - name: LogicApp_helloworldfromlogicapp_rg-apim-lab_77fadbdc74f14ce88962b34400a1f170
 #     properties:
 #       url: "https://prod-75.eastus.logic.azure.com/workflows/[guid goes here]/triggers"
@@ -52,12 +112,48 @@ apis:
       - name: applicationinsights
         properties:
           verbosity: Error
-          loggerId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-ekLZ11-prd-eastus-011/providers/Microsoft.ApiManagement/service/apim-ekLZ11-prd-eastus-011/loggers/appi-ekLZ11-prd-eastus-011"
+          loggerId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-gk7dxthmtgpwg/loggers/appi-apimgk7dxthmtgpwg"
 subscriptions:
-  - name: Dev-Sub
+  - name: dev-sub
     properties:
-      displayName: "Dev Subscription"
+      displayName: "Dev Subscription all apis"
       allowTracing: false
-      ownerId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-ekLZ11-prd-eastus-011/providers/Microsoft.ApiManagement/service/apim-ekLZ11-prd-eastus-011/users/63991e9646346116dc7ad1b8"
+      ownerId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-gk7dxthmtgpwg/users/646666505ddd170eb06bd16a"
       scope: /apis
       state: active
+  - name: dev-sub-echo
+    properties:
+      displayName: "Dev Subscription echo api scoped"
+      allowTracing: false
+      #ownerId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-gk7dxthmtgpwg/users/641430e946346116c4c1d4a7"
+      scope: /apis/echo-api
+      state: active
+products:
+  - name: aad003product
+    groups:
+      - name: administrators
+      - name: 6447ca9293ec4522bd87c4df
+    apis:
+      - name: "func-aad-003"
+      - name: "echo-api"
+  - name: aad005product
+    groups:
+      - name: administrators
+    apis:
+      - name: "func-aad-005"
+      - name: "echo-api"
+  - name: b2c010product
+    groups:
+      - name: administrators
+      - name: apim-xmjyxcbp4a5fo-aad-main-group-b2c-010
+    apis:
+      - name: "func-b2c-010"
+      #- name: "func-b2c-011" # can also push extra api in prod!
+      - name: "echo-api"
+  - name: b2c011product
+    groups:
+      - name: administrators
+      - name: apim-xmjyxcbp4a5fo-aad-main-group-b2c-011
+    apis:
+      - name: "func-b2c-011"
+      - name: "echo-api"
