@@ -7,7 +7,7 @@ nav_order: 2
 
 ## Supported Scenarios
 
-In this section we discuss the different scenarios that the Apiops tool supports. The tool supports two scenarios. The first scenario addresses the needs of users that build their APIs from the Azure portal. The second scenario addresses the needs of users who build their APIs via code utilizing an IDE (e.g. VS Code). Also please note that although we recommend utilizing the devops pipelines (both extractor and publisher pipelines) provided in this git repo, you are at liberty to utilize your own pipelines. The tools (both extractor and publisher) are independent of the provided pipelines and hence they could be triggered from within any pipeline. If you decide to go with your own devops pipelines you have to ensure that a proper process is in place. The rest of this lab assumes that you will be using the provided pipelines.
+In this section we discuss the different scenarios that the APIOps tool supports. The tool supports two scenarios. The first scenario addresses the needs of users that build their APIs from the Azure portal. The second scenario addresses the needs of users who build their APIs via code utilizing an IDE (e.g. VS Code). Also please note that although we recommend utilizing the devops pipelines (both extractor and publisher pipelines) provided in this git repo, you are at liberty to utilize your own pipelines. The tools (both extractor and publisher) are independent of the provided pipelines and hence they could be triggered from within any pipeline. If you decide to go with your own devops pipelines you have to ensure that a proper process is in place. The rest of this lab assumes that you will be using the provided pipelines.
 
 ### Scenario A : Users Who Build APIs Using the Azure Portal
 
@@ -32,7 +32,7 @@ Create all the different artifacts from an IDE (e.g. VS Code) -> commit the chan
 In this scenario you don't need to utilize the extractor tool to generate the artifacts as the artifacts will be created in the IDE. Having said that, nothing prevents you from utilizing the extractor tool to generate the initial artifacts if you are introducing the tool to an existing APIM instance.
 
 # Supported  2022-09-01
-Below there is a table with all [artifacts extracted and published by APIOps](https://docs.microsoft.com/en-us/rest/api/apimanagement/). 
+Below there is a table with all [artifacts extracted and published by APIOps](https://learn.microsoft.com/rest/api/apimanagement/). 
 
 |Operation Group|Description|Implemented in APIOps?|
 |:----|:----|:----|
@@ -61,10 +61,3 @@ Below there is a table with all [artifacts extracted and published by APIOps](ht
 |API and Product Tags| |Yes|
 |Group/Products Association| |Yes|
 |GraphQL| |Yes|
-
-
-
-
-
-
-

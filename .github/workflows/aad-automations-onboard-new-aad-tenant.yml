@@ -1,0 +1,1249 @@
+name: APIM_Azure_AD_B2C/AAD-automations-onboard-new-AAD-tenant
+on:
+  workflow_dispatch:
+    inputs:
+      TenantName:
+        default: apiMngEnv019702v005
+        type: string
+        required: false
+        description: "Name of the new AAD tenant to be created"
+      InstanceNumber:
+        default: "005"
+        type: string
+        required: false
+        description: "Instance number of the new AAD tenant to be created"
+      ResourceGroupLocation:
+        default: canadacentral
+        type: string
+        required: false
+        description: "Location of the new AAD tenant to be created"
+      variableGroupName:
+        default: APIM_AAD_main_vars_005
+        type: string
+        required: false
+        description: "Name of the main environment to be created"
+      variableGroupNameDev:
+        default: APIM_AAD_frontend_dev_vars_005
+        type: string
+        required: false
+        description: "Name of the frontend environment to be created DEV"
+      variableGroupNamePrd:
+        default: APIM_AAD_frontend_prd_vars_005
+        type: string
+        required: false
+        description: "Name of the frontend environment to be created PRD"
+      appName:
+        default: ADO_AAD_Graph_Client_005
+        type: string
+        required: false
+        description: "Name of the ADO app to be created"
+      resourceGroupNameDev:
+        default: rg-poc-apim-aad-dev-005
+        type: string
+        required: false
+        description: "Name of the resource group to be created DEV"
+      resourceGroupNamePrd:
+        default: rg-poc-apim-aad-prd-005
+        type: string
+        required: false
+        description: "Name of the resource group to be created PRD"
+  push:
+    branches:
+      - none
+env:
+  ARTIFACT_NAME_DEV: StaticWebsiteContentDev
+  ARTIFACT_NAME_FNAPP: FunctionApp
+  ARTIFACT_NAME_PROD: StaticWebsiteContentProd
+  #azureSubscription: ME-MngEnv019702-emknafo (c04c476e-1725-4c9d-8a98-31f91163a0eb)
+  bicepFilePath: "${{ github.workspace }}/infra/apim-b2c/main-azurefunction.bicep"
+  location: "${{inputs.ResourceGroupLocation}}"
+  objectIdForADOServicePrincipal: 4794c0fd-1764-4f61-8659-07ea2ff1ab3f # hardcoded for now
+  project: src/ApimAzureAdB2CSoln/static-website-front-end
+  resourceGroupNameDev: "${{vars.RESOURCE_GROUP_NAME_APIM_DEV}}"
+  resourceGroupNamePrd: "${{vars.RESOURCE_GROUP_NAME_APIM_PRD}}"
+  workingDirectory: "${{ github.workspace }}/src/ApimAzureAdB2CSoln/Hello"
+jobs:
+  Create_aad_tenant-waitForValidation:
+    name: Wait for manual creation of AAD Tenant through portal and PS script on local machine
+    runs-on: ubuntu-latest
+    timeout-minutes: 4320
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3.5.0
+      - name: Dump github context
+        run: echo "$GITHUB_CONTEXT"
+        shell: bash
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+      - run: echo "REPO_NAME=${{ github.event.repository.name }}" >> $GITHUB_ENV
+      - run: echo "ORG_NAME=${{ github.repository_owner }}" >> $GITHUB_ENV
+      - uses: trstringer/manual-approval@v1
+        with:
+          secret: ${{ github.TOKEN }}
+          approvers: emmanuelknafo,emmanuelknafodevopsabcs
+          minimum-approvals: 1
+          issue-title: "Run Manual Script to create AAD Tenant"
+          issue-body: 'Please run manual script "./Create-AadTenant -TenantName ${{inputs.TenantName}} -AdoOrganization "${{ env.ORG_NAME }}" -AdoProjectName "${{ env.REPO_NAME }}" -AdoVariableGroupName "${{inputs.variableGroupName}}" -AppName "${{inputs.appName}}" -ApimServiceNameDev ${{vars.APIM_SERVICE_NAME_DEV}} -ApimServiceNamePrd ${{vars.APIM_SERVICE_NAME_PRD}} -UseGitHub -AdoPAT ***" and resume. Do not forget to give newly created aad admin user admin privileges (with PIM of course)!'
+          exclude-workflow-initiator-as-approver: false
+          additional-approved-words: ""
+          additional-denied-words: ""
+  Create_aad_tenant-testMsGraph:
+    name: Test MSGraph API access
+    needs:
+      - Create_aad_tenant-waitForValidation
+    runs-on: windows-latest
+    environment:
+      name: ${{inputs.variableGroupName}}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3.5.0
+      - name: test var exists
+        env:
+          GITHUB_TOKEN: ${{ secrets.ADO_P_A_T }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
+        run: |-
+          # Write your PowerShell commands here.
+          Write-Host "Duplicating some secrets and vars for now... Eventually grab from Vault... May need to move this later..."
+          Write-Host "${{ vars.AAD_ADO_CLIENT_CERT_NAME }} and ${{ vars.AAD_ADO_CLIENT_ID }}"
+          $variableName = "ADO_AAD_GRAPH_CLIENT_BASE64"
+          $VariableGroupName = "${{inputs.variableGroupNameDev}}"
+          Write-Host "Creating secret $variableName in environment $VariableGroupName..."
+          gh secret set $variableName --repo "${{env.OWNER}}/${{env.REPO}}" --body "${{ secrets.ADO_AAD_GRAPH_CLIENT_BASE64 }}" --env $VariableGroupName
+          $VariableGroupName = "${{inputs.variableGroupNamePrd}}"
+          Write-Host "Creating secret $variableName in environment $VariableGroupName..."
+          gh secret set $variableName --repo "${{env.OWNER}}/${{env.REPO}}" --body "${{ secrets.ADO_AAD_GRAPH_CLIENT_BASE64 }}" --env $VariableGroupName
+          $variableName = "AAD_ADO_CLIENT_CERT_PASSWORD"
+          $VariableGroupName = "${{inputs.variableGroupNameDev}}"
+          Write-Host "Creating secret $variableName in environment $VariableGroupName..."
+          gh secret set $variableName --repo "${{env.OWNER}}/${{env.REPO}}" --body "${{ secrets.AAD_ADO_CLIENT_CERT_PASSWORD }}" --env $VariableGroupName
+          $VariableGroupName = "${{inputs.variableGroupNamePrd}}"
+          Write-Host "Creating secret $variableName in environment $VariableGroupName..."
+          gh secret set $variableName --repo "${{env.OWNER}}/${{env.REPO}}" --body "${{ secrets.AAD_ADO_CLIENT_CERT_PASSWORD }}" --env $VariableGroupName
+          $variableName = "AAD_ADO_CLIENT_ID"
+          $VariableGroupName = "${{inputs.variableGroupNameDev}}"
+          Write-Host "Creating variable $variableName in environment $VariableGroupName..."
+          gh variable set $variableName --repo "${{env.OWNER}}/${{env.REPO}}" --body "${{ vars.AAD_ADO_CLIENT_ID }}" --env $VariableGroupName
+          $VariableGroupName = "${{inputs.variableGroupNamePrd}}"
+          Write-Host "Creating variable $variableName in environment $VariableGroupName..."
+          gh variable set $variableName --repo "${{env.OWNER}}/${{env.REPO}}" --body "${{ vars.AAD_ADO_CLIENT_ID }}" --env $VariableGroupName
+          $variableName = "ADO_P_A_T"
+          $VariableGroupName = "${{inputs.variableGroupNameDev}}"
+          Write-Host "Creating secret $variableName in environment $VariableGroupName..."
+          gh secret set $variableName --repo "${{env.OWNER}}/${{env.REPO}}" --body "${{ secrets.ADO_P_A_T }}" --env $VariableGroupName
+          $VariableGroupName = "${{inputs.variableGroupNamePrd}}"
+          Write-Host "Creating secret $variableName in environment $VariableGroupName..."
+          gh secret set $variableName --repo "${{env.OWNER}}/${{env.REPO}}" --body "${{ secrets.ADO_P_A_T }}" --env $VariableGroupName          
+          $variableName = "AAD_TENANT_ID"
+          $VariableGroupName = "${{inputs.variableGroupNameDev}}"
+          Write-Host "Creating variable $variableName in environment $VariableGroupName..."
+          gh variable set $variableName --repo "${{env.OWNER}}/${{env.REPO}}" --body "${{ vars.AAD_TENANT_ID }}" --env $VariableGroupName
+          $VariableGroupName = "${{inputs.variableGroupNamePrd}}"
+          Write-Host "Creating variable $variableName in environment $VariableGroupName..."
+          gh variable set $variableName --repo "${{env.OWNER}}/${{env.REPO}}" --body "${{ vars.AAD_TENANT_ID }}" --env $VariableGroupName
+        shell: pwsh
+      - name: Download pfx cert as base64 string
+        id: ADO_Graph_Client_SecureFileTask_secureFilePath
+        uses: timheuer/base64-to-file@v1.2
+        with:
+          fileName: "myTemporaryFile.txt"
+          encodedString: ${{ secrets.ADO_AAD_GRAPH_CLIENT_BASE64 }}
+      - name: import pfx certificate
+        run: |-
+          # Write your PowerShell commands here.
+          Write-Host "import cert"
+          #Get-Content -Path ${{ steps.ADO_Graph_Client_SecureFileTask_secureFilePath.outputs.filePath }}
+          $PasswordAsSecureString = ConvertTo-SecureString -String ${{ secrets.AAD_ADO_CLIENT_CERT_PASSWORD }} -AsPlainText -Force
+          #Import-PfxCertificate -FilePath ${{ steps.ADO_Graph_Client_SecureFileTask_secureFilePath.outputs.filePath }} -CertStoreLocation Cert:\CurrentUser\My\ -Password $PasswordAsSecureString
+          Import-PfxCertificate -FilePath ${{ steps.ADO_Graph_Client_SecureFileTask_secureFilePath.outputs.filePath }} -CertStoreLocation Cert:\LocalMachine\My\ -Password $PasswordAsSecureString
+        shell: powershell
+      - name: use ms graph via cert
+        run: |-
+          # Write your PowerShell commands here.
+          Write-Host "get all certs"
+          Get-ChildItem Cert:\LocalMachine\My\
+          # Authenticate
+          #Connect-MgGraph -ClientID ${{ vars.AAD_ADO_CLIENT_ID }} -TenantId "${{inputs.TenantName}}.onmicrosoft.com" -CertificateName ${{ vars.AAD_ADO_CLIENT_CERT_NAME }}
+          $certInstore = Get-ChildItem "Cert:\LocalMachine\My\${{ vars.AAD_ADO_CLIENT_CERT_THUMBPRINT }}"
+          #$certInstore = Get-ChildItem -Path "Cert:\CurrentUser\My" | Where-Object { $_.Subject -Match "${{ vars.AAD_ADO_CLIENT_CERT_NAME }}" }
+          #$certInstore = Get-ChildItem -Path "Cert:\CurrentUser\My" | Where-Object { $_.Subject -Match "ADO_Graph_Client" }
+          Write-Host certificate $certInstore
+          Connect-MgGraph -ClientId ${{ vars.AAD_ADO_CLIENT_ID }} -TenantId "${{inputs.TenantName}}.onmicrosoft.com" -Certificate $certInstore
+          Write-Host "APPLICATIONS:"
+          Write-Host "======================================================"
+          Get-MgApplication -Property "id,displayName,appId,requiredResourceAccess" -PageSize 50 | Format-Table DisplayName, Id, AppId, RequiredResourceAccess
+          Write-Host "SERVICE PRINCIPALS:"
+          Write-Host "======================================================"
+          Get-MgServicePrincipal -Property "id,displayName,appId,signInAudience" -PageSize 50 | Format-Table DisplayName, Id, AppId, SignInAudience
+          Write-Host look for GraphAggregatorServiceServicePrincipalId aka 'Microsoft Graph'
+          (Get-MgServicePrincipal | Where-Object { $_.DisplayName -match "Microsoft Graph" } | Where-Object { $_.AppId -match "00000003-0000-0000-c000-000000000000"}).Id
+          Write-Host "USERS:"
+          Write-Host "======================================================"
+          # List first 50 users
+          Get-MgUser -Property "id,displayName" -PageSize 50 | Format-Table DisplayName, Id
+          Write-Host "GROUPS:"
+          Write-Host "======================================================"
+          # List first 50 groups
+          Get-MgGroup -Property "id,displayName" -PageSize 50 | Format-Table DisplayName, Id
+          # Disconnect
+          Disconnect-MgGraph
+        shell: powershell
+  Create_aad_tenant-DeployAadTenant:
+    name: Deploy aad tenant ${{inputs.TenantName}}
+    needs:
+      - Create_aad_tenant-testMsGraph
+    runs-on: windows-latest
+    environment:
+      name: ${{inputs.variableGroupName}}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3.5.0
+      - name: download artifact
+        uses: actions/download-artifact@v3.0.1
+      - uses: actions/checkout@v3.5.0
+      - name: Download pfx cert as base64 string
+        id: ADO_Graph_Client_SecureFileTask_secureFilePath
+        uses: timheuer/base64-to-file@v1.2
+        with:
+          fileName: "myTemporaryFile.txt"
+          encodedString: ${{ secrets.ADO_AAD_GRAPH_CLIENT_BASE64 }}
+      - name: import pfx certificate
+        run: |-
+          # Write your PowerShell commands here.
+          Write-Host "import cert"
+          $PasswordAsSecureString = ConvertTo-SecureString -String ${{ secrets.AAD_ADO_CLIENT_CERT_PASSWORD }} -AsPlainText -Force
+          #Import-PfxCertificate -FilePath ${{ steps.ADO_Graph_Client_SecureFileTask_secureFilePath.outputs.filePath }} -CertStoreLocation Cert:\CurrentUser\My\ -Password $PasswordAsSecureString
+          Import-PfxCertificate -FilePath ${{ steps.ADO_Graph_Client_SecureFileTask_secureFilePath.outputs.filePath }} -CertStoreLocation Cert:\LocalMachine\My\ -Password $PasswordAsSecureString
+        shell: powershell
+      - run: echo "REPO_NAME=${{ github.event.repository.name }}" >> $GITHUB_ENV
+      - run: echo "ORG_NAME=${{ github.repository_owner }}" >> $GITHUB_ENV
+      - name: Onboard tenant (PS)
+        env:
+          USERPASSWORD: "${{ vars.USER_PASSWORD }}"
+        run: |-
+          Write-Host "logging in with user ${{ vars.USER_ID }}"
+          Write-Host "COMMAND: az login -u `"${{ vars.USER_ID }}`" -p `"${{ vars.USER_PASSWORD }}`" --scope `"https://management.core.windows.net//.default`" --tenant `"${{inputs.TenantName}}.onmicrosoft.com`" --allow-no-subscriptions"
+          az login -u "${{ vars.USER_ID }}" -p "${{ vars.USER_PASSWORD }}" --scope "https://management.core.windows.net//.default" --tenant "${{inputs.TenantName}}.onmicrosoft.com" --allow-no-subscriptions
+          Write-Host "DONE logging in with user ${{ vars.USER_ID }}"
+          Write-Host "CLEANUP:"
+          Write-Host "======================================================"
+          $appNames = @("Frontend application dev",
+            "Frontend application prd",
+            "Backend application dev",
+            "Backend application prd",
+            "Frontend App for APIM Dev Portal dev",
+            "Frontend App for APIM Dev Portal prd")
+          foreach ($AppName in $appNames) {
+              Write-Host "delete exisiting app registrations by the same name $AppName (if they exist)"
+              $currentAppRegs = az ad app list --display-name $AppName
+              $currentAppRegsObject = $currentAppRegs | ConvertFrom-Json
+              $currentAppRegsObject | ForEach-Object -Process {
+                  if ($_.displayName -eq $AppName) {
+                      Write-Host found previous app reg  $_.DisplayName with appId $_.appId
+                      Write-Host so will delete it
+                      az ad app delete --id $_.appId
+                  }
+              }
+          }
+          Write-Host Load PS Modules
+          . ./Create-AzureAAD.ps1
+          #$userPasswordAsSecureString = ConvertTo-SecureString -String "${{ vars.USER_PASSWORD }}" -AsPlainText -Force
+          $userPasswordAsSecureString = ConvertTo-SecureString "${{ vars.USER_PASSWORD }}" -AsPlainText -Force
+          Write-Host "Create tenant Initialize-AadTenant -TenantName ${{inputs.TenantName}} ..."
+          Initialize-AadTenant -TenantName ${{inputs.TenantName}} `
+            -aadAdoClientId ${{ vars.AAD_ADO_CLIENT_ID }} `
+            -aadAdoClientCertThumbprint ${{ vars.AAD_ADO_CLIENT_CERT_THUMBPRINT }} `
+            -userId "${{ vars.USER_ID }}" `
+            -userPassword $userPasswordAsSecureString `
+            -AdoOrganization "${{ env.ORG_NAME }}" `
+            -AdoProjectName "${{ env.REPO_NAME }}" `
+            -AdoVariableGroupNameDev "${{inputs.variableGroupNameDev}}" `
+            -AdoVariableGroupNamePrd "${{inputs.variableGroupNamePrd}}" `
+            -AdoPAT ${{ secrets.ADO_P_A_T }} `
+            -aadExtensionsAppClientId ${{ vars.AAD_EXTENSIONS_APP_CLIENT_ID }} `
+            -aadExtensionsAppClientSecret ${{ vars.AAD_EXTENSIONS_APP_CLIENT_SECRET }} `
+            -aadTenantId ${{ vars.AAD_TENANT_ID }}
+        shell: powershell
+        working-directory: "${{ github.workspace }}/aad"
+      # The following script preserves the globbing behavior of the CopyFiles task.
+      # Refer to this transformer's documentation for an alternative that will work in simple cases.
+      - name: copy vars json
+        uses: actions/github-script@v6.4.0
+        env:
+          TARGET_FOLDER: "${{ runner.temp }}"
+          SOURCE_FOLDER: "${{ github.workspace }}/aad/Output/variables"
+          CONTENTS: "**/*.json"
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+          script: |-
+            const fs = require('fs').promises
+            const path = require('path')
+            const target = path.resolve(process.env.TARGET_FOLDER)
+            process.chdir(process.env.SOURCE_FOLDER || '.')
+            if (process.env.CLEAN_TARGET_FOLDER === 'true') await io.rmRF(target)
+            const flattenFolders = process.env.FLATTEN_FOLDERS === 'true'
+            const options = {force: process.env.OVERWRITE === 'true'}
+            const globber = await glob.create(process.env.CONTENTS || '**')
+            for await (const file of globber.globGenerator()) {
+              if ((await fs.lstat(file)).isDirectory()) continue
+              const filename = flattenFolders ? path.basename(file) : file.substring(process.cwd().length)
+              const dest = path.join(target, filename)
+              await io.mkdirP(path.dirname(dest))
+              await io.cp(file, dest, options)
+            }
+      - name: publish vars
+        uses: actions/upload-artifact@v3.1.1
+        with:
+          name: variables
+          path: "${{ runner.temp }}"
+  PostTenantStage-loadVarsFromJson:
+    name: Create Variable Groups From Json
+    needs:
+      - Create_aad_tenant-waitForValidation
+      - Create_aad_tenant-testMsGraph
+      - Create_aad_tenant-DeployAadTenant
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{inputs.variableGroupName}}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3.5.0
+      - uses: actions/download-artifact@v3.0.1
+        with:
+          path: "${{ runner.workspace }}"
+      - run: echo "REPO_NAME=${{ github.event.repository.name }}" >> $GITHUB_ENV
+      - run: echo "ORG_NAME=${{ github.repository_owner }}" >> $GITHUB_ENV
+      - name: Show variable groups with variable count
+        env:
+          GITHUB_TOKEN: ${{ secrets.ADO_P_A_T }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
+        run: |-
+          gh secret list --repo $OWNER/$REPO
+          gh variable list --repo $OWNER/$REPO
+        shell: bash
+      - name: create variable groups DEV
+        env:
+          GITHUB_TOKEN: ${{ secrets.ADO_P_A_T }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
+        run: ${{ github.workspace }}/aad/Update-GitHubFromJson.ps1 -PatToken ${{ secrets.ADO_P_A_T }} -OrganizationUrl "${{ env.ORG_NAME }}" -Project "${{ env.REPO_NAME }}" -VariableGroupName "${{inputs.variableGroupNameDev}}" -VariableFileLocalPath "${{ runner.workspace }}/variables/${{inputs.variableGroupNameDev}}.json"
+        shell: pwsh
+        working-directory: "${{ github.workspace }}/aad"
+      - name: create variable groups PRD
+        env:
+          GITHUB_TOKEN: ${{ secrets.ADO_P_A_T }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
+        run: ${{ github.workspace }}/aad/Update-GitHubFromJson.ps1 -PatToken ${{ secrets.ADO_P_A_T }} -OrganizationUrl "${{ env.ORG_NAME }}" -Project "${{ env.REPO_NAME }}" -VariableGroupName "${{inputs.variableGroupNamePrd}}" -VariableFileLocalPath "${{ runner.workspace }}/variables/${{inputs.variableGroupNamePrd}}.json"
+        shell: pwsh
+        working-directory: "${{ github.workspace }}/aad"
+  Deploy_Dev_Infra-Deploy_infra_dev:
+    name: Deploy infra dev
+    needs:
+      - PostTenantStage-loadVarsFromJson
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{inputs.variableGroupNameDev}}
+    if: success()
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3.5.0
+      - name: download artifact
+        uses: actions/download-artifact@v3.0.1
+      - uses: actions/checkout@v3.5.0
+      - uses: azure/login@v1.4.6
+        with:
+          creds: "${{ secrets.AZURE_CREDENTIALS }}"
+      - run: |-
+          $ErrorActionPreference = 'stop'
+          az group create --name ${{ inputs.resourceGroupNameDev }} --location ${{ env.location }}
+          $publicApimVirtualIpDev = az apim show -g ${{vars.RESOURCE_GROUP_NAME_APIM_DEV}} -n ${{vars.APIM_SERVICE_NAME_DEV}} --query "publicIpAddresses[0]" | jq -r
+          Write-Host "apim public ip $publicApimVirtualIpDev"
+          $deploymentName = "${{ inputs.resourceGroupNameDev }}"
+          az deployment group create --name $deploymentName --resource-group ${{ inputs.resourceGroupNameDev }} `
+            --template-file ${{ env.bicepFilePath }} --parameters appInsightsLocation=${{ env.location }} `
+            publicApimVirtualIp=$publicApimVirtualIpDev `
+            backendClientSecret=${{ vars.BACKENDCLIENTSECRET }} `
+            backendClientId=${{ vars.BACKENDCLIENTID }} `
+            openIdIssuer="https://sts.windows.net/${{ vars.AAD_TENANT_ID }}/"
+          Write-Host "Listing deployments dev"
+          az deployment group list -o table -g ${{ inputs.resourceGroupNameDev }}
+          if ((Test-Path -LiteralPath variable:\LASTEXITCODE)) { exit $LASTEXITCODE }
+        shell: pwsh
+  Deploy_Dev_Infra-Deploy_infra_dev_2:
+    name: Deploy infra dev part 2
+    needs:
+      - Deploy_Dev_Infra-Deploy_infra_dev
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{inputs.variableGroupName}}
+    if: success()
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3.5.0
+      - name: download artifact
+        uses: actions/download-artifact@v3.0.1
+      - uses: actions/checkout@v3.5.0
+      - uses: azure/login@v1.4.6
+        with:
+          creds: "${{ secrets.AZURE_CREDENTIALS }}"
+      - name: UPDATE variable groups DEV
+        env:
+          GITHUB_TOKEN: ${{ secrets.ADO_P_A_T }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
+        run: |-
+          $ErrorActionPreference = 'stop'
+          gh variable list --repo "${{ env.OWNER }}/${{ env.REPO }}" --env ${{inputs.variableGroupNameDev}}
+          ${{ github.workspace }}/infra/scripts/post-deploy-github.ps1 -PatToken ${{ secrets.ADO_P_A_T }} `
+            -OrganizationUrl "${{ env.OWNER }}" -Project "${{ env.REPO }}" `
+            -VariableGroupName "${{inputs.variableGroupNameDev}}" -ResourceGroupAzureFunction "${{inputs.resourceGroupNameDev}}" `
+            -ResourceGroupApim "${{vars.RESOURCE_GROUP_NAME_APIM_DEV}}" `
+            -FunctionAppNameInApim "func-aad-${{inputs.InstanceNumber}}"
+          if ((Test-Path -LiteralPath variable:\LASTEXITCODE)) { exit $LASTEXITCODE }
+        shell: pwsh
+        working-directory: "${{ github.workspace }}/infra/scripts"
+  Deploy_Prod_Infra-Deploy_infra_prod:
+    name: Deploy Infra Prod
+    needs:
+      - PostTenantStage-loadVarsFromJson
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{inputs.variableGroupNamePrd}}
+    if: success()
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3.5.0
+      - name: download artifact
+        uses: actions/download-artifact@v3.0.1
+      - uses: actions/checkout@v3.5.0
+      - uses: azure/login@v1.4.6
+        with:
+          creds: "${{ secrets.AZURE_CREDENTIALS }}"
+      - run: |-
+          $ErrorActionPreference = 'stop'
+          az group create --name ${{ inputs.resourceGroupNamePrd }} --location ${{ env.location }}
+          $publicApimVirtualIpPrd = az apim show -g ${{vars.RESOURCE_GROUP_NAME_APIM_PRD}} -n ${{vars.APIM_SERVICE_NAME_PRD}} --query "publicIpAddresses[0]" | jq -r
+          Write-Host "apim public ip $publicApimVirtualIpPrd"
+          $deploymentName = "${{ inputs.resourceGroupNamePrd }}"
+          az deployment group create --name $deploymentName --resource-group ${{ inputs.resourceGroupNamePrd }} `
+            --template-file ${{ env.bicepFilePath }} --parameters appInsightsLocation=${{ env.location }} `
+            publicApimVirtualIp=$publicApimVirtualIpPrd `
+            backendClientSecret=${{ vars.BACKENDCLIENTSECRET }} `
+            backendClientId=${{ vars.BACKENDCLIENTID }} `
+            openIdIssuer="https://sts.windows.net/${{ vars.AAD_TENANT_ID }}/"
+          Write-Host "Listing deployments prd"
+          az deployment group list -o table -g ${{ inputs.resourceGroupNamePrd }}
+          if ((Test-Path -LiteralPath variable:\LASTEXITCODE)) { exit $LASTEXITCODE }
+        shell: pwsh
+  Deploy_Prod_Infra-Deploy_infra_prod_2:
+    name: Deploy infra prod part 2
+    needs:
+      - Deploy_Prod_Infra-Deploy_infra_prod
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{inputs.variableGroupName}}
+    if: success()
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3.5.0
+      - name: download artifact
+        uses: actions/download-artifact@v3.0.1
+      - uses: actions/checkout@v3.5.0
+      - uses: azure/login@v1.4.6
+        with:
+          creds: "${{ secrets.AZURE_CREDENTIALS }}"
+      - name: UPDATE variable groups PRD
+        env:
+          GITHUB_TOKEN: ${{ secrets.ADO_P_A_T }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
+        run: |-
+          $ErrorActionPreference = 'stop'
+          gh variable list --repo "${{ env.OWNER }}/${{ env.REPO }}" --env ${{inputs.variableGroupNamePrd}}
+          ${{ github.workspace }}/infra/scripts/post-deploy-github.ps1 -PatToken ${{ secrets.ADO_P_A_T }} `
+            -OrganizationUrl "${{ env.OWNER }}" -Project "${{ env.REPO }}" `
+            -VariableGroupName "${{inputs.variableGroupNamePrd}}" -ResourceGroupAzureFunction "${{inputs.resourceGroupNamePrd}}" `
+            -ResourceGroupApim "${{vars.RESOURCE_GROUP_NAME_APIM_PRD}}" `
+            -FunctionAppNameInApim "func-aad-${{inputs.InstanceNumber}}"
+          if ((Test-Path -LiteralPath variable:\LASTEXITCODE)) { exit $LASTEXITCODE }
+        shell: pwsh
+        working-directory: "${{ github.workspace }}/infra/scripts"
+  BuildApp-Build:
+    name: Build backend app
+    needs:
+      - Deploy_Dev_Infra-Deploy_infra_dev_2
+      - Deploy_Prod_Infra-Deploy_infra_prod_2
+    runs-on: windows-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3.5.0
+      # The dotnet CLI does not accept glob patterns. Consider using a solution file to act on multiple projects at once.
+      - name: Build
+        run: |-
+          $ErrorActionPreference = 'stop'
+          echo "work directory"
+          ls ${{ env.workingDirectory }}
+          echo "github workspace"
+          ls ${{ github.workspace }}
+          #ls -Recurse -Include *.csproj | ForEach-Object { dotnet build $_.FullName --configuration Release }
+          dotnet build src/ApimAzureAdB2CSoln/Hello/Hello.csproj --output ${{ github.workspace }}/publish_output --configuration Release
+      - name: Zip files
+        run: |-
+          $ErrorActionPreference = 'stop'
+          echo "published output directory"
+          ls ${{ github.workspace }}/publish_output
+          7z u ${{ runner.temp }}/${{ github.run_id }}.zip ${{ github.workspace }}/publish_output/*
+      - uses: actions/upload-artifact@v3.1.1
+        with:
+          name: "${{ env.ARTIFACT_NAME_FNAPP }}"
+          path: "${{ runner.temp }}/${{ github.run_id }}.zip"
+  Deploy_Dev-Deploy:
+    name: Deploy be dev
+    needs:
+      - BuildApp-Build
+    runs-on: windows-latest
+    environment:
+      name: APIM_AAD_backend_app_development_${{ inputs.resourceGroupNameDev }}
+    if: success()
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3.5.0
+      - name: download artifact
+        uses: actions/download-artifact@v3.0.1
+      - name: Get Function Name DEV
+        uses: azure/login@v1.4.6
+        with:
+          creds: "${{ secrets.AZURE_CREDENTIALS }}"
+      - name: Get Function Name DEV
+        run: |-
+          $ErrorActionPreference = 'stop'
+          Write-Host "looking for function app"
+          $FunctionAppName = az functionapp list -g ${{ inputs.resourceGroupNameDev }} --query "[0].name" | jq -r
+          Write-Host "found fnapp $FunctionAppName"
+          #echo "##vso[task.setvariable variable=FunctionAppNameDev;isOutput=true]$FunctionAppName"
+          echo "FUNCTION_APP_NAME_DEV=$FunctionAppName" >> $env:GITHUB_ENV
+          if ((Test-Path -LiteralPath variable:\LASTEXITCODE)) { exit $LASTEXITCODE }
+        shell: pwsh
+      - name: Test Function Name DEV
+        run: |-
+          $ErrorActionPreference = 'stop'
+          echo "env var: ${{ env.FUNCTION_APP_NAME_DEV }}"
+          echo "var only: $FUNCTION_APP_NAME_DEV"
+      - name: Azure functions app deploy
+        uses: azure/functions-action@v1.5.0
+        with:
+          app-name: "${{ env.FUNCTION_APP_NAME_DEV }}"
+          package: "${{ github.workspace }}/${{ env.ARTIFACT_NAME_FNAPP }}/${{ github.run_id }}.zip"
+  Deploy_Prod-Deploy:
+    name: Deploy be prd
+    needs:
+      - BuildApp-Build
+    runs-on: windows-latest
+    environment:
+      name: APIM_AAD_backend_app_production_${{ inputs.resourceGroupNamePrd }}
+    if: success()
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3.5.0
+      - name: download artifact
+        uses: actions/download-artifact@v3.0.1
+      - name: Get Function Name PRD
+        uses: azure/login@v1.4.6
+        with:
+          creds: "${{ secrets.AZURE_CREDENTIALS }}"
+      - name: Get Function Name PRD
+        run: |-
+          $ErrorActionPreference = 'stop'
+          Write-Host "looking for function app"
+          $FunctionAppName = az functionapp list -g ${{ inputs.resourceGroupNamePrd }} --query "[0].name" | jq -r
+          Write-Host "found fnapp $FunctionAppName"
+          #echo "##vso[task.setvariable variable=FunctionAppNamePrd;isOutput=true]$FunctionAppName"
+          echo "FUNCTION_APP_NAME_PRD=$FunctionAppName" >> $env:GITHUB_ENV
+          if ((Test-Path -LiteralPath variable:\LASTEXITCODE)) { exit $LASTEXITCODE }
+        shell: pwsh
+      - name: Test Function Name PRD
+        run: |-
+          $ErrorActionPreference = 'stop'
+          echo "env var: ${{ env.FUNCTION_APP_NAME_PRD }}"
+          echo "var only: $FUNCTION_APP_NAME_PRD"
+      - name: Azure functions app deploy
+        uses: azure/functions-action@v1.5.0
+        with:
+          app-name: "${{ env.FUNCTION_APP_NAME_PRD }}"
+          package: "${{ github.workspace }}/${{ env.ARTIFACT_NAME_FNAPP }}/${{ github.run_id }}.zip"
+  Build_Dev_web-Transform:
+    name: Transform Input Dev
+    needs:
+      - Deploy_Dev-Deploy
+      - Deploy_Prod-Deploy
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.variableGroupNameDev }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3.5.0
+      - uses: cschleiden/replace-tokens@v1
+        with:
+          files: '["**/*.html"]'
+        env:
+          TITLE_SUFFIX: ${{ vars.TITLE_SUFFIX }}
+          MSAL_AUTH_CLIENTID: ${{ vars.MSAL_AUTH_CLIENTID }}
+          MSAL_AUTH_AUTHORITY: ${{ vars.MSAL_AUTH_AUTHORITY }}
+          MSAL_AUTH_REDIRECT_URI: ${{ vars.MSAL_AUTH_REDIRECT_URI }}
+          MSAL_AUTH_KNOWN_AUTHORITIES: ${{ vars.MSAL_AUTH_KNOWN_AUTHORITIES }}
+          API_SCOPES: ${{ vars.API_SCOPES }}
+          API_BACKEND: ${{ vars.API_BACKEND }}
+      # The following script preserves the globbing behavior of the CopyFiles task.
+      # Refer to this transformer's documentation for an alternative that will work in simple cases.
+      - name: Copy
+        uses: actions/github-script@v6.4.0
+        env:
+          TARGET_FOLDER: "${{ runner.temp }}/output"
+          SOURCE_FOLDER: "${{ github.workspace }}/${{ env.project }}"
+          CONTENTS: "**"
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+          script: |-
+            const fs = require('fs').promises
+            const path = require('path')
+            const target = path.resolve(process.env.TARGET_FOLDER)
+            process.chdir(process.env.SOURCE_FOLDER || '.')
+            if (process.env.CLEAN_TARGET_FOLDER === 'true') await io.rmRF(target)
+            const flattenFolders = process.env.FLATTEN_FOLDERS === 'true'
+            const options = {force: process.env.OVERWRITE === 'true'}
+            const globber = await glob.create(process.env.CONTENTS || '**')
+            for await (const file of globber.globGenerator()) {
+              if ((await fs.lstat(file)).isDirectory()) continue
+              const filename = flattenFolders ? path.basename(file) : file.substring(process.cwd().length)
+              const dest = path.join(target, filename)
+              await io.mkdirP(path.dirname(dest))
+              await io.cp(file, dest, options)
+            }
+      - name: Share
+        uses: actions/upload-artifact@v3.1.1
+        with:
+          name: "${{ env.ARTIFACT_NAME_DEV }}"
+          path: "${{ runner.temp }}/output"
+  Release_Dev_web-DeployToStorage:
+    name: Deploy to Azure Storage Dev
+    needs:
+      - Build_Dev_web-Transform
+    runs-on: ubuntu-latest
+    environment:
+      #name: APIM_AAD_frontend_web_development_${{ inputs.resourceGroupNameDev }}
+      name: ${{ inputs.variableGroupNameDev }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3.5.0
+      - name: download artifact
+        uses: actions/download-artifact@v3.0.1
+      - name: Get Web Storage account Name DEV
+        uses: azure/login@v1.4.6
+        with:
+          creds: "${{ secrets.AZURE_CREDENTIALS }}"
+      - name: Get Web Storage account Name DEV
+        run: |-
+          $ErrorActionPreference = 'stop'
+          Write-Host "looking for web storage account"
+          $storages = az storage account list -g ${{ inputs.resourceGroupNameDev }} --query "[].name" | ConvertFrom-Json
+          $StorageAccountName = $storages | Where-Object { $_.Contains("stweb") }
+          Write-Host "found web storage account $StorageAccountName"
+          #echo "##vso[task.setvariable variable=StorageAccountNameDev;isOutput=true]$StorageAccountName"
+          echo "STORAGE_ACCOUNT_NAME_DEV=$StorageAccountName" >> $env:GITHUB_ENV
+          if ((Test-Path -LiteralPath variable:\LASTEXITCODE)) { exit $LASTEXITCODE }
+        shell: pwsh
+      - name: Test Storage Account Name DEV
+        run: |-
+          $ErrorActionPreference = 'stop'
+          echo "env var: ${{ env.STORAGE_ACCOUNT_NAME_DEV }}"
+          echo "var only: $STORAGE_ACCOUNT_NAME_DEV"
+        shell: pwsh
+      - name: Give Storage Blob Data Owner access DEV
+        run: |-
+          $ErrorActionPreference = 'stop'
+          $storages = az storage account list -g ${{ inputs.resourceGroupNameDev }} --query "[].name" | ConvertFrom-Json
+          $StorageAccountName = $storages | Where-Object { $_.Contains("stweb") }
+          Write-Host "found web storage account $StorageAccountName"
+          $scope = az storage account show -g ${{ inputs.resourceGroupNameDev }} -n $StorageAccountName --query "id" | ConvertFrom-Json
+          try {
+            Write-Host "Assigning Storage Blob Data Owner role to the service principal..."
+            New-AzRoleAssignment -ObjectID ${{ env.objectIdForADOServicePrincipal }} `
+              -RoleDefinitionName "Storage Blob Data Owner" `
+              -Scope $scope
+          }
+          catch {
+            Write-Host "Perhaps the role assignment already exists?"
+          }
+          if ((Test-Path -LiteralPath variable:\LASTEXITCODE)) { exit $LASTEXITCODE }
+        shell: pwsh
+      - name: Delete Existing Files
+        run: |-
+          $ErrorActionPreference = 'stop'
+          az storage blob delete-batch -s `$web --account-name ${{ env.STORAGE_ACCOUNT_NAME_DEV }} --auth-mode login
+          if ((Test-Path -LiteralPath variable:\LASTEXITCODE)) { exit $LASTEXITCODE }
+        shell: pwsh
+      # - uses: actions/download-artifact@v3
+      #   with:
+      #     name: my-artifact
+      # - name: download artifact
+      #   uses: actions/download-artifact@v3.0.1
+      # - name: Display structure of downloaded files
+      #   run: ls -R
+      - name: Copy Files to Storage (no warnings)
+        run: |-
+          $ErrorActionPreference = 'stop'
+          Write-Host "looking workspace"
+          ls -r '${{ github.workspace }}'
+          Write-Host "looking workspace artifact"
+          ls -r '${{ github.workspace }}/${{ env.ARTIFACT_NAME_DEV }}'
+          az storage blob upload -f '${{ github.workspace }}/${{ env.ARTIFACT_NAME_DEV }}/index.html' -c "`$web" --account-name "${{ env.STORAGE_ACCOUNT_NAME_DEV }}" --auth-mode login --overwrite
+          if ((Test-Path -LiteralPath variable:\LASTEXITCODE)) { exit $LASTEXITCODE }
+        shell: pwsh
+      - name: Generate XML Policies DEV
+        run: |-
+          $ErrorActionPreference = 'stop'
+          Write-Host "looking for apim"
+          $ApimServiceName = az apim list -g ${{vars.RESOURCE_GROUP_NAME_APIM_DEV}} --query "[0].name" | jq -r
+          Write-Host "found apim $ApimServiceName"
+          Write-Host  "looking for apim public ip"
+          $apimPublicIp = az apim show -g ${{vars.RESOURCE_GROUP_NAME_APIM_DEV}} -n $ApimServiceName --query "publicIpAddresses[0]" | jq -r
+          Write-Host "public ip is $apimPublicIp"
+          $apimGatewayUrl = az apim show -g ${{vars.RESOURCE_GROUP_NAME_APIM_DEV}} -n $ApimServiceName --query "gatewayUrl" | jq -r
+          $developerPortalUrl = az apim show -g ${{vars.RESOURCE_GROUP_NAME_APIM_DEV}} -n $ApimServiceName --query "developerPortalUrl" | jq -r
+          Write-Host "apim gateway url is $apimGatewayUrl"
+          Write-Host "apim dev portal url is $developerPortalUrl"
+          ./Fix-XmlPolicy.ps1 -PrimaryStorageEndpoint "${{ vars.MSAL_AUTH_REDIRECT_URI }}" `
+              -backendApiApplicationClientId ${{ vars.BACKENDCLIENTID }} `
+              -aadpolicy_well_known_openid "https://login.microsoftonline.com/${{inputs.TenantName}}.onmicrosoft.com/v2.0/.well-known/openid-configuration" `
+              -environmentName dev -XmlPolicyTemplatePath ./APIM/policies/policies.template.xml `
+              -apimDeveloperPortal "$developerPortalUrl" `
+              -XmlRootPolicyTemplatePath ./APIM/policies/policiesRoot.template.xml
+          if ((Test-Path -LiteralPath variable:\LASTEXITCODE)) { exit $LASTEXITCODE }
+        shell: pwsh
+        working-directory: "${{ github.workspace }}/aad"
+      # The following script preserves the globbing behavior of the CopyFiles task.
+      # Refer to this transformer's documentation for an alternative that will work in simple cases.
+      - uses: actions/github-script@v6.4.0
+        env:
+          TARGET_FOLDER: "${{ runner.temp }}"
+          SOURCE_FOLDER: "${{ github.workspace }}/aad/APIM/policies"
+          CONTENTS: "**"
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+          script: |-
+            const fs = require('fs').promises
+            const path = require('path')
+            const target = path.resolve(process.env.TARGET_FOLDER)
+            process.chdir(process.env.SOURCE_FOLDER || '.')
+            if (process.env.CLEAN_TARGET_FOLDER === 'true') await io.rmRF(target)
+            const flattenFolders = process.env.FLATTEN_FOLDERS === 'true'
+            const options = {force: process.env.OVERWRITE === 'true'}
+            const globber = await glob.create(process.env.CONTENTS || '**')
+            for await (const file of globber.globGenerator()) {
+              if ((await fs.lstat(file)).isDirectory()) continue
+              const filename = flattenFolders ? path.basename(file) : file.substring(process.cwd().length)
+              const dest = path.join(target, filename)
+              await io.mkdirP(path.dirname(dest))
+              await io.cp(file, dest, options)
+            }
+      - uses: actions/upload-artifact@v3.1.1
+        with:
+          name: apim_policies_dev
+          path: "${{ runner.temp }}"
+  Build_Prod_web-Transform:
+    name: Transform Input Prd
+    needs:
+      - Deploy_Dev-Deploy
+      - Deploy_Prod-Deploy
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.variableGroupNamePrd }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3.5.0
+      - uses: cschleiden/replace-tokens@v1
+        with:
+          files: '["**/*.html"]'
+        env:
+          TITLE_SUFFIX: ${{ vars.TITLE_SUFFIX }}
+          MSAL_AUTH_CLIENTID: ${{ vars.MSAL_AUTH_CLIENTID }}
+          MSAL_AUTH_AUTHORITY: ${{ vars.MSAL_AUTH_AUTHORITY }}
+          MSAL_AUTH_REDIRECT_URI: ${{ vars.MSAL_AUTH_REDIRECT_URI }}
+          MSAL_AUTH_KNOWN_AUTHORITIES: ${{ vars.MSAL_AUTH_KNOWN_AUTHORITIES }}
+          API_SCOPES: ${{ vars.API_SCOPES }}
+          API_BACKEND: ${{ vars.API_BACKEND }}
+      # The following script preserves the globbing behavior of the CopyFiles task.
+      # Refer to this transformer's documentation for an alternative that will work in simple cases.
+      - name: Copy
+        uses: actions/github-script@v6.4.0
+        env:
+          TARGET_FOLDER: "${{ runner.temp }}/output"
+          SOURCE_FOLDER: "${{ github.workspace }}/${{ env.project }}"
+          CONTENTS: "**"
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+          script: |-
+            const fs = require('fs').promises
+            const path = require('path')
+            const target = path.resolve(process.env.TARGET_FOLDER)
+            process.chdir(process.env.SOURCE_FOLDER || '.')
+            if (process.env.CLEAN_TARGET_FOLDER === 'true') await io.rmRF(target)
+            const flattenFolders = process.env.FLATTEN_FOLDERS === 'true'
+            const options = {force: process.env.OVERWRITE === 'true'}
+            const globber = await glob.create(process.env.CONTENTS || '**')
+            for await (const file of globber.globGenerator()) {
+              if ((await fs.lstat(file)).isDirectory()) continue
+              const filename = flattenFolders ? path.basename(file) : file.substring(process.cwd().length)
+              const dest = path.join(target, filename)
+              await io.mkdirP(path.dirname(dest))
+              await io.cp(file, dest, options)
+            }
+      - name: Share
+        uses: actions/upload-artifact@v3.1.1
+        with:
+          name: "${{ env.ARTIFACT_NAME_PROD }}"
+          path: "${{ runner.temp }}/output"
+  Release_Prod_web-DeployToStorage:
+    name: Deploy to Azure Storage Prd
+    needs:
+      - Build_Prod_web-Transform
+    runs-on: ubuntu-latest
+    environment:
+      #name: APIM_AAD_frontend_web_production_${{ inputs.resourceGroupNamePrd }}
+      name: ${{ inputs.variableGroupNamePrd }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3.5.0
+      - name: download artifact
+        uses: actions/download-artifact@v3.0.1
+      - name: Get Web Storage account Name PRD
+        uses: azure/login@v1.4.6
+        with:
+          creds: "${{ secrets.AZURE_CREDENTIALS }}"
+      - name: Get Web Storage account Name PRD
+        run: |-
+          $ErrorActionPreference = 'stop'
+          Write-Host "looking for web storage account"
+          $storages = az storage account list -g ${{ inputs.resourceGroupNamePrd }} --query "[].name" | ConvertFrom-Json
+          $StorageAccountName = $storages | Where-Object { $_.Contains("stweb") }
+          Write-Host "found web storage account $StorageAccountName"
+          #echo "##vso[task.setvariable variable=StorageAccountNamePrd;isOutput=true]$StorageAccountName"
+          echo "STORAGE_ACCOUNT_NAME_PRD=$StorageAccountName" >> $env:GITHUB_ENV
+          if ((Test-Path -LiteralPath variable:\LASTEXITCODE)) { exit $LASTEXITCODE }
+        shell: pwsh
+      - name: Test Storage Account Name PRD
+        run: |-
+          $ErrorActionPreference = 'stop'
+          echo "env var: ${{ env.STORAGE_ACCOUNT_NAME_PRD }}"
+          echo "var only: $STORAGE_ACCOUNT_NAME_PRD"
+        shell: pwsh
+      - name: Give Storage Blob Data Owner access PRD
+        run: |-
+          $ErrorActionPreference = 'stop'
+          $storages = az storage account list -g ${{ inputs.resourceGroupNamePrd }} --query "[].name" | ConvertFrom-Json
+          $StorageAccountName = $storages | Where-Object { $_.Contains("stweb") }
+          Write-Host "found web storage account $StorageAccountName"
+          $scope = az storage account show -g ${{ inputs.resourceGroupNamePrd }} -n $StorageAccountName --query "id" | ConvertFrom-Json
+          try {
+            Write-Host "Assigning Storage Blob Data Owner role to the service principal..."
+            New-AzRoleAssignment -ObjectID ${{ env.objectIdForADOServicePrincipal }} `
+              -RoleDefinitionName "Storage Blob Data Owner" `
+              -Scope $scope
+          }
+          catch {
+            Write-Host "Perhaps the role assignment already exists?"
+          }
+          if ((Test-Path -LiteralPath variable:\LASTEXITCODE)) { exit $LASTEXITCODE }
+        shell: pwsh
+      - name: Delete Existing Files
+        run: |-
+          $ErrorActionPreference = 'stop'
+          az storage blob delete-batch -s `$web --account-name ${{ env.STORAGE_ACCOUNT_NAME_PRD }} --auth-mode login
+          if ((Test-Path -LiteralPath variable:\LASTEXITCODE)) { exit $LASTEXITCODE }
+        shell: pwsh
+      # - uses: actions/download-artifact@v3
+      #   with:
+      #     name: my-artifact
+      #- name: download artifact
+      #  uses: actions/download-artifact@v3.0.1
+      #- name: Display structure of downloaded files
+      #  run: ls -R
+      - name: Copy Files to Storage (no warnings)
+        run: |-
+          $ErrorActionPreference = 'stop'
+          Write-Host "looking workspace"
+          ls -r '${{ github.workspace }}'
+          Write-Host "looking workspace artifact"
+          ls -r '${{ github.workspace }}/${{ env.ARTIFACT_NAME_PROD }}'
+          az storage blob upload -f '${{ github.workspace }}/${{ env.ARTIFACT_NAME_PROD }}/index.html' -c "`$web" --account-name "${{ env.STORAGE_ACCOUNT_NAME_PRD }}" --auth-mode login --overwrite
+          if ((Test-Path -LiteralPath variable:\LASTEXITCODE)) { exit $LASTEXITCODE }
+        shell: pwsh
+      - name: Generate XML Policies PRD
+        run: |-
+          $ErrorActionPreference = 'stop'
+          Write-Host "looking for apim"
+          $ApimServiceName = az apim list -g ${{vars.RESOURCE_GROUP_NAME_APIM_PRD}} --query "[0].name" | jq -r
+          Write-Host "found apim $ApimServiceName"
+          Write-Host  "looking for apim public ip"
+          $apimPublicIp = az apim show -g ${{vars.RESOURCE_GROUP_NAME_APIM_PRD}} -n $ApimServiceName --query "publicIpAddresses[0]" | jq -r
+          Write-Host "public ip is $apimPublicIp"
+          $apimGatewayUrl = az apim show -g ${{vars.RESOURCE_GROUP_NAME_APIM_PRD}} -n $ApimServiceName --query "gatewayUrl" | jq -r
+          $developerPortalUrl = az apim show -g ${{vars.RESOURCE_GROUP_NAME_APIM_PRD}} -n $ApimServiceName --query "developerPortalUrl" | jq -r
+          Write-Host "apim gateway url is $apimGatewayUrl"
+          Write-Host "apim dev portal url is $developerPortalUrl"
+          ./Fix-XmlPolicy.ps1 -PrimaryStorageEndpoint "${{ vars.MSAL_AUTH_REDIRECT_URI }}" `
+              -backendApiApplicationClientId ${{ vars.BACKENDCLIENTID }} `
+              -aadpolicy_well_known_openid "https://login.microsoftonline.com/${{inputs.TenantName}}.onmicrosoft.com/v2.0/.well-known/openid-configuration" `
+              -environmentName prd -XmlPolicyTemplatePath ./APIM/policies/policies.template.xml `
+              -apimDeveloperPortal "$developerPortalUrl" `
+              -XmlRootPolicyTemplatePath ./APIM/policies/policiesRoot.template.xml
+          if ((Test-Path -LiteralPath variable:\LASTEXITCODE)) { exit $LASTEXITCODE }
+        shell: pwsh
+        working-directory: "${{ github.workspace }}/aad"
+      # The following script preserves the globbing behavior of the CopyFiles task.
+      # Refer to this transformer's documentation for an alternative that will work in simple cases.
+      - uses: actions/github-script@v6.4.0
+        env:
+          TARGET_FOLDER: "${{ runner.temp }}"
+          SOURCE_FOLDER: "${{ github.workspace }}/aad/APIM/policies"
+          CONTENTS: "**"
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+          script: |-
+            const fs = require('fs').promises
+            const path = require('path')
+            const target = path.resolve(process.env.TARGET_FOLDER)
+            process.chdir(process.env.SOURCE_FOLDER || '.')
+            if (process.env.CLEAN_TARGET_FOLDER === 'true') await io.rmRF(target)
+            const flattenFolders = process.env.FLATTEN_FOLDERS === 'true'
+            const options = {force: process.env.OVERWRITE === 'true'}
+            const globber = await glob.create(process.env.CONTENTS || '**')
+            for await (const file of globber.globGenerator()) {
+              if ((await fs.lstat(file)).isDirectory()) continue
+              const filename = flattenFolders ? path.basename(file) : file.substring(process.cwd().length)
+              const dest = path.join(target, filename)
+              await io.mkdirP(path.dirname(dest))
+              await io.cp(file, dest, options)
+            }
+      - uses: actions/upload-artifact@v3.1.1
+        with:
+          name: apim_policies_prd
+          path: "${{ runner.temp }}"
+  UpdateStageDev-update_job:
+    name: update job dev
+    needs:
+      - Release_Dev_web-DeployToStorage
+      - Release_Prod_web-DeployToStorage
+    runs-on: windows-latest
+    environment:
+      name: ${{inputs.variableGroupNameDev}}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3.5.0
+      - name: Show variable groups with variable count
+        env:
+          GITHUB_TOKEN: ${{ secrets.ADO_P_A_T }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
+        run: |-
+          gh secret list --repo "${{env.OWNER}}/${{env.REPO}}"
+          gh variable list --repo "${{env.OWNER}}/${{env.REPO}}"
+        shell: pwsh
+      - name: Download pfx cert as base64 string
+        id: graphSpCertificate_secureFilePath
+        uses: timheuer/base64-to-file@v1.2
+        with:
+          fileName: "myTemporaryFile.txt"
+          encodedString: ${{ secrets.ADO_AAD_GRAPH_CLIENT_BASE64 }}
+      - name: Install Graph PowerShell module
+        run: |-
+          # Graph module shouldn't be preinstalled on the agent, but checking anyway.
+          if (Get-Module -ListAvailable -Name Microsoft.Graph) {
+            Write-Host "*** Module Microsoft.Graph exists."
+          }
+          else {
+            Write-Host "*** Installing Microsoft.Graph module..."
+            Install-Module Microsoft.Graph -Force
+          }
+          $CertPath = "${{ steps.graphSpCertificate_secureFilePath.outputs.filePath }}"
+          Write-Host "*** Certificate path: " $CertPath
+          $Certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($CertPath, "${{ secrets.AAD_ADO_CLIENT_CERT_PASSWORD }}")
+          $tenantId = "${{inputs.TenantName}}.onmicrosoft.com"
+          # Connecting using app-only authentication with in-memory certificate.
+          Connect-MgGraph -ClientID "${{ vars.AAD_ADO_CLIENT_ID }}" -TenantId "$tenantId" -Certificate $Certificate
+          $app = Get-MgApplication | Where-Object { $_.AppId -eq "${{ vars.MSAL_AUTH_CLIENTID }}" }
+          $newUri = "${{ vars.MSAL_AUTH_REDIRECT_URI }}"
+          Write-Host "front end app $app - checking for uri $newUri"
+          if ($app.Spa.RedirectUris.Contains("$newUri")) {
+            Write-Host "*** Redirect URI $newUri already present, skipping."
+          }
+          else {
+            # Add FQDN to the registration
+            $app.Spa.RedirectUris += "$newUri"
+            # Update app registration
+            Update-MgApplication -ApplicationId $app.Id -Spa $app.Spa
+          }
+        shell: powershell
+      - name: add redirect uri for oauth server DEV
+        uses: azure/login@v1.4.6
+        with:
+          creds: "${{ secrets.AZURE_CREDENTIALS }}"
+      - name: add redirect uri for oauth server DEV
+        run: |-
+          $ErrorActionPreference = 'stop'
+          Write-Host "looking for apim"
+          $ApimServiceName = az apim list -g ${{vars.RESOURCE_GROUP_NAME_APIM_DEV}} --query "[0].name" | jq -r
+          Write-Host "found apim $ApimServiceName"
+          $developerPortalUrl = az apim show -g ${{vars.RESOURCE_GROUP_NAME_APIM_DEV}} -n $ApimServiceName --query "developerPortalUrl" | jq -r
+          Write-Host "apim dev portal url is $developerPortalUrl"
+          #front end APIM DEV
+          # Graph module shouldn't be preinstalled on the agent, but checking anyway.
+          if (Get-Module -ListAvailable -Name Microsoft.Graph) {
+            Write-Host "*** Module Microsoft.Graph exists."
+          }
+          else {
+            Write-Host "*** Installing Microsoft.Graph module..."
+            Install-Module Microsoft.Graph -Force
+          }
+          $CertPath = "${{ steps.graphSpCertificate_secureFilePath.outputs.filePath }}"
+          Write-Host "*** Certificate path: " $CertPath
+          $Certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($CertPath, "${{ secrets.AAD_ADO_CLIENT_CERT_PASSWORD }}")
+          $tenantId = "${{inputs.TenantName}}.onmicrosoft.com"
+          # Connecting using app-only authentication with in-memory certificate.
+          Connect-MgGraph -ClientID "${{ vars.AAD_ADO_CLIENT_ID }}" -TenantId "$tenantId" -Certificate $Certificate
+          $appApim = Get-MgApplication | Where-Object { $_.AppId -eq "${{ vars.APIMFRONTENDCLIENTID }}" }
+          $newUriApim = "$developerPortalUrl/signin-oauth/code/callback/aad${{inputs.InstanceNumber}}oauthserver"
+          Write-Host "front end APIM app $appApim - checking for uri $newUriApim"
+          if ($appApim.Web.RedirectUris.Contains("$newUriApim")) {
+            Write-Host "*** Redirect URI $newUriApim already present, skipping."
+          }
+          else {
+            # Add FQDN to the registration
+            $appApim.Web.RedirectUris += "$newUriApim"
+            # Update app registration
+            Update-MgApplication -ApplicationId $appApim.Id -Web $appApim.Web
+          }
+          if ((Test-Path -LiteralPath variable:\LASTEXITCODE)) { exit $LASTEXITCODE }
+        shell: pwsh
+        working-directory: "${{ github.workspace }}/aad"
+      - name: Update Name Value Pair for backend in APIM DEV
+        run: |-
+          $ErrorActionPreference = 'stop'
+          Write-Host "looking for apim"
+          $ApimServiceName = az apim list -g ${{vars.RESOURCE_GROUP_NAME_APIM_DEV}} --query "[0].name" | jq -r
+          Write-Host "found apim $ApimServiceName"
+          Write-Host  "looking for apim public ip"
+          $apimPublicIp = az apim show -g ${{vars.RESOURCE_GROUP_NAME_APIM_DEV}} -n $ApimServiceName --query "publicIpAddresses[0]" | jq -r
+          Write-Host "public ip is $apimPublicIp"
+          $apimGatewayUrl = az apim show -g ${{vars.RESOURCE_GROUP_NAME_APIM_DEV}} -n $ApimServiceName --query "gatewayUrl" | jq -r
+          $developerPortalUrl = az apim show -g ${{vars.RESOURCE_GROUP_NAME_APIM_DEV}} -n $ApimServiceName --query "developerPortalUrl" | jq -r
+          Write-Host "apim gateway url is $apimGatewayUrl"
+          Write-Host "apim dev portal url is $developerPortalUrl"
+          az apim nv list --resource-group ${{vars.RESOURCE_GROUP_NAME_APIM_DEV}} --service-name $ApimServiceName -o table
+          Write-Host "updating to backend id ${{inputs.InstanceNumber}} ${{ vars.BACKENDCLIENTID }} - if prod will need to fix configuration.prod.yaml in API Ops"
+          try {
+            az apim nv create --service-name $ApimServiceName -g ${{vars.RESOURCE_GROUP_NAME_APIM_DEV}} --named-value-id "aadbackend-api-application-client-id-${{inputs.InstanceNumber}}" --display-name "aadbackend-api-application-client-id-${{inputs.InstanceNumber}}" --value ${{ vars.BACKENDCLIENTID }}
+          }
+          catch {
+            Wait-Host "already exists so updating it"
+            az apim nv update --service-name $ApimServiceName -g ${{vars.RESOURCE_GROUP_NAME_APIM_DEV}} --named-value-id "aadbackend-api-application-client-id-${{inputs.InstanceNumber}}" --value ${{ vars.BACKENDCLIENTID }}
+          }
+          Write-Host "updating to web ${{inputs.InstanceNumber}} ${{ vars.MSAL_AUTH_REDIRECT_URI }} - if prod will need to fix configuration.prod.yaml in API Ops"
+          try {
+            az apim nv create --service-name $ApimServiceName -g ${{vars.RESOURCE_GROUP_NAME_APIM_DEV}} --named-value-id "aadPrimaryStorageEndpoint-${{inputs.InstanceNumber}}" --display-name "aadPrimaryStorageEndpoint-${{inputs.InstanceNumber}}" --value ${{ vars.MSAL_AUTH_REDIRECT_URI }}
+          }
+          catch {
+            Wait-Host "already exists so updating it"
+            az apim nv update --service-name $ApimServiceName -g ${{vars.RESOURCE_GROUP_NAME_APIM_DEV}} --named-value-id "aadPrimaryStorageEndpoint-${{inputs.InstanceNumber}}" --value ${{ vars.MSAL_AUTH_REDIRECT_URI }}
+          }
+          $wellKnown = "https://login.microsoftonline.com/${{inputs.TenantName}}.onmicrosoft.com/v2.0/.well-known/openid-configuration"
+          Write-Host "updating to well-known ${{inputs.InstanceNumber}} $wellKnown - if prod will need to fix configuration.prod.yaml in API Ops"
+          try {
+            az apim nv create --service-name $ApimServiceName -g ${{vars.RESOURCE_GROUP_NAME_APIM_DEV}} --named-value-id "aadpolicy-well-known-openid-${{inputs.InstanceNumber}}" --display-name "aadpolicy-well-known-openid-${{inputs.InstanceNumber}}" --value $wellKnown
+          }
+          catch {
+            Wait-Host "already exists so updating it"
+            az apim nv update --service-name $ApimServiceName -g ${{vars.RESOURCE_GROUP_NAME_APIM_DEV}} --named-value-id "aadpolicy-well-known-openid-${{inputs.InstanceNumber}}" --value $wellKnown
+          }
+          az apim nv list --resource-group ${{vars.RESOURCE_GROUP_NAME_APIM_DEV}} --service-name $ApimServiceName -o table
+          if ((Test-Path -LiteralPath variable:\LASTEXITCODE)) { exit $LASTEXITCODE }
+        shell: pwsh
+        working-directory: "${{ github.workspace }}/aad"
+      - name: deploy oauth server for dev portal DEV
+        run: |-
+          $ErrorActionPreference = 'stop'
+          Write-Host "looking for apim"
+          $ApimServiceName = az apim list -g ${{vars.RESOURCE_GROUP_NAME_APIM_DEV}} --query "[0].name" | jq -r
+          Write-Host "found apim $ApimServiceName"
+          echo adding oauth server
+          az deployment group create --resource-group ${{vars.RESOURCE_GROUP_NAME_APIM_DEV}} --name oauthserverdev${{inputs.TenantName}} `
+            --template-fil ../infra/api-management-create-with-external-vnet-publicip-stv2/oauth-server/main.bicep `
+            --parameters apimServiceName=$ApimServiceName oauthServerForDevPortalName=aad${{inputs.InstanceNumber}}oauthserver `
+            authorizationEndpoint="https://login.microsoftonline.com/${{inputs.TenantName}}.onmicrosoft.com/oauth2/v2.0/authorize" `
+            tokenEndpoint="https://login.microsoftonline.com/${{inputs.TenantName}}.onmicrosoft.com/oauth2/v2.0/token" `
+            defaultScope="https://${{inputs.TenantName}}.onmicrosoft.com/${{ vars.BACKENDCLIENTID }}/Hello" `
+            environmentName=dev `
+            frontendClientId=${{ vars.APIMFRONTENDCLIENTID }} frontendClientSecret="${{ vars.APIMFRONTENDCLIENTSECRET }}"
+          if ((Test-Path -LiteralPath variable:\LASTEXITCODE)) { exit $LASTEXITCODE }
+        shell: pwsh
+        working-directory: "${{ github.workspace }}/aad"
+  UpdateStagePrd-update_job:
+    name: update job prd
+    needs:
+      - Release_Dev_web-DeployToStorage
+      - Release_Prod_web-DeployToStorage
+    runs-on: windows-latest
+    environment:
+      name: ${{inputs.variableGroupNamePrd}}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3.5.0
+      - name: Show variable groups with variable count
+        env:
+          GITHUB_TOKEN: ${{ secrets.ADO_P_A_T }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
+        run: |-
+          gh secret list --repo "${{env.OWNER}}/${{env.REPO}}"
+          gh variable list --repo "${{env.OWNER}}/${{env.REPO}}"
+        shell: pwsh
+      - name: Download pfx cert as base64 string
+        id: graphSpCertificate_secureFilePath
+        uses: timheuer/base64-to-file@v1.2
+        with:
+          fileName: "myTemporaryFile.txt"
+          encodedString: ${{ secrets.ADO_AAD_GRAPH_CLIENT_BASE64 }}
+      - name: Install Graph PowerShell module
+        run: |-
+          # Graph module shouldn't be preinstalled on the agent, but checking anyway.
+          if (Get-Module -ListAvailable -Name Microsoft.Graph) {
+            Write-Host "*** Module Microsoft.Graph exists."
+          }
+          else {
+            Write-Host "*** Installing Microsoft.Graph module..."
+            Install-Module Microsoft.Graph -Force
+          }
+          $CertPath = "${{ steps.graphSpCertificate_secureFilePath.outputs.filePath }}"
+          Write-Host "*** Certificate path: " $CertPath
+          $Certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($CertPath, "${{ secrets.AAD_ADO_CLIENT_CERT_PASSWORD }}")
+          $tenantId = "${{inputs.TenantName}}.onmicrosoft.com"
+          # Connecting using app-only authentication with in-memory certificate.
+          Connect-MgGraph -ClientID "${{ vars.AAD_ADO_CLIENT_ID }}" -TenantId "$tenantId" -Certificate $Certificate
+          $app = Get-MgApplication | Where-Object { $_.AppId -eq "${{ vars.MSAL_AUTH_CLIENTID }}" }
+          $newUri = "${{ vars.MSAL_AUTH_REDIRECT_URI }}"
+          Write-Host "front end app $app - checking for uri $newUri"
+          if ($app.Spa.RedirectUris.Contains("$newUri")) {
+            Write-Host "*** Redirect URI $newUri already present, skipping."
+          }
+          else {
+            # Add FQDN to the registration
+            $app.Spa.RedirectUris += "$newUri"
+            # Update app registration
+            Update-MgApplication -ApplicationId $app.Id -Spa $app.Spa
+          }
+        shell: powershell
+      - name: add redirect uri for oauth server PRD
+        uses: azure/login@v1.4.6
+        with:
+          creds: "${{ secrets.AZURE_CREDENTIALS }}"
+      - name: add redirect uri for oauth server PRD
+        run: |-
+          $ErrorActionPreference = 'stop'
+          Write-Host "looking for apim"
+          $ApimServiceName = az apim list -g ${{vars.RESOURCE_GROUP_NAME_APIM_PRD}} --query "[0].name" | jq -r
+          Write-Host "found apim $ApimServiceName"
+          $developerPortalUrl = az apim show -g ${{vars.RESOURCE_GROUP_NAME_APIM_PRD}} -n $ApimServiceName --query "developerPortalUrl" | jq -r
+          Write-Host "apim dev portal url is $developerPortalUrl"
+          #front end APIM PRD
+          # Graph module shouldn't be preinstalled on the agent, but checking anyway.
+          if (Get-Module -ListAvailable -Name Microsoft.Graph) {
+            Write-Host "*** Module Microsoft.Graph exists."
+          }
+          else {
+            Write-Host "*** Installing Microsoft.Graph module..."
+            Install-Module Microsoft.Graph -Force
+          }
+          $CertPath = "${{ steps.graphSpCertificate_secureFilePath.outputs.filePath }}"
+          Write-Host "*** Certificate path: " $CertPath
+          $Certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($CertPath, "${{ secrets.AAD_ADO_CLIENT_CERT_PASSWORD }}")
+          $tenantId = "${{inputs.TenantName}}.onmicrosoft.com"
+          # Connecting using app-only authentication with in-memory certificate.
+          Connect-MgGraph -ClientID "${{ vars.AAD_ADO_CLIENT_ID }}" -TenantId "$tenantId" -Certificate $Certificate
+          $appApim = Get-MgApplication | Where-Object { $_.AppId -eq "${{ vars.APIMFRONTENDCLIENTID }}" }
+          $newUriApim = "$developerPortalUrl/signin-oauth/code/callback/aad${{inputs.InstanceNumber}}oauthserver"
+          Write-Host "front end APIM app $appApim - checking for uri $newUriApim"
+          if ($appApim.Web.RedirectUris.Contains("$newUriApim")) {
+            Write-Host "*** Redirect URI $newUriApim already present, skipping."
+          }
+          else {
+            # Add FQDN to the registration
+            $appApim.Web.RedirectUris += "$newUriApim"
+            # Update app registration
+            Update-MgApplication -ApplicationId $appApim.Id -Web $appApim.Web
+          }
+          if ((Test-Path -LiteralPath variable:\LASTEXITCODE)) { exit $LASTEXITCODE }
+        shell: pwsh
+        working-directory: "${{ github.workspace }}/aad"
+      - name: Update Name Value Pair for backend in APIM PRD
+        run: |-
+          $ErrorActionPreference = 'stop'
+          Write-Host "looking for apim"
+          $ApimServiceName = az apim list -g ${{vars.RESOURCE_GROUP_NAME_APIM_PRD}} --query "[0].name" | jq -r
+          Write-Host "found apim $ApimServiceName"
+          Write-Host  "looking for apim public ip"
+          $apimPublicIp = az apim show -g ${{vars.RESOURCE_GROUP_NAME_APIM_PRD}} -n $ApimServiceName --query "publicIpAddresses[0]" | jq -r
+          Write-Host "public ip is $apimPublicIp"
+          $apimGatewayUrl = az apim show -g ${{vars.RESOURCE_GROUP_NAME_APIM_PRD}} -n $ApimServiceName --query "gatewayUrl" | jq -r
+          $developerPortalUrl = az apim show -g ${{vars.RESOURCE_GROUP_NAME_APIM_PRD}} -n $ApimServiceName --query "developerPortalUrl" | jq -r
+          Write-Host "apim gateway url is $apimGatewayUrl"
+          Write-Host "apim dev portal url is $developerPortalUrl"
+          az apim nv list --resource-group ${{vars.RESOURCE_GROUP_NAME_APIM_PRD}} --service-name $ApimServiceName -o table
+          Write-Host "updating to backend id ${{inputs.InstanceNumber}} ${{ vars.BACKENDCLIENTID }} - if prod will need to fix configuration.prod.yaml in API Ops"
+          try {
+            az apim nv create --service-name $ApimServiceName -g ${{vars.RESOURCE_GROUP_NAME_APIM_PRD}} --named-value-id "aadbackend-api-application-client-id-${{inputs.InstanceNumber}}" --display-name "aadbackend-api-application-client-id-${{inputs.InstanceNumber}}" --value ${{ vars.BACKENDCLIENTID }}
+          }
+          catch {
+            Wait-Host "already exists so updating it"
+            az apim nv update --service-name $ApimServiceName -g ${{vars.RESOURCE_GROUP_NAME_APIM_PRD}} --named-value-id "aadbackend-api-application-client-id-${{inputs.InstanceNumber}}" --value ${{ vars.BACKENDCLIENTID }}
+          }
+          Write-Host "updating to web ${{inputs.InstanceNumber}} ${{ vars.MSAL_AUTH_REDIRECT_URI }} - if prod will need to fix configuration.prod.yaml in API Ops"
+          try {
+            az apim nv create --service-name $ApimServiceName -g ${{vars.RESOURCE_GROUP_NAME_APIM_PRD}} --named-value-id "aadPrimaryStorageEndpoint-${{inputs.InstanceNumber}}" --display-name "aadPrimaryStorageEndpoint-${{inputs.InstanceNumber}}" --value ${{ vars.MSAL_AUTH_REDIRECT_URI }}
+          }
+          catch {
+            Wait-Host "already exists so updating it"
+            az apim nv update --service-name $ApimServiceName -g ${{vars.RESOURCE_GROUP_NAME_APIM_PRD}} --named-value-id "aadPrimaryStorageEndpoint-${{inputs.InstanceNumber}}" --value ${{ vars.MSAL_AUTH_REDIRECT_URI }}
+          }
+          $wellKnown = "https://login.microsoftonline.com/${{inputs.TenantName}}.onmicrosoft.com/v2.0/.well-known/openid-configuration"
+          Write-Host "updating to well-known ${{inputs.InstanceNumber}} $wellKnown - if prod will need to fix configuration.prod.yaml in API Ops"
+          try {
+            az apim nv create --service-name $ApimServiceName -g ${{vars.RESOURCE_GROUP_NAME_APIM_PRD}} --named-value-id "aadpolicy-well-known-openid-${{inputs.InstanceNumber}}" --display-name "aadpolicy-well-known-openid-${{inputs.InstanceNumber}}" --value $wellKnown
+          }
+          catch {
+            Wait-Host "already exists so updating it"
+            az apim nv update --service-name $ApimServiceName -g ${{vars.RESOURCE_GROUP_NAME_APIM_PRD}} --named-value-id "aadpolicy-well-known-openid-${{inputs.InstanceNumber}}" --value $wellKnown
+          }
+          az apim nv list --resource-group ${{vars.RESOURCE_GROUP_NAME_APIM_PRD}} --service-name $ApimServiceName -o table
+          if ((Test-Path -LiteralPath variable:\LASTEXITCODE)) { exit $LASTEXITCODE }
+        shell: pwsh
+        working-directory: "${{ github.workspace }}/aad"
+      - name: deploy oauth server for dev portal PRD
+        run: |-
+          $ErrorActionPreference = 'stop'
+          Write-Host "looking for apim"
+          $ApimServiceName = az apim list -g ${{vars.RESOURCE_GROUP_NAME_APIM_PRD}} --query "[0].name" | jq -r
+          Write-Host "found apim $ApimServiceName"
+          echo adding oauth server
+          az deployment group create --resource-group ${{vars.RESOURCE_GROUP_NAME_APIM_PRD}} --name oauthserverprd${{inputs.TenantName}} `
+            --template-fil ../infra/api-management-create-with-external-vnet-publicip-stv2/oauth-server/main.bicep `
+            --parameters apimServiceName=$ApimServiceName oauthServerForDevPortalName=aad${{inputs.InstanceNumber}}oauthserver `
+            authorizationEndpoint="https://login.microsoftonline.com/${{inputs.TenantName}}.onmicrosoft.com/oauth2/v2.0/authorize" `
+            tokenEndpoint="https://login.microsoftonline.com/${{inputs.TenantName}}.onmicrosoft.com/oauth2/v2.0/token" `
+            defaultScope="https://${{inputs.TenantName}}.onmicrosoft.com/${{ vars.BACKENDCLIENTID }}/Hello" `
+            environmentName=prd `
+            frontendClientId=${{ vars.APIMFRONTENDCLIENTID }} frontendClientSecret="${{ vars.APIMFRONTENDCLIENTSECRET }}"
+          if ((Test-Path -LiteralPath variable:\LASTEXITCODE)) { exit $LASTEXITCODE }
+        shell: pwsh
+        working-directory: "${{ github.workspace }}/aad"

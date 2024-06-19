@@ -1,11 +1,59 @@
 {
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+        {
+            "name": "PowerShell: Launch Current File",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "${file}",
+            "args": [
+                "-TenantName apiMngEnv019702v005",
+                "-AdoOrganization devopsabcs-engineering",
+                "-AdoProjectName 'AAD-automations'",
+                "-AdoVariableGroupName APIM_AAD_main_vars_005",
+                "-AppName ADO_AAD_Graph_Client_005",
+                "-ApimServiceNameDev apim-xmjyxcbp4a5fo",
+                "-ApimServiceNamePrd apim-gk7dxthmtgpwg",
+                "-UseGitHub"
+            ]
+        },
         {
             "name": "Attach to .NET Functions",
             "type": "coreclr",
             "request": "attach",
             "processId": "${command:azureFunctions.pickProcess}"
+        },
+	{
+            "name": "Launch Extractor",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/tools/code/extractor/bin/Debug/net7.0/extractor.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/tools/code/extractor",
+            "console": "internalConsole",
+            "stopAtEntry": false,
+            "envFile": "${workspaceFolder}/tools/code/.env.extractor"
+        },
+        {
+            "name": "Launch Publisher",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/tools/code/publisher/bin/Debug/net7.0/publisher.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/tools/code/publisher",
+            "console": "internalConsole",
+            "stopAtEntry": false,
+            "envFile": "${workspaceFolder}/tools/code/.env.publisher"
+        },
+        {
+            "name": ".NET Core Attach",
+            "type": "coreclr",
+            "request": "attach"
         }
     ]
 }

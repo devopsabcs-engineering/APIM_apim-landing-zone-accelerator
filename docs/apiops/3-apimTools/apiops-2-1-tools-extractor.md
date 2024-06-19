@@ -11,16 +11,17 @@ This section describes the extractor component which forms the core tool used to
 The extractor generates APIOps artifacts from an existing APIM instance. These artifacts can then be used as the source of truth for your APIM environment; make changes to them and have a CI/CD process update your Azure environment (with the publisher tool, for instance).
 
 ### Parameters
-The tool expects certain configuration parameters. These can be passed as environment variables, command line arguments, etc. It will look for variables using the [``Host.CreateDefaultBuilder(arguments)``](https://docs.microsoft.com/en-us/dotnet/api/microsoft.extensions.hosting.host.createdefaultbuilder?view=dotnet-plat-ext-6.0#Microsoft_Extensions_Hosting_Host_CreateDefaultBuilder_System_String___) settings. Here are the expected parameters:
+The tool expects certain configuration parameters. These can be passed as environment variables, command line arguments, etc. It will look for variables using the [``Host.CreateDefaultBuilder(arguments)``](https://learn.microsoft.com/dotnet/api/microsoft.extensions.hosting.host.createdefaultbuilder?view=dotnet-plat-ext-6.0#Microsoft_Extensions_Hosting_Host_CreateDefaultBuilder_System_String___) settings. Here are the expected parameters:
 
 | Variable | Purpose |
 | - | - |
 | AZURE_SUBSCRIPTION_ID | Subscription ID of the APIM instance to be extracted |
 | AZURE_RESOURCE_GROUP_NAME | Resource group name of the APIM instance to be extracted |
-| AZURE_BEARER_TOKEN | Token for authentication to Azure. If this is not specified, the tool authenticate with  the [``DefaultAzureCredential``](https://docs.microsoft.com/en-us/dotnet/api/azure.identity.defaultazurecredential?view=azure-dotnet). |
+| AZURE_BEARER_TOKEN | Token for authentication to Azure. If this is not specified, the tool authenticate with  the [``DefaultAzureCredential``](https://learn.microsoft.com/dotnet/api/azure.identity.defaultazurecredential?view=azure-dotnet). |
 | API_MANAGEMENT_SERVICE_NAME | Name of the APIM instance to be extracted |
 | API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH | Folder where the APIM artifacts will be saved |
 | API_SPECIFICATION_FORMAT | OpenAPI specification format. Valid options are **JSON** or **YAML**. If the variable is missing or invalid, **YAML** will be used by default |
+| ARM_API_VERSION | Azure ARM API version that will be used. This is a optional parameter and will default to **2022-04-01-preview** if not specified. Other versions can be found here [APIM Rest API Reference - Overview Docs](https://learn.microsoft.com/en-us/rest/api/apimanagement/current-ga/api-diagnostic/create-or-update?tabs=HTTP). 
 | CONFIGURATION_YAML_PATH | Path to the Yaml configuration file used to specify select apis to extract. A sample yaml extractor configuration file to signal to the extractor to extract select apis. This is an optional parameter and will only come into play if you want different teams to manage different apis. You typically will have one configuration per team. Note: You can call the file whatever you want as long as you reference the right file within your extractor pipeline.
 | AZURE_CLOUD_ENVIRONMENT | Azure Authority Host Service url that will be used. This is a optional parameter and will default to **AzurePublicCloud** if not specified. 
 | Logging__LogLevel__Default:  | The allowed values are either "Information", "Debug", or "Trace". Table below shows the description of each logging level.
@@ -93,3 +94,10 @@ The extractor will export the artifacts listed below.
 | Operation policy | ./apis/``api_name``/operations/``operation_name``/policy.xml |
 | tags | ./tags/``tag_name``
 | backends | ./backends/``backend_name``
+
+
+### Extracting Select Artifacts
+There are cases where you may want to extract select artifacts (e.g. specific apis, products, etc.) instead of extracting everything. This could be a result of having a requirement to promote specific artifacts across environments or as a result of supporting multiple teams where each team may be responsible for select artifacts. ApiOPS supports this feature and you can find the details in the "Supporting Independent API Teams" [section](../6-supportingIndependentAPITeams/index.md). 
+
+> **Note**
+> We recommend looking into [workspaces](https://learn.microsoft.com/en-us/azure/api-management/workspaces-overview) in the future which allows decentralized API development teams to manage and productize their own APIs, while a central API platform team maintains the API Management infrastructure. Each workspace contains APIs, products, subscriptions, and related entities that are accessible only to the workspace collaborators. Access is controlled through Azure role-based access control (RBAC). `ApiOPS` will bring support for workspaces when it becomes generally available.

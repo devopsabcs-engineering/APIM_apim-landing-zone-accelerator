@@ -1,16 +1,16 @@
-parameters:  
+parameters:
   - name: APIM_INSTANCE_NAME
     displayName: APIM instance name
-    default: 'apim-ekLZ11-dev-westus3-011'
+    default: 'apim-xmjyxcbp4a5fo'
     type: string
   - name: RESOURCE_GROUP_NAME
     displayName: APIM instance resource group name
-    default: 'rg-apim-ekLZ11-dev-westus3-011'
+    default: 'rg-apim-vnet-external-dev-002'
     type: string
   - name: APIM_REPOSITORY_NAME
     type: string
     displayName: APIM repository for pull request
-    default: 'APIM_apim-landing-zone-accelerator'
+    default: 'AAD-automations'
   - name: API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH
     type: string
     displayName: Folder where you want to extract the artifacts
@@ -37,7 +37,7 @@ parameters:
 trigger: none
 
 variables:
-  - group: APIM_apim-automation-landing-zone_011
+  - group: APIM_apim-automation-landing-zone_002
   - name: System.Debug
     value: true
 
@@ -66,7 +66,23 @@ stages:
                 Write-Host "##vso[task.setvariable issecret=true;variable=AZURE_CLIENT_ID]$env:servicePrincipalId"
                 Write-Host "##vso[task.setvariable issecret=true;variable=AZURE_CLIENT_SECRET]$env:servicePrincipalKey"
                 Write-Host "##vso[task.setvariable issecret=true;variable=AZURE_TENANT_ID]$env:tenantId"
-                Write-Host "##vso[task.setvariable issecret=true;variable=AZURE_SUBSCRIPTION_ID]$(az account show --query "id" --output tsv)"
+                
+                if (-not $env:AZURE_SUBSCRIPTION_ID) {
+                    $subscriptionCount = az account list --query "length([])" --output tsv
+                    if ($subscriptionCount -eq 1) {
+                        $subscriptionId = az account list --query "[0].id" --output tsv
+                        Write-Host "Setting AZURE_SUBSCRIPTION_ID environment variable to: $subscriptionId"
+                        Write-Host "##vso[task.setvariable issecret=true;variable=AZURE_SUBSCRIPTION_ID]$($subscriptionId)"
+                    } 
+                    elseif ($subscriptionCount -gt 1) {
+                        Write-Host "Multiple subscriptions are accessible. Please set the AZURE_SUBSCRIPTION_ID environment variable manually."
+                        exit 1
+                    }
+                }
+                else {
+                  Write-Host "AZURE_SUBSCRIPTION_ID is already set to: $env:AZURE_SUBSCRIPTION_ID"
+                }
+
               addSpnToEnvironment: true
               failOnStandardError: true
           - task: PowerShell@2
@@ -80,9 +96,22 @@ stages:
                 $InformationPreference = "Continue"
 
                 Write-Information "Downloading extractor..."
-                $extractorFileName = "$(Agent.OS)" -like "*win*" ? "extractor.win-x64.exe" : "extractor.linux-x64.exe"
+                $extractorFileName = "extractor.linux-x64"
+                $extractorFinalFileName = "extractor"
+               
+                if ("$(Agent.OS)" -like "*win*") {
+                  $extractorFileName = "extractor.win-x64.exe"
+                  $extractorFinalFileName = "extractor.exe"
+                }
+                elseif ("$(Agent.OS)" -like "*mac*" -and "$(Agent.OSArchitecture)" -like "*arm*") {
+                  $extractorFileName = "extractor.osx-arm64"
+                }
+                elseif ("$(Agent.OS)" -like "*mac*" -and "$(Agent.OSArchitecture)" -like "*x86_64*") {
+                  $extractorFileName = "extractor.osx-x64"
+                }
+                
                 $uri = "https://github.com/Azure/apiops/releases/download/$(apiops_release_version)/$extractorFileName"
-                $destinationFilePath = Join-Path "$(Agent.TempDirectory)" "extractor.exe"
+                $destinationFilePath = Join-Path "$(Agent.TempDirectory)" $extractorFinalFileName
                 Invoke-WebRequest -Uri "$uri" -OutFile "$destinationFilePath"
 
                 if ("$(Agent.OS)" -like "*linux*")
@@ -124,19 +153,65 @@ stages:
               API_SPECIFICATION_FORMAT: ${{ parameters.API_SPECIFICATION_FORMAT }}
               ${{ if ne( parameters['CONFIGURATION_YAML_PATH'], 'Extract All' ) }}:
                 CONFIGURATION_YAML_PATH: ${{ parameters.CONFIGURATION_YAML_PATH }}
+          #Running Super Linting Tool on the API(s) - START
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '12.x'
+            displayName: 'Install Node.js'
+
+          - script: |
+              npm install -g @stoplight/spectral-cli
+            displayName: 'Install Spectral'
+
+          - script: |
+              spectral lint --format stylish --format junit --output.junit $(Build.ArtifactStagingDirectory)/spectral-result.xml $(Build.ArtifactStagingDirectory)/${{ parameters.API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH }}/apis/**/specification.{json,yaml,yml} -r https://raw.githubusercontent.com/connectedcircuits/devops-api-linter/main/rules.yaml
+            displayName: 'Run Spectral Linting'
+            continueOnError: true
+            failOnStderr: true
+          
+          - task: PublishTestResults@2
+            inputs:
+              testResultsFormat: 'JUnit'
+              testResultsFiles: '**/spectral-result.xml'
+              searchFolder: $(Build.ArtifactStagingDirectory)
+              testRunTitle: 'Linting results for API $(Build.SourceBranchName)'
+              failTaskOnFailedTests: false
+          #Running Super Linting Tool on the API(s) - END
           - task: PublishPipelineArtifact@1
             displayName: Publish pipeline artifact
             inputs:
               targetPath: "$(Build.ArtifactStagingDirectory)"
               artifactType: pipeline
               artifactName: artifacts-from-portal
+
+          - task: Bash@3
+            displayName: 'Pipeline Summary Tab Upload'
+            inputs:
+              targetType: 'inline'
+              script: |
+                outputFilePath="$(Build.ArtifactStagingDirectory)/run-extractor.md"
+                apiDirectoryPath="$(Build.ArtifactStagingDirectory)/artifacts"
+                cd "$apiDirectoryPath" # exclude top directory
+                
+                echo "# Azure APIM Modifications Summary" > "$outputFilePath"
+                echo "" >> "outputFilePath" #newline                
+                echo '```' >> "$outputFilePath"
+                tree -d --noreport -I "outputFilePath" | sed 's/^/    /' >> "$outputFilePath"
+                echo '```' >> "$outputFilePath"
+
+                # Display the path to the generated Markdown file
+                echo "Generated Markdown summary at $outputFilePath"
+
+                # Display the Markdown file in the pipeline summary
+                echo "##vso[task.uploadsummary]$outputFilePath"
+          
   - stage: create_template_branch
     displayName: Create template branch
     jobs:
       - job: create_artifacts_pull_request
         displayName: Create artifacts pull request
         pool:
-          vmImage: windows-latest
+          vmImage: ubuntu-latest
         steps:
           - task: DownloadPipelineArtifact@2
             displayName: Download pipeline artifact

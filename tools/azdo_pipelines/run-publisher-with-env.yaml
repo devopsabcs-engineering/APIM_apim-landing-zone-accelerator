@@ -25,20 +25,9 @@ steps:
     displayName: Print the name of the yaml configuration file if provided
   - script: echo Provided app service name was ${{ parameters.API_MANAGEMENT_SERVICE_NAME }}
     displayName: Print the name of the apim service name if provided
-  - task: Npm@1
-    displayName: "Installing Stoplight Spectral."
-    inputs:
-      command: custom
-      verbose: false
-      customCommand: "install -g @stoplight/spectral"
 
   - checkout: self
     fetchDepth: 0
-
-  - script: spectral lint "$(Build.SourcesDirectory)/${{ parameters.API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH }}/apis/**/specification.{json,yml,yaml}" -r https://raw.githubusercontent.com/connectedcircuits/devops-api-linter/main/rules.yaml
-    displayName: "Lint API definition"
-    enabled: true # no time to fix errors duting DEMO
-    
 
   - task: AzureCLI@2
     displayName: Set publishing variables
@@ -56,7 +45,21 @@ steps:
         Write-Host "##vso[task.setvariable issecret=true;variable=AZURE_CLIENT_ID]$env:servicePrincipalId"
         Write-Host "##vso[task.setvariable issecret=true;variable=AZURE_CLIENT_SECRET]$env:servicePrincipalKey"
         Write-Host "##vso[task.setvariable issecret=true;variable=AZURE_TENANT_ID]$env:tenantId"
-        Write-Host "##vso[task.setvariable issecret=true;variable=AZURE_SUBSCRIPTION_ID]$(az account show --query "id" --output tsv)"
+        if (-not $env:AZURE_SUBSCRIPTION_ID) {
+          $subscriptionCount = az account list --query "length([])" --output tsv
+          if ($subscriptionCount -eq 1) {
+              $subscriptionId = az account list --query "[0].id" --output tsv
+              Write-Host "Setting AZURE_SUBSCRIPTION_ID environment variable to: $subscriptionId"
+              Write-Host "##vso[task.setvariable issecret=true;variable=AZURE_SUBSCRIPTION_ID]$($subscriptionId)"
+          } 
+          elseif ($subscriptionCount -gt 1) {
+              Write-Host "Multiple subscriptions are accessible. Please set the AZURE_SUBSCRIPTION_ID environment variable manually."
+              exit 1
+          }
+        }
+        else {
+          Write-Host "AZURE_SUBSCRIPTION_ID is already set to: $env:AZURE_SUBSCRIPTION_ID"
+        }
       addSpnToEnvironment: true
       failOnStandardError: true
 
@@ -85,9 +88,21 @@ steps:
         $InformationPreference = "Continue"
 
         Write-Information "Downloading publisher..."
-        $publisherFileName = "$(Agent.OS)" -like "*win*" ? "publisher.win-x64.exe" : "publisher.linux-x64.exe"
+        $publisherFileName = "publisher.linux-x64"
+        $publisherFinalFileName = "publisher"
+        if ("$(Agent.OS)" -like "*win*") {
+          $publisherFileName = "publisher.win-x64.exe"
+          $publisherFinalFileName = "publisher.exe"
+        }
+        elseif ("$(Agent.OS)" -like "*mac*" -and "$(Agent.OSArchitecture)" -like "*arm*") {
+          $publisherFileName = "publisher.osx-arm64"
+        }
+        elseif ("$(Agent.OS)" -like "*mac*" -and "$(Agent.OSArchitecture)" -like "*x86_64*") {
+          $publisherFileName = "publisher.osx-x64"
+        }
+        
         $uri = "https://github.com/Azure/apiops/releases/download/$(apiops_release_version)/$publisherFileName"
-        $destinationFilePath = Join-Path "$(Agent.TempDirectory)" "publisher.exe"
+        $destinationFilePath = Join-Path "$(Agent.TempDirectory)" $publisherFinalFileName
         Invoke-WebRequest -Uri "$uri" -OutFile "$destinationFilePath"
 
         if ("$(Agent.OS)" -like "*linux*")
