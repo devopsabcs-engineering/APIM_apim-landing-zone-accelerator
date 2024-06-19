@@ -1,0 +1,11 @@
+{
+  "properties": {
+    "displayName": "func-b2c-010-key",
+    "secret": true,
+    "tags": [
+      "function",
+      "key",
+      "manual"
+    ]
+  }
+}

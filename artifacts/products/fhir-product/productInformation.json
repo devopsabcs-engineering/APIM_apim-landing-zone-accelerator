@@ -1,0 +1,10 @@
+{
+  "properties": {
+    "approvalRequired": false,
+    "description": "fhir api\u0027s at CYSSC",
+    "displayName": "FHIR Product",
+    "state": "published",
+    "subscriptionRequired": true,
+    "terms": "read the fine print"
+  }
+}

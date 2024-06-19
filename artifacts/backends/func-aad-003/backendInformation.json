@@ -1,0 +1,20 @@
+{
+  "properties": {
+    "credentials": {
+      "header": {
+        "x-functions-key": [
+          "{{func-aad-003-key}}"
+        ]
+      },
+      "query": {}
+    },
+    "description": "manually done",
+    "protocol": "http",
+    "resourceId": "https://management.azure.com/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-poc-apim-aad-dev-003/providers/Microsoft.Web/sites/func-6pmfs7sugoyna",
+    "tls": {
+      "validateCertificateChain": false,
+      "validateCertificateName": false
+    },
+    "url": "https://func-6pmfs7sugoyna.azurewebsites.net/api"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "properties": {
+    "approvalRequired": false,
+    "description": "this is new API no 008 only for team 008",
+    "displayName": "Aad008Product",
+    "state": "published",
+    "subscriptionRequired": true
+  }
+}

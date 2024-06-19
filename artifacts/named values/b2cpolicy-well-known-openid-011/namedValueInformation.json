@@ -1,0 +1,7 @@
+{
+  "properties": {
+    "displayName": "b2cpolicy-well-known-openid-011",
+    "secret": false,
+    "value": "https://testekb2c011.b2clogin.com/testekb2c011.onmicrosoft.com/v2.0/.well-known/openid-configuration?p=B2C_1_frontendapp_dev_signupandsignin"
+  }
+}

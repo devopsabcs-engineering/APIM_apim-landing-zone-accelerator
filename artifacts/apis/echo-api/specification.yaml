@@ -1,10 +1,10 @@
 openapi: 3.0.1
 info:
   title: Echo API
-  description: need a definition for linting
+  description: for spectral linting to pass without error
   version: '1.0'
 servers:
-  - url: https://api-dev.mngenv019702.com/echo
+  - url: https://apim-xmjyxcbp4a5fo.azure-api.net/echo
 paths:
   /resource:
     get:

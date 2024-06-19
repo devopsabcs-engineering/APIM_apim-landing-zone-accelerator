@@ -1,0 +1,7 @@
+{
+  "properties": {
+    "displayName": "aadPrimaryStorageEndpoint-008",
+    "secret": false,
+    "value": "https://stwebag4qpynctoiki.z9.web.core.windows.net/"
+  }
+}

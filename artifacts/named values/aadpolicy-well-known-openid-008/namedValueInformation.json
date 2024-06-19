@@ -1,0 +1,7 @@
+{
+  "properties": {
+    "displayName": "aadpolicy-well-known-openid-008",
+    "secret": false,
+    "value": "https://login.microsoftonline.com/apiMngEnv019702v008.onmicrosoft.com/v2.0/.well-known/openid-configuration"
+  }
+}

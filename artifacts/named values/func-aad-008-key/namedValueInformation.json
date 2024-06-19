@@ -1,0 +1,7 @@
+{
+  "properties": {
+    "displayName": "func-aad-008-key",
+    "secret": true,
+    "tags": []
+  }
+}

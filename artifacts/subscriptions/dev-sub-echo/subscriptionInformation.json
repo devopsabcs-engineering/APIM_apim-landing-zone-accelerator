@@ -1,0 +1,8 @@
+{
+  "properties": {
+    "displayName": "dev sub echo api scoped",
+    "allowTracing": false,
+    "scope": "/apis/echo-api",
+    "state": "active"
+  }
+}

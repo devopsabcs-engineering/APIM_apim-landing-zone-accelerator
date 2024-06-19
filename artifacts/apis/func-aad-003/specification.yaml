@@ -1,0 +1,29 @@
+openapi: 3.0.1
+info:
+  title: func-aad-003
+  description: must save description
+  version: '1.0'
+servers:
+  - url: https://apim-xmjyxcbp4a5fo.azure-api.net/func-aad-003
+paths:
+  /hello:
+    get:
+      summary: Hello
+      description: Hello
+      operationId: get-hello
+      responses:
+        '200':
+          description: ''
+components:
+  securitySchemes:
+    apiKeyHeader:
+      type: apiKey
+      name: Ocp-Apim-Subscription-Key
+      in: header
+    apiKeyQuery:
+      type: apiKey
+      name: subscription-key
+      in: query
+security:
+  - apiKeyHeader: [ ]
+  - apiKeyQuery: [ ]

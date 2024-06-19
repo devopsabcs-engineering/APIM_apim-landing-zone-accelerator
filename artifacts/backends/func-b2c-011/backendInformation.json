@@ -1,0 +1,20 @@
+{
+  "properties": {
+    "credentials": {
+      "header": {
+        "x-functions-key": [
+          "{{func-b2c-011-key}}"
+        ]
+      },
+      "query": {}
+    },
+    "description": "func-b2c-011",
+    "protocol": "http",
+    "resourceId": "https://management.azure.com/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-poc-apim-b2c-dev-011/providers/Microsoft.Web/sites/func-dlcqyz2ckpa4m",
+    "tls": {
+      "validateCertificateChain": false,
+      "validateCertificateName": false
+    },
+    "url": "https://func-dlcqyz2ckpa4m.azurewebsites.net/api"
+  }
+}
