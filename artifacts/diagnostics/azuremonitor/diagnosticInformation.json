@@ -1,5 +1,6 @@
 {
   "properties": {
+    "loggerId": "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-dev-002/providers/Microsoft.ApiManagement/service/apim-xmjyxcbp4a5fo/loggers/azuremonitor",
     "backend": {
       "request": {
         "dataMasking": {
@@ -25,10 +26,9 @@
       }
     },
     "logClientIp": true,
-    "loggerId": "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-dev-002/providers/Microsoft.ApiManagement/service/apim-xmjyxcbp4a5fo/loggers/azuremonitor",
     "sampling": {
       "percentage": 100,
-      "samplingType": "Fixed"
+      "samplingType": "fixed"
     }
   }
 }

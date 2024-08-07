@@ -1,0 +1,8 @@
+{
+  "properties": {
+    "scope": "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-dev-002/providers/Microsoft.ApiManagement/service/apim-xmjyxcbp4a5fo/products/fhir-product",
+    "allowTracing": false,
+    "ownerId": "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-dev-002/providers/Microsoft.ApiManagement/service/apim-xmjyxcbp4a5fo/users/1",
+    "state": "active"
+  }
+}

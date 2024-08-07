@@ -1,0 +1,9 @@
+{
+  "properties": {
+    "displayName": "Product B2c010Product subscription",
+    "scope": "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-dev-002/providers/Microsoft.ApiManagement/service/apim-xmjyxcbp4a5fo/products/b2c010product",
+    "allowTracing": false,
+    "ownerId": "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-dev-002/providers/Microsoft.ApiManagement/service/apim-xmjyxcbp4a5fo/users/645da092fb42681b24c1055e",
+    "state": "active"
+  }
+}

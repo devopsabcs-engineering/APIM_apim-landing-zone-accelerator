@@ -1,0 +1,19 @@
+{
+  "properties": {
+    "path": "weatherapionprem",
+    "apiRevision": "1",
+    "authenticationSettings": {},
+    "isCurrent": true,
+    "displayName": "simplewebapi",
+    "protocols": [
+      "http",
+      "https"
+    ],
+    "serviceUrl": "https://iis2022.devopsabcs.com/aspnetdemo",
+    "subscriptionKeyParameterNames": {
+      "header": "Ocp-Apim-Subscription-Key",
+      "query": "subscription-key"
+    },
+    "subscriptionRequired": false
+  }
+}

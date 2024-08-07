@@ -1,8 +1,8 @@
 {
   "properties": {
-    "approvalRequired": false,
-    "description": "access to all products and apis",
     "displayName": "AllDressed",
+    "description": "access to all products and apis",
+    "approvalRequired": false,
     "state": "published",
     "subscriptionRequired": true
   }

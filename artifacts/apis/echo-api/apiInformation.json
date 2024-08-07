@@ -1,11 +1,11 @@
 {
   "properties": {
+    "path": "echo",
     "apiRevision": "1",
     "authenticationSettings": {},
     "description": "for spectral linting to pass without error",
-    "displayName": "Echo API",
     "isCurrent": true,
-    "path": "echo",
+    "displayName": "Echo API",
     "protocols": [
       "https"
     ],

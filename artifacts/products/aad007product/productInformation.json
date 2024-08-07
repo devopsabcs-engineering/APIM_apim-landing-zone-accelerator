@@ -1,8 +1,8 @@
 {
   "properties": {
-    "approvalRequired": false,
-    "description": "007 api",
     "displayName": "Aad007Product",
+    "description": "007 api",
+    "approvalRequired": false,
     "state": "published",
     "subscriptionRequired": true
   }

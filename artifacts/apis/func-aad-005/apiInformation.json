@@ -1,5 +1,6 @@
 {
   "properties": {
+    "path": "func-aad-005",
     "apiRevision": "1",
     "authenticationSettings": {
       "oAuth2": {
@@ -7,9 +8,8 @@
       }
     },
     "description": "need a description",
-    "displayName": "func-aad-005",
     "isCurrent": true,
-    "path": "func-aad-005",
+    "displayName": "func-aad-005",
     "protocols": [
       "https"
     ],

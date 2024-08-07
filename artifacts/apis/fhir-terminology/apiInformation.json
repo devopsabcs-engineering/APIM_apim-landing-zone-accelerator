@@ -1,11 +1,11 @@
 {
   "properties": {
+    "path": "",
     "apiRevision": "1",
     "authenticationSettings": {},
     "description": "",
-    "displayName": "FHIR Terminology",
     "isCurrent": true,
-    "path": "",
+    "displayName": "FHIR Terminology",
     "protocols": [
       "https"
     ],

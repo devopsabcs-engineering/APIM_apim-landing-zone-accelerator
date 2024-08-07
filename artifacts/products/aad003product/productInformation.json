@@ -1,8 +1,8 @@
 {
   "properties": {
-    "approvalRequired": false,
-    "description": "first aad product",
     "displayName": "Aad003Product",
+    "description": "first aad product",
+    "approvalRequired": false,
     "state": "published",
     "subscriptionRequired": true
   }

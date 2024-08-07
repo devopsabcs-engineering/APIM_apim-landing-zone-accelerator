@@ -1,0 +1,98 @@
+openapi: 3.0.1
+info:
+  title: simplewebapi
+  version: '1.0'
+servers:
+  - url: http://apim-xmjyxcbp4a5fo.azure-api.net/weatherapionprem
+  - url: https://apim-xmjyxcbp4a5fo.azure-api.net/weatherapionprem
+paths:
+  /weatherforecast:
+    get:
+      tags:
+        - simplewebapi
+      summary: GetWeatherForecast
+      operationId: GetWeatherForecast
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WeatherForecast'
+              example:
+                - date:
+                    year: 0
+                    month: 0
+                    day: 0
+                    dayOfWeek: 0
+                    dayOfYear: 0
+                    dayNumber: 0
+                  temperatureC: 0
+                  summary: string
+                  temperatureF: 0
+components:
+  schemas:
+    DateOnly:
+      type: object
+      properties:
+        year:
+          type: integer
+          format: int32
+        month:
+          type: integer
+          format: int32
+        day:
+          type: integer
+          format: int32
+        dayOfWeek:
+          $ref: '#/components/schemas/DayOfWeek'
+        dayOfYear:
+          type: integer
+          format: int32
+          readOnly: true
+        dayNumber:
+          type: integer
+          format: int32
+          readOnly: true
+      additionalProperties: false
+    DayOfWeek:
+      enum:
+        - 0
+        - 1
+        - 2
+        - 3
+        - 4
+        - 5
+        - 6
+      type: integer
+      format: int32
+    WeatherForecast:
+      type: object
+      properties:
+        date:
+          $ref: '#/components/schemas/DateOnly'
+        temperatureC:
+          type: integer
+          format: int32
+        summary:
+          type: string
+          nullable: true
+        temperatureF:
+          type: integer
+          format: int32
+          readOnly: true
+      additionalProperties: false
+  securitySchemes:
+    apiKeyHeader:
+      type: apiKey
+      name: Ocp-Apim-Subscription-Key
+      in: header
+    apiKeyQuery:
+      type: apiKey
+      name: subscription-key
+      in: query
+security:
+  - apiKeyHeader: [ ]
+  - apiKeyQuery: [ ]

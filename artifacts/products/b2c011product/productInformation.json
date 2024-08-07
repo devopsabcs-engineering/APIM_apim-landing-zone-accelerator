@@ -1,8 +1,8 @@
 {
   "properties": {
-    "approvalRequired": false,
-    "description": "for b2c tenant 011",
     "displayName": "B2c011Product",
+    "description": "for b2c tenant 011",
+    "approvalRequired": false,
     "state": "published",
     "subscriptionRequired": true,
     "terms": "read the legal fine print!"

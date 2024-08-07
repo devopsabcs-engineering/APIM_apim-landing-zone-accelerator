@@ -1,5 +1,6 @@
 {
   "properties": {
+    "path": "func-b2c-010",
     "apiRevision": "1",
     "authenticationSettings": {
       "oAuth2": {
@@ -7,9 +8,8 @@
       }
     },
     "description": "make linter happy",
-    "displayName": "func-b2c-010",
     "isCurrent": true,
-    "path": "func-b2c-010",
+    "displayName": "func-b2c-010",
     "protocols": [
       "https"
     ],
