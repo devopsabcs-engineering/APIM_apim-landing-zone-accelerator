@@ -1,0 +1,9 @@
+{
+  "properties": {
+    "displayName": "Aad005Product",
+    "description": "product for aad poc 005",
+    "approvalRequired": false,
+    "state": "published",
+    "subscriptionRequired": true
+  }
+}

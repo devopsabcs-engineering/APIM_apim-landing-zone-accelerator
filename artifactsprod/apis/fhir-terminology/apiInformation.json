@@ -1,0 +1,19 @@
+{
+  "properties": {
+    "path": "",
+    "apiRevision": "1",
+    "authenticationSettings": {},
+    "description": "",
+    "isCurrent": true,
+    "displayName": "FHIR Terminology",
+    "protocols": [
+      "https"
+    ],
+    "serviceUrl": "https://healthknr3ueivu22xi-fhir-svc-knr3ueivu22xi.fhir.azurehealthcareapis.com/",
+    "subscriptionKeyParameterNames": {
+      "header": "Ocp-Apim-Subscription-Key",
+      "query": "subscription-key"
+    },
+    "subscriptionRequired": false
+  }
+}

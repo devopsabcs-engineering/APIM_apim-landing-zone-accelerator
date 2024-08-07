@@ -1,0 +1,15 @@
+{
+  "properties": {
+    "credentials": {
+      "header": {},
+      "query": {}
+    },
+    "description": "this is for onprem backend and apim self-hosted gateway",
+    "protocol": "http",
+    "tls": {
+      "validateCertificateChain": true,
+      "validateCertificateName": true
+    },
+    "url": "https://iis2022.devopsabcs.com/aspnetdemo"
+  }
+}

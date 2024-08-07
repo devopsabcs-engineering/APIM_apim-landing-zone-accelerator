@@ -1,0 +1,7 @@
+{
+  "properties": {
+    "displayName": "Demo Conference API Versioned",
+    "description": "this is a versioned api",
+    "versioningScheme": "Segment"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "properties": {
+    "displayName": "Aad007Product",
+    "description": "007 api",
+    "approvalRequired": false,
+    "state": "published",
+    "subscriptionRequired": true
+  }
+}

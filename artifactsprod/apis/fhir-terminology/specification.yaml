@@ -1,0 +1,137 @@
+openapi: 3.0.1
+info:
+  title: FHIR Terminology
+  description: ''
+  version: '1.0'
+servers:
+  - url: https://apim-gk7dxthmtgpwg.azure-api.net
+paths:
+  /*:
+    get:
+      summary: FHIR server
+      description: FHIR server
+      operationId: get
+      responses:
+        '200':
+          description: 'null'
+    post:
+      summary: Post FHIR server
+      description: Post FHIR server
+      operationId: post
+      responses:
+        '200':
+          description: 'null'
+    put:
+      summary: Put FHIR Server
+      description: Put FHIR Server
+      operationId: put
+      responses:
+        '200':
+          description: 'null'
+    delete:
+      summary: Delete FHIR server
+      description: Delete FHIR server
+      operationId: delete
+      responses:
+        '200':
+          description: 'null'
+  /CodeSystem/*:
+    get:
+      summary: Get CodeSystem
+      description: Get CodeSystem
+      operationId: codesystem
+      responses:
+        '200':
+          description: 'null'
+    post:
+      summary: Post CodeSystem
+      description: Post CodeSystem
+      operationId: code
+      responses:
+        '200':
+          description: 'null'
+    put:
+      summary: Put CodeSystem
+      description: Put CodeSystem
+      operationId: put-codesystem
+      responses:
+        '200':
+          description: 'null'
+    delete:
+      summary: Delete CodeSystem
+      description: Delete CodeSystem
+      operationId: delete-codesystem
+      responses:
+        '200':
+          description: 'null'
+  /ValueSet/*:
+    get:
+      summary: Get ValueSet
+      description: Get ValueSet
+      operationId: valueset
+      responses:
+        '200':
+          description: 'null'
+    post:
+      summary: Post ValueSet
+      description: Post ValueSet
+      operationId: value
+      responses:
+        '200':
+          description: 'null'
+    put:
+      summary: Put ValueSet
+      description: Put ValueSet
+      operationId: put-valueset
+      responses:
+        '200':
+          description: 'null'
+    delete:
+      summary: Delete ValueSet
+      description: Delete ValueSet
+      operationId: delete-valueset
+      responses:
+        '200':
+          description: 'null'
+  /ConceptMap/*:
+    get:
+      summary: Get ConceptMap
+      description: Get ConceptMap
+      operationId: conceptmap
+      responses:
+        '200':
+          description: 'null'
+    post:
+      summary: Post ConceptMap
+      description: Post ConceptMap
+      operationId: concept
+      responses:
+        '200':
+          description: 'null'
+    put:
+      summary: Put ConceptMap
+      description: Put ConceptMap
+      operationId: put-conceptmap
+      responses:
+        '200':
+          description: 'null'
+    delete:
+      summary: Delete ConceptMap
+      description: Delete ConceptMap
+      operationId: delete-conceptmap
+      responses:
+        '200':
+          description: 'null'
+components:
+  securitySchemes:
+    apiKeyHeader:
+      type: apiKey
+      name: Ocp-Apim-Subscription-Key
+      in: header
+    apiKeyQuery:
+      type: apiKey
+      name: subscription-key
+      in: query
+security:
+  - apiKeyHeader: [ ]
+  - apiKeyQuery: [ ]

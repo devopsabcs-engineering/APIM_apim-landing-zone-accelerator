@@ -1,0 +1,23 @@
+{
+  "properties": {
+    "path": "func-b2c-010",
+    "apiRevision": "1",
+    "authenticationSettings": {
+      "oAuth2": {
+        "authorizationServerId": "b2c010oauthserver"
+      }
+    },
+    "description": "make linter happy",
+    "isCurrent": true,
+    "displayName": "func-b2c-010",
+    "protocols": [
+      "https"
+    ],
+    "serviceUrl": "https://apim-xmjyxcbp4a5fo.azure-api.net/func-b2c-010",
+    "subscriptionKeyParameterNames": {
+      "header": "Ocp-Apim-Subscription-Key",
+      "query": "subscription-key"
+    },
+    "subscriptionRequired": false
+  }
+}

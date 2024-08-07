@@ -1,0 +1,29 @@
+openapi: 3.0.1
+info:
+  title: func-b2c-010
+  description: make linter happy
+  version: '1.0'
+servers:
+  - url: https://apim-gk7dxthmtgpwg.azure-api.net/func-b2c-010
+paths:
+  /hello:
+    get:
+      summary: Hello
+      description: linter be happy
+      operationId: get-hello
+      responses:
+        '200':
+          description: ''
+components:
+  securitySchemes:
+    apiKeyHeader:
+      type: apiKey
+      name: Ocp-Apim-Subscription-Key
+      in: header
+    apiKeyQuery:
+      type: apiKey
+      name: subscription-key
+      in: query
+security:
+  - apiKeyHeader: [ ]
+  - apiKeyQuery: [ ]

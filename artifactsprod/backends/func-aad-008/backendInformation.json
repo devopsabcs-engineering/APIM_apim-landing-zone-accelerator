@@ -1,0 +1,20 @@
+{
+  "properties": {
+    "credentials": {
+      "header": {
+        "x-functions-key": [
+          "{{func-aad-008-key}}"
+        ]
+      },
+      "query": {}
+    },
+    "description": "done manually once the first time",
+    "protocol": "http",
+    "resourceId": "https://management.azure.com/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-poc-apim-aad-dev-008/providers/Microsoft.Web/sites/func-ag4qpynctoiki",
+    "tls": {
+      "validateCertificateChain": false,
+      "validateCertificateName": false
+    },
+    "url": "https://func-ag4qpynctoiki.azurewebsites.net/api"
+  }
+}

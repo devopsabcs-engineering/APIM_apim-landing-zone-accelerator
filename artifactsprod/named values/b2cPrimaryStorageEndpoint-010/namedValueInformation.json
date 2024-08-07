@@ -1,0 +1,7 @@
+{
+  "properties": {
+    "displayName": "b2cPrimaryStorageEndpoint-010",
+    "secret": false,
+    "value": "https://stwebzrslpgboxnenq.z9.web.core.windows.net/"
+  }
+}

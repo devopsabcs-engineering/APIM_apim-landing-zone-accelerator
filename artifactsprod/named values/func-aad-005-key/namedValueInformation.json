@@ -1,0 +1,9 @@
+{
+  "properties": {
+    "displayName": "func-aad-005-key",
+    "secret": true,
+    "tags": [
+      "manual"
+    ]
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "properties": {
+    "path": "func-aad-008",
+    "apiRevision": "1",
+    "authenticationSettings": {
+      "oAuth2": {
+        "authorizationServerId": "aad008oauthserver"
+      }
+    },
+    "description": "demo 008",
+    "isCurrent": true,
+    "displayName": "func-aad-008",
+    "protocols": [
+      "https"
+    ],
+    "serviceUrl": "https://apim-xmjyxcbp4a5fo.azure-api.net/func-aad-008",
+    "subscriptionKeyParameterNames": {
+      "header": "Ocp-Apim-Subscription-Key",
+      "query": "subscription-key"
+    },
+    "subscriptionRequired": false
+  }
+}

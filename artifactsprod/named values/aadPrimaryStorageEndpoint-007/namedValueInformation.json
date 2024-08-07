@@ -1,0 +1,7 @@
+{
+  "properties": {
+    "displayName": "aadPrimaryStorageEndpoint-007",
+    "secret": false,
+    "value": "https://stwebixclnzpabp2my.z9.web.core.windows.net/"
+  }
+}

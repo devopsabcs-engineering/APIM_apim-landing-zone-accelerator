@@ -1,0 +1,8 @@
+{
+  "properties": {
+    "displayName": "apimDeveloperPortal",
+    "secret": false,
+    "tags": [],
+    "value": "https://apim-gk7dxthmtgpwg.developer.azure-api.net"
+  }
+}

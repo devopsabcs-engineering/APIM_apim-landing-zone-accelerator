@@ -1,0 +1,9 @@
+{
+  "properties": {
+    "displayName": "Dev Subscription all apis",
+    "scope": "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-gk7dxthmtgpwg/apis",
+    "allowTracing": false,
+    "ownerId": "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-gk7dxthmtgpwg/users/646666505ddd170eb06bd16a",
+    "state": "active"
+  }
+}

@@ -1,0 +1,29 @@
+openapi: 3.0.1
+info:
+  title: func-aad-008
+  description: demo 008
+  version: '1.0'
+servers:
+  - url: https://apim-gk7dxthmtgpwg.azure-api.net/func-aad-008
+paths:
+  /hello:
+    get:
+      summary: Hello
+      description: make linter happy
+      operationId: get-hello
+      responses:
+        '200':
+          description: ''
+components:
+  securitySchemes:
+    apiKeyHeader:
+      type: apiKey
+      name: Ocp-Apim-Subscription-Key
+      in: header
+    apiKeyQuery:
+      type: apiKey
+      name: subscription-key
+      in: query
+security:
+  - apiKeyHeader: [ ]
+  - apiKeyQuery: [ ]

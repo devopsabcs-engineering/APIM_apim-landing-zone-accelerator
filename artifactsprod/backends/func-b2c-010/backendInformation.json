@@ -1,0 +1,20 @@
+{
+  "properties": {
+    "credentials": {
+      "header": {
+        "x-functions-key": [
+          "{{func-b2c-010-key}}"
+        ]
+      },
+      "query": {}
+    },
+    "description": "func-b2c-010",
+    "protocol": "http",
+    "resourceId": "https://management.azure.com/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-poc-apim-b2c-dev-010/providers/Microsoft.Web/sites/func-blpfcrp6lgvee",
+    "tls": {
+      "validateCertificateChain": false,
+      "validateCertificateName": false
+    },
+    "url": "https://func-zrslpgboxnenq.azurewebsites.net/api"
+  }
+}

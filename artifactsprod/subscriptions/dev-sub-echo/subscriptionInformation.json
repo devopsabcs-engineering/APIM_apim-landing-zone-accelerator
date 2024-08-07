@@ -1,0 +1,8 @@
+{
+  "properties": {
+    "displayName": "Dev Subscription echo api scoped",
+    "scope": "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-gk7dxthmtgpwg/apis/echo-api",
+    "allowTracing": false,
+    "state": "active"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "properties": {
+    "displayName": "b2cPrimaryStorageEndpoint-011",
+    "secret": false,
+    "value": "https://stwebxd2jatrnn34pi.z9.web.core.windows.net/"
+  }
+}

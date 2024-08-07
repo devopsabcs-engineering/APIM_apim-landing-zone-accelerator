@@ -1,0 +1,9 @@
+{
+  "properties": {
+    "displayName": "AllDressed",
+    "description": "access to all products and apis",
+    "approvalRequired": false,
+    "state": "published",
+    "subscriptionRequired": true
+  }
+}
