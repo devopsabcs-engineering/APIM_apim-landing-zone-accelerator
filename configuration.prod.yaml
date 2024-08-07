@@ -15,7 +15,7 @@ namedValues:
   - name: aadPrimaryStorageEndpoint-003
     properties:
       displayName: "aadPrimaryStorageEndpoint-003"
-      value: "https://stweb6pmfs7sugoyna.z9.web.core.windows.net/"  
+      value: "https://stweb6pmfs7sugoyna.z9.web.core.windows.net/"
   - name: aadpolicy-well-known-openid-005
     properties:
       displayName: "aadpolicy-well-known-openid-005"
@@ -27,7 +27,7 @@ namedValues:
   - name: aadPrimaryStorageEndpoint-005
     properties:
       displayName: "aadPrimaryStorageEndpoint-005"
-      value: "https://stweb26rklbpvtfsdi.z9.web.core.windows.net/"  
+      value: "https://stweb26rklbpvtfsdi.z9.web.core.windows.net/"
   - name: b2cpolicy-well-known-openid-010
     properties:
       displayName: "b2cpolicy-well-known-openid-010"
@@ -157,3 +157,64 @@ products:
     apis:
       - name: "func-b2c-011"
       - name: "echo-api"
+groups:
+  - name: administrators
+    properties:
+      name: administrators
+      displayName: "Administrators"
+      description: "Administrators group"
+      type: system
+  - name: developers
+    properties:
+      name: developers
+      displayName: "Developers"
+      description: "Developers group"
+      type: system
+  - name: guests
+    properties:
+      name: guests
+      displayName: "Guests"
+      description: "Guests group"
+      type: system
+  - name: 643b00fe84def1e41430962d
+    properties:
+      name: apim-xmjyxcbp4a5fo-aad-main-group-b2c-010
+      displayName: "apim-xmjyxcbp4a5fo-aad-main-group-b2c-010"
+      description: "for apim apim-xmjyxcbp4a5fo-aad-main-group for tenant b2c010 (method1)"
+      type: external
+      externalId: "aad://testekb2c010.onmicrosoft.com/groups/b94f3405-a0be-45c7-b590-945c599479e1"
+  - name: 643b010b2d34e7e75d86238f
+    properties:
+      name: apim-xmjyxcbp4a5fo-aad-main-group-b2c-011
+      displayName: "apim-xmjyxcbp4a5fo-aad-main-group-b2c-011"
+      description: "for apim apim-xmjyxcbp4a5fo-aad-main-group for tenant b2c011 (method1)"
+      type: external
+      externalId: "aad://testekb2c011.onmicrosoft.com/groups/9d75c503-d4a9-4e93-99e5-e9f3a71362c8"
+  - name: 643b011ebbe699042ec626af
+    properties:
+      name: apim-xmjyxcbp4a5fo-aad-main-group-aad-devopsabcs_com
+      displayName: "apim-xmjyxcbp4a5fo-aad-main-group-aad-devopsabcs_com"
+      description: "main group for external apim in mngenv019702 (method1)"
+      type: external
+      externalId: "aad://devopsabcs.com/groups/55b7ec27-9c25-4860-9b15-461c63b0bd1a"
+  - name: 643b0136af2af953284e9bd0
+    properties:
+      name: 6447ca9293ec4522bd87c4df
+      displayName: "apim-xmjyxcbp4a5fo-aad-main-group-aad-003"
+      description: "some group for apim"
+      type: external
+      externalId: "aad://apimngenv019702v003.onmicrosoft.com/groups/3db55460-ff5c-4213-b374-44c2e3ad2ff0"
+  - name: 645da95eb43120d55c0f20b2
+    properties:
+      name: 645db7131cbbbcf42a60f3da
+      displayName: "apim-xmjyxcbp4a5fo-aad-main-group-aad-005"
+      description: "for apim group"
+      type: external
+      externalId: "aad://apimngenv019702v005.onmicrosoft.com/groups/cef1c9cb-6b37-43a1-bfdb-835f1da770bc"
+  - name: 645dabfc4c1f10736b099d69
+    properties:
+      name: 645db00541654abf0e0999e5
+      displayName: "apim-xmjyxcbp4a5fo-aad-main-group-aad-dev-portal-001"
+      description: "group for idp provider"
+      type: external
+      externalId: "aad://devmngenv019702v001.onmicrosoft.com/groups/711573f6-3677-4230-8c65-65250e7b739b"
