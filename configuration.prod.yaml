@@ -132,7 +132,7 @@ products:
   - name: aad003product
     groups:
       - name: administrators
-      - name: 6447ca9293ec4522bd87c4df
+      #- name: 6447ca9293ec4522bd87c4df
     apis:
       - name: "func-aad-003"
       - name: "echo-api"
@@ -145,7 +145,7 @@ products:
   - name: b2c010product
     groups:
       - name: administrators
-      - name: apim-xmjyxcbp4a5fo-aad-main-group-b2c-010
+      #- name: apim-xmjyxcbp4a5fo-aad-main-group-b2c-010
     apis:
       - name: "func-b2c-010"
       #- name: "func-b2c-011" # can also push extra api in prod!
