@@ -158,24 +158,24 @@ products:
       - name: "func-b2c-011"
       - name: "echo-api"
 groups:
-  - name: administrators
-    properties:
-      name: administrators
-      displayName: "Administrators"
-      description: "Administrators group"
-      type: system
-  - name: developers
-    properties:
-      name: developers
-      displayName: "Developers"
-      description: "Developers group"
-      type: system
-  - name: guests
-    properties:
-      name: guests
-      displayName: "Guests"
-      description: "Guests group"
-      type: system
+  # - name: administrators
+  #   properties:
+  #     name: administrators
+  #     displayName: "Administrators"
+  #     description: "Administrators group"
+  #     type: system
+  # - name: developers
+  #   properties:
+  #     name: developers
+  #     displayName: "Developers"
+  #     description: "Developers group"
+  #     type: system
+  # - name: guests
+  #   properties:
+  #     name: guests
+  #     displayName: "Guests"
+  #     description: "Guests group"
+  #     type: system
   - name: 643b00fe84def1e41430962d
     properties:
       name: apim-xmjyxcbp4a5fo-aad-main-group-b2c-010
