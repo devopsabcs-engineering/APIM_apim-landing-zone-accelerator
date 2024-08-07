@@ -11,6 +11,7 @@ paths:
       tags:
         - simplewebapi
       summary: GetWeatherForecast
+      description: GetWeatherForecast
       operationId: GetWeatherForecast
       responses:
         '200':
