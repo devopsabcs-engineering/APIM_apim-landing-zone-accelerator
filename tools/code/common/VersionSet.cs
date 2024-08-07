@@ -5,14 +5,13 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace common;
 
-public sealed record VersionSetName : ResourceName
+public sealed record VersionSetName : ResourceName, IResourceName<VersionSetName>
 {
     private VersionSetName(string value) : base(value) { }
 
@@ -168,21 +167,16 @@ public static class VersionSetModule
                           return (name, dto);
                       });
 
+    public static async ValueTask<Option<VersionSetDto>> TryGetDto(this VersionSetUri uri, HttpPipeline pipeline, CancellationToken cancellationToken)
+    {
+        var contentOption = await pipeline.GetContentOption(uri.ToUri(), cancellationToken);
+        return contentOption.Map(content => content.ToObjectFromJson<VersionSetDto>());
+    }
+
     public static async ValueTask<VersionSetDto> GetDto(this VersionSetUri uri, HttpPipeline pipeline, CancellationToken cancellationToken)
     {
         var content = await pipeline.GetContent(uri.ToUri(), cancellationToken);
         return content.ToObjectFromJson<VersionSetDto>();
-    }
-
-    public static async ValueTask<Option<VersionSetDto>> TryGetDto(this VersionSetUri uri, HttpPipeline pipeline, CancellationToken cancellationToken)
-    {
-        var either = await pipeline.TryGetContent(uri.ToUri(), cancellationToken);
-
-        return either.Map(content => content.ToObjectFromJson<VersionSetDto>())
-                     .Match(Option<VersionSetDto>.Some,
-                            response => response.Status == (int)HttpStatusCode.NotFound
-                                          ? Option<VersionSetDto>.None
-                                          : throw response.ToHttpRequestException(uri.ToUri()));
     }
 
     public static async ValueTask Delete(this VersionSetUri uri, HttpPipeline pipeline, CancellationToken cancellationToken) =>

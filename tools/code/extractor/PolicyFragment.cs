@@ -3,135 +3,153 @@ using common;
 using LanguageExt;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace extractor;
 
-internal delegate ValueTask ExtractPolicyFragments(CancellationToken cancellationToken);
+public delegate ValueTask ExtractPolicyFragments(CancellationToken cancellationToken);
+public delegate IAsyncEnumerable<(PolicyFragmentName Name, PolicyFragmentDto Dto)> ListPolicyFragments(CancellationToken cancellationToken);
+public delegate ValueTask WritePolicyFragmentArtifacts(PolicyFragmentName name, PolicyFragmentDto dto, CancellationToken cancellationToken);
+public delegate ValueTask WritePolicyFragmentInformationFile(PolicyFragmentName name, PolicyFragmentDto dto, CancellationToken cancellationToken);
+public delegate ValueTask WritePolicyFragmentPolicyFile(PolicyFragmentName name, PolicyFragmentDto dto, CancellationToken cancellationToken);
 
-file delegate IAsyncEnumerable<(PolicyFragmentName Name, PolicyFragmentDto Dto)> ListPolicyFragments(CancellationToken cancellationToken);
-
-file delegate bool ShouldExtractPolicyFragment(PolicyFragmentName name);
-
-file delegate ValueTask WritePolicyFragmentArtifacts(PolicyFragmentName name, PolicyFragmentDto dto, CancellationToken cancellationToken);
-
-file delegate ValueTask WritePolicyFragmentInformationFile(PolicyFragmentName name, PolicyFragmentDto dto, CancellationToken cancellationToken);
-
-file delegate ValueTask WritePolicyFragmentPolicyFile(PolicyFragmentName name, PolicyFragmentDto dto, CancellationToken cancellationToken);
-
-file sealed class ExtractPolicyFragmentsHandler(ListPolicyFragments list, ShouldExtractPolicyFragment shouldExtract, WritePolicyFragmentArtifacts writeArtifacts)
+internal static class PolicyFragmentModule
 {
-    public async ValueTask Handle(CancellationToken cancellationToken) =>
-        await list(cancellationToken)
-                .Where(policyfragment => shouldExtract(policyfragment.Name))
-                .IterParallel(async policyfragment => await writeArtifacts(policyfragment.Name, policyfragment.Dto, cancellationToken),
-                              cancellationToken);
-}
-
-file sealed class ListPolicyFragmentsHandler(ManagementServiceUri serviceUri, HttpPipeline pipeline)
-{
-    public IAsyncEnumerable<(PolicyFragmentName, PolicyFragmentDto)> Handle(CancellationToken cancellationToken) =>
-        PolicyFragmentsUri.From(serviceUri).List(pipeline, cancellationToken);
-}
-
-file sealed class ShouldExtractPolicyFragmentHandler(ShouldExtractFactory shouldExtractFactory)
-{
-    public bool Handle(PolicyFragmentName name)
+    public static void ConfigureExtractPolicyFragments(IHostApplicationBuilder builder)
     {
-        var shouldExtract = shouldExtractFactory.Create<PolicyFragmentName>();
-        return shouldExtract(name);
-    }
-}
+        ConfigureListPolicyFragments(builder);
+        ConfigureWritePolicyFragmentArtifacts(builder);
 
-file sealed class WritePolicyFragmentArtifactsHandler(WritePolicyFragmentInformationFile writeInformationFile,
-                                                      WritePolicyFragmentPolicyFile writePolicyFragmentPolicyFile)
-{
-    public async ValueTask Handle(PolicyFragmentName name, PolicyFragmentDto dto, CancellationToken cancellationToken)
-    {
-        await writeInformationFile(name, dto, cancellationToken);
-        await writePolicyFragmentPolicyFile(name, dto, cancellationToken);
-    }
-}
-
-file sealed class WritePolicyFragmentInformationFileHandler(ILoggerFactory loggerFactory, ManagementServiceDirectory serviceDirectory)
-{
-    private readonly ILogger logger = Common.GetLogger(loggerFactory);
-
-    public async ValueTask Handle(PolicyFragmentName name, PolicyFragmentDto dto, CancellationToken cancellationToken)
-    {
-        var informationFile = PolicyFragmentInformationFile.From(name, serviceDirectory);
-
-        logger.LogInformation("Writing policy fragment information file {PolicyFragmentInformationFile}...", informationFile);
-        await informationFile.WriteDto(dto, cancellationToken);
-    }
-}
-
-file sealed class WritePolicyFragmentPolicyFileHandler(ILoggerFactory loggerFactory, ManagementServiceDirectory serviceDirectory)
-{
-    private readonly ILogger logger = Common.GetLogger(loggerFactory);
-
-    public async ValueTask Handle(PolicyFragmentName name, PolicyFragmentDto dto, CancellationToken cancellationToken)
-    {
-        var policyFile = PolicyFragmentPolicyFile.From(name, serviceDirectory);
-
-        logger.LogInformation("Writing policy fragment policy file {PolicyFragmentPolicyFile}...", policyFile);
-        var policy = dto.Properties.Value ?? string.Empty;
-        await policyFile.WritePolicy(policy, cancellationToken);
-    }
-}
-
-internal static class PolicyFragmentServices
-{
-    public static void ConfigureExtractPolicyFragments(IServiceCollection services)
-    {
-        ConfigureListPolicyFragments(services);
-        ConfigureShouldExtractPolicyFragment(services);
-        ConfigureWritePolicyFragmentArtifacts(services);
-
-        services.TryAddSingleton<ExtractPolicyFragmentsHandler>();
-        services.TryAddSingleton<ExtractPolicyFragments>(provider => provider.GetRequiredService<ExtractPolicyFragmentsHandler>().Handle);
+        builder.Services.TryAddSingleton(GetExtractPolicyFragments);
     }
 
-    private static void ConfigureListPolicyFragments(IServiceCollection services)
+    private static ExtractPolicyFragments GetExtractPolicyFragments(IServiceProvider provider)
     {
-        services.TryAddSingleton<ListPolicyFragmentsHandler>();
-        services.TryAddSingleton<ListPolicyFragments>(provider => provider.GetRequiredService<ListPolicyFragmentsHandler>().Handle);
+        var list = provider.GetRequiredService<ListPolicyFragments>();
+        var writeArtifacts = provider.GetRequiredService<WritePolicyFragmentArtifacts>();
+        var activitySource = provider.GetRequiredService<ActivitySource>();
+        var logger = provider.GetRequiredService<ILogger>();
+
+        return async cancellationToken =>
+        {
+            using var _ = activitySource.StartActivity(nameof(ExtractPolicyFragments));
+
+            logger.LogInformation("Extracting policy fragments...");
+
+            await list(cancellationToken)
+                    .IterParallel(async resource => await writeArtifacts(resource.Name, resource.Dto, cancellationToken),
+                                  cancellationToken);
+        };
     }
 
-    private static void ConfigureShouldExtractPolicyFragment(IServiceCollection services)
+    private static void ConfigureListPolicyFragments(IHostApplicationBuilder builder)
     {
-        services.TryAddSingleton<ShouldExtractPolicyFragmentHandler>();
-        services.TryAddSingleton<ShouldExtractPolicyFragment>(provider => provider.GetRequiredService<ShouldExtractPolicyFragmentHandler>().Handle);
+        ConfigurationModule.ConfigureFindConfigurationNamesFactory(builder);
+        AzureModule.ConfigureManagementServiceUri(builder);
+        AzureModule.ConfigureHttpPipeline(builder);
+
+        builder.Services.TryAddSingleton(GetListPolicyFragments);
     }
 
-    private static void ConfigureWritePolicyFragmentArtifacts(IServiceCollection services)
+    private static ListPolicyFragments GetListPolicyFragments(IServiceProvider provider)
     {
-        ConfigureWritePolicyFragmentInformationFile(services);
-        ConfigureWritePolicyFragmentPolicyFile(services);
+        var findConfigurationNamesFactory = provider.GetRequiredService<FindConfigurationNamesFactory>();
+        var serviceUri = provider.GetRequiredService<ManagementServiceUri>();
+        var pipeline = provider.GetRequiredService<HttpPipeline>();
 
-        services.TryAddSingleton<WritePolicyFragmentArtifactsHandler>();
-        services.TryAddSingleton<WritePolicyFragmentArtifacts>(provider => provider.GetRequiredService<WritePolicyFragmentArtifactsHandler>().Handle);
+        var findConfigurationNames = findConfigurationNamesFactory.Create<PolicyFragmentName>();
+
+        return cancellationToken =>
+            findConfigurationNames()
+                .Map(names => listFromSet(names, cancellationToken))
+                .IfNone(() => listAll(cancellationToken));
+
+        IAsyncEnumerable<(PolicyFragmentName, PolicyFragmentDto)> listFromSet(IEnumerable<PolicyFragmentName> names, CancellationToken cancellationToken) =>
+            names.Select(name => PolicyFragmentUri.From(name, serviceUri))
+                 .ToAsyncEnumerable()
+                 .Choose(async uri =>
+                 {
+                     var dtoOption = await uri.TryGetDto(pipeline, cancellationToken);
+                     return dtoOption.Map(dto => (uri.Name, dto));
+                 });
+
+        IAsyncEnumerable<(PolicyFragmentName, PolicyFragmentDto)> listAll(CancellationToken cancellationToken)
+        {
+            var policyFragmentsUri = PolicyFragmentsUri.From(serviceUri);
+            return policyFragmentsUri.List(pipeline, cancellationToken);
+        }
     }
 
-    private static void ConfigureWritePolicyFragmentInformationFile(IServiceCollection services)
+    private static void ConfigureWritePolicyFragmentArtifacts(IHostApplicationBuilder builder)
     {
-        services.TryAddSingleton<WritePolicyFragmentInformationFileHandler>();
-        services.TryAddSingleton<WritePolicyFragmentInformationFile>(provider => provider.GetRequiredService<WritePolicyFragmentInformationFileHandler>().Handle);
+        ConfigureWritePolicyFragmentInformationFile(builder);
+        ConfigureWritePolicyFragmentPolicyFile(builder);
+
+        builder.Services.TryAddSingleton(GetWritePolicyFragmentArtifacts);
     }
 
-    private static void ConfigureWritePolicyFragmentPolicyFile(IServiceCollection services)
+    private static WritePolicyFragmentArtifacts GetWritePolicyFragmentArtifacts(IServiceProvider provider)
     {
-        services.TryAddSingleton<WritePolicyFragmentPolicyFileHandler>();
-        services.TryAddSingleton<WritePolicyFragmentPolicyFile>(provider => provider.GetRequiredService<WritePolicyFragmentPolicyFileHandler>().Handle);
-    }
-}
+        var writeInformationFile = provider.GetRequiredService<WritePolicyFragmentInformationFile>();
+        var writePolicyFragmentPolicyFile = provider.GetRequiredService<WritePolicyFragmentPolicyFile>();
 
-file static class Common
-{
-    public static ILogger GetLogger(ILoggerFactory loggerFactory) =>
-        loggerFactory.CreateLogger("PolicyFragmentExtractor");
+        return async (name, dto, cancellationToken) =>
+        {
+            await writeInformationFile(name, dto, cancellationToken);
+            await writePolicyFragmentPolicyFile(name, dto, cancellationToken);
+        };
+    }
+
+    private static void ConfigureWritePolicyFragmentInformationFile(IHostApplicationBuilder builder)
+    {
+        AzureModule.ConfigureManagementServiceDirectory(builder);
+
+        builder.Services.TryAddSingleton(GetWritePolicyFragmentInformationFile);
+    }
+
+    private static WritePolicyFragmentInformationFile GetWritePolicyFragmentInformationFile(IServiceProvider provider)
+    {
+        var serviceDirectory = provider.GetRequiredService<ManagementServiceDirectory>();
+        var logger = provider.GetRequiredService<ILogger>();
+
+        return async (name, dto, cancellationToken) =>
+        {
+            var informationFile = PolicyFragmentInformationFile.From(name, serviceDirectory);
+
+            logger.LogInformation("Writing policy fragment information file {PolicyFragmentInformationFile}...", informationFile);
+
+            // Remove policy contents from DTO, as these will be written to the policy file
+            var updatedDto = dto with { Properties = dto.Properties with { Format = null, Value = null } };
+            await informationFile.WriteDto(updatedDto, cancellationToken);
+        };
+    }
+
+    private static void ConfigureWritePolicyFragmentPolicyFile(IHostApplicationBuilder builder)
+    {
+        AzureModule.ConfigureManagementServiceDirectory(builder);
+
+        builder.Services.TryAddSingleton(GetWritePolicyFragmentPolicyFile);
+    }
+
+    private static WritePolicyFragmentPolicyFile GetWritePolicyFragmentPolicyFile(IServiceProvider provider)
+    {
+        var serviceDirectory = provider.GetRequiredService<ManagementServiceDirectory>();
+        var logger = provider.GetRequiredService<ILogger>();
+
+        return async (name, dto, cancellationToken) =>
+        {
+            var policyFile = PolicyFragmentPolicyFile.From(name, serviceDirectory);
+
+            logger.LogInformation("Writing policy fragment policy file {PolicyFragmentPolicyFile}...", policyFile);
+            var policy = dto.Properties.Value ?? string.Empty;
+            await policyFile.WritePolicy(policy, cancellationToken);
+        };
+    }
 }

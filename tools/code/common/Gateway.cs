@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace common;
 
-public sealed record GatewayName : ResourceName
+public sealed record GatewayName : ResourceName, IResourceName<GatewayName>
 {
     private GatewayName(string value) : base(value) { }
 
@@ -185,21 +185,16 @@ public static class GatewayModule
                           return (name, dto);
                       });
 
+    public static async ValueTask<Option<GatewayDto>> TryGetDto(this GatewayUri uri, HttpPipeline pipeline, CancellationToken cancellationToken)
+    {
+        var contentOption = await pipeline.GetContentOption(uri.ToUri(), cancellationToken);
+        return contentOption.Map(content => content.ToObjectFromJson<GatewayDto>());
+    }
+
     public static async ValueTask<GatewayDto> GetDto(this GatewayUri uri, HttpPipeline pipeline, CancellationToken cancellationToken)
     {
         var content = await pipeline.GetContent(uri.ToUri(), cancellationToken);
         return content.ToObjectFromJson<GatewayDto>();
-    }
-
-    public static async ValueTask<Option<GatewayDto>> TryGetDto(this GatewayUri uri, HttpPipeline pipeline, CancellationToken cancellationToken)
-    {
-        var either = await pipeline.TryGetContent(uri.ToUri(), cancellationToken);
-
-        return either.Map(content => content.ToObjectFromJson<GatewayDto>())
-                     .Match(Option<GatewayDto>.Some,
-                            response => response.Status == (int)HttpStatusCode.NotFound
-                                          ? Option<GatewayDto>.None
-                                          : throw response.ToHttpRequestException(uri.ToUri()));
     }
 
     public static async ValueTask Delete(this GatewayUri uri, HttpPipeline pipeline, CancellationToken cancellationToken) =>

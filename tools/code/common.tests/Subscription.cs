@@ -1,6 +1,5 @@
 ﻿using CsCheck;
 using LanguageExt;
-using Nito.Comparers;
 using System.Collections.Frozen;
 using System.Linq;
 
@@ -36,18 +35,15 @@ public sealed record SubscriptionModel
     public required SubscriptionName Name { get; init; }
     public required string DisplayName { get; init; }
     public required SubscriptionScope Scope { get; init; }
-    public Option<bool> AllowTracing { get; init; }
 
     public static Gen<SubscriptionModel> Generate() =>
         from name in GenerateName()
         from scope in SubscriptionScope.Generate()
-        from allowTracing in Gen.Bool.OptionOf()
         select new SubscriptionModel
         {
             Name = name,
             DisplayName = name.ToString(),
-            Scope = scope,
-            AllowTracing = allowTracing
+            Scope = scope
         };
 
     public static Gen<SubscriptionName> GenerateName() =>
@@ -58,8 +54,6 @@ public sealed record SubscriptionModel
         Generator.AlphaNumericStringBetween(10, 20);
 
     public static Gen<FrozenSet<SubscriptionModel>> GenerateSet() =>
-        Generate().FrozenSetOf(EqualityComparerBuilder.For<SubscriptionModel>()
-                                                      .EquateBy(x => x.Name)
-                                                      .ThenEquateBy(x => x.DisplayName),
-                               0, 10);
+        Generate().FrozenSetOf(x => x.Name, 0, 10)
+                  .DistinctBy(x => x.DisplayName);
 }

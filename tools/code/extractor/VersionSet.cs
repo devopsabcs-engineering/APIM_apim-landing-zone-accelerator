@@ -1,112 +1,123 @@
 ﻿using Azure.Core.Pipeline;
 using common;
-using LanguageExt;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace extractor;
 
-internal delegate ValueTask ExtractVersionSets(CancellationToken cancellationToken);
+public delegate ValueTask ExtractVersionSets(CancellationToken cancellationToken);
+public delegate IAsyncEnumerable<(VersionSetName Name, VersionSetDto Dto)> ListVersionSets(CancellationToken cancellationToken);
+public delegate ValueTask WriteVersionSetArtifacts(VersionSetName name, VersionSetDto dto, CancellationToken cancellationToken);
+public delegate ValueTask WriteVersionSetInformationFile(VersionSetName name, VersionSetDto dto, CancellationToken cancellationToken);
 
-file delegate IAsyncEnumerable<(VersionSetName Name, VersionSetDto Dto)> ListVersionSets(CancellationToken cancellationToken);
-
-file delegate bool ShouldExtractVersionSet(VersionSetName name);
-
-file delegate ValueTask WriteVersionSetArtifacts(VersionSetName name, VersionSetDto dto, CancellationToken cancellationToken);
-
-file delegate ValueTask WriteVersionSetInformationFile(VersionSetName name, VersionSetDto dto, CancellationToken cancellationToken);
-
-file sealed class ExtractVersionSetsHandler(ListVersionSets list, ShouldExtractVersionSet shouldExtract, WriteVersionSetArtifacts writeArtifacts)
+internal static class VersionSetModule
 {
-    public async ValueTask Handle(CancellationToken cancellationToken) =>
-        await list(cancellationToken)
-                .Where(versionset => shouldExtract(versionset.Name))
-                .IterParallel(async versionset => await writeArtifacts(versionset.Name, versionset.Dto, cancellationToken),
-                              cancellationToken);
-}
-
-file sealed class ListVersionSetsHandler(ManagementServiceUri serviceUri, HttpPipeline pipeline)
-{
-    public IAsyncEnumerable<(VersionSetName, VersionSetDto)> Handle(CancellationToken cancellationToken) =>
-        VersionSetsUri.From(serviceUri).List(pipeline, cancellationToken);
-}
-
-file sealed class ShouldExtractVersionSetHandler(ShouldExtractFactory shouldExtractFactory)
-{
-    public bool Handle(VersionSetName name)
+    public static void ConfigureExtractVersionSets(IHostApplicationBuilder builder)
     {
-        var shouldExtract = shouldExtractFactory.Create<VersionSetName>();
-        return shouldExtract(name);
-    }
-}
+        ConfigureListVersionSets(builder);
+        ConfigureWriteVersionSetArtifacts(builder);
 
-file sealed class WriteVersionSetArtifactsHandler(WriteVersionSetInformationFile writeInformationFile)
-{
-    public async ValueTask Handle(VersionSetName name, VersionSetDto dto, CancellationToken cancellationToken)
-    {
-        await writeInformationFile(name, dto, cancellationToken);
-    }
-}
-
-file sealed class WriteVersionSetInformationFileHandler(ILoggerFactory loggerFactory, ManagementServiceDirectory serviceDirectory)
-{
-    private readonly ILogger logger = Common.GetLogger(loggerFactory);
-
-    public async ValueTask Handle(VersionSetName name, VersionSetDto dto, CancellationToken cancellationToken)
-    {
-        var informationFile = VersionSetInformationFile.From(name, serviceDirectory);
-
-        logger.LogInformation("Writing version set information file {VersionSetInformationFile}...", informationFile);
-        await informationFile.WriteDto(dto, cancellationToken);
-    }
-}
-
-internal static class VersionSetServices
-{
-    public static void ConfigureExtractVersionSets(IServiceCollection services)
-    {
-        ConfigureListVersionSets(services);
-        ConfigureShouldExtractVersionSet(services);
-        ConfigureWriteVersionSetArtifacts(services);
-
-        services.TryAddSingleton<ExtractVersionSetsHandler>();
-        services.TryAddSingleton<ExtractVersionSets>(provider => provider.GetRequiredService<ExtractVersionSetsHandler>().Handle);
+        builder.Services.TryAddSingleton(GetExtractVersionSets);
     }
 
-    private static void ConfigureListVersionSets(IServiceCollection services)
+    private static ExtractVersionSets GetExtractVersionSets(IServiceProvider provider)
     {
-        services.TryAddSingleton<ListVersionSetsHandler>();
-        services.TryAddSingleton<ListVersionSets>(provider => provider.GetRequiredService<ListVersionSetsHandler>().Handle);
+        var list = provider.GetRequiredService<ListVersionSets>();
+        var writeArtifacts = provider.GetRequiredService<WriteVersionSetArtifacts>();
+        var activitySource = provider.GetRequiredService<ActivitySource>();
+        var logger = provider.GetRequiredService<ILogger>();
+
+        return async cancellationToken =>
+        {
+            using var _ = activitySource.StartActivity(nameof(ExtractVersionSets));
+
+            logger.LogInformation("Extracting version sets...");
+
+            await list(cancellationToken)
+                    .IterParallel(async resource => await writeArtifacts(resource.Name, resource.Dto, cancellationToken),
+                                  cancellationToken);
+        };
     }
 
-    private static void ConfigureShouldExtractVersionSet(IServiceCollection services)
+    private static void ConfigureListVersionSets(IHostApplicationBuilder builder)
     {
-        services.TryAddSingleton<ShouldExtractVersionSetHandler>();
-        services.TryAddSingleton<ShouldExtractVersionSet>(provider => provider.GetRequiredService<ShouldExtractVersionSetHandler>().Handle);
+        ConfigurationModule.ConfigureFindConfigurationNamesFactory(builder);
+        AzureModule.ConfigureManagementServiceUri(builder);
+        AzureModule.ConfigureHttpPipeline(builder);
+
+        builder.Services.TryAddSingleton(GetListVersionSets);
     }
 
-    private static void ConfigureWriteVersionSetArtifacts(IServiceCollection services)
+    private static ListVersionSets GetListVersionSets(IServiceProvider provider)
     {
-        ConfigureWriteVersionSetInformationFile(services);
+        var findConfigurationNamesFactory = provider.GetRequiredService<FindConfigurationNamesFactory>();
+        var serviceUri = provider.GetRequiredService<ManagementServiceUri>();
+        var pipeline = provider.GetRequiredService<HttpPipeline>();
 
-        services.TryAddSingleton<WriteVersionSetArtifactsHandler>();
-        services.TryAddSingleton<WriteVersionSetArtifacts>(provider => provider.GetRequiredService<WriteVersionSetArtifactsHandler>().Handle);
+        var findConfigurationNames = findConfigurationNamesFactory.Create<VersionSetName>();
+
+        return cancellationToken =>
+            findConfigurationNames()
+                .Map(names => listFromSet(names, cancellationToken))
+                .IfNone(() => listAll(cancellationToken));
+
+        IAsyncEnumerable<(VersionSetName, VersionSetDto)> listFromSet(IEnumerable<VersionSetName> names, CancellationToken cancellationToken) =>
+            names.Select(name => VersionSetUri.From(name, serviceUri))
+                 .ToAsyncEnumerable()
+                 .Choose(async uri =>
+                 {
+                     var dtoOption = await uri.TryGetDto(pipeline, cancellationToken);
+                     return dtoOption.Map(dto => (uri.Name, dto));
+                 });
+
+        IAsyncEnumerable<(VersionSetName, VersionSetDto)> listAll(CancellationToken cancellationToken)
+        {
+            var versionSetsUri = VersionSetsUri.From(serviceUri);
+            return versionSetsUri.List(pipeline, cancellationToken);
+        }
     }
 
-    private static void ConfigureWriteVersionSetInformationFile(IServiceCollection services)
+    private static void ConfigureWriteVersionSetArtifacts(IHostApplicationBuilder builder)
     {
-        services.TryAddSingleton<WriteVersionSetInformationFileHandler>();
-        services.TryAddSingleton<WriteVersionSetInformationFile>(provider => provider.GetRequiredService<WriteVersionSetInformationFileHandler>().Handle);
-    }
-}
+        ConfigureWriteVersionSetInformationFile(builder);
 
-file static class Common
-{
-    public static ILogger GetLogger(ILoggerFactory loggerFactory) =>
-        loggerFactory.CreateLogger("VersionSetExtractor");
+        builder.Services.TryAddSingleton(GetWriteVersionSetArtifacts);
+    }
+
+    private static WriteVersionSetArtifacts GetWriteVersionSetArtifacts(IServiceProvider provider)
+    {
+        var writeInformationFile = provider.GetRequiredService<WriteVersionSetInformationFile>();
+
+        return async (name, dto, cancellationToken) =>
+            await writeInformationFile(name, dto, cancellationToken);
+    }
+
+    private static void ConfigureWriteVersionSetInformationFile(IHostApplicationBuilder builder)
+    {
+        AzureModule.ConfigureManagementServiceDirectory(builder);
+
+        builder.Services.TryAddSingleton(GetWriteVersionSetInformationFile);
+    }
+
+    private static WriteVersionSetInformationFile GetWriteVersionSetInformationFile(IServiceProvider provider)
+    {
+        var serviceDirectory = provider.GetRequiredService<ManagementServiceDirectory>();
+        var logger = provider.GetRequiredService<ILogger>();
+
+        return async (name, dto, cancellationToken) =>
+        {
+            var informationFile = VersionSetInformationFile.From(name, serviceDirectory);
+
+            logger.LogInformation("Writing version set information file {VersionSetInformationFile}...", informationFile);
+            await informationFile.WriteDto(dto, cancellationToken);
+        };
+    }
 }

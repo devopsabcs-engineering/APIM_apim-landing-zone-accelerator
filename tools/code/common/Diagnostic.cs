@@ -6,15 +6,13 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
-using System.Net;
-using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace common;
 
-public sealed record DiagnosticName : ResourceName
+public sealed record DiagnosticName : ResourceName, IResourceName<DiagnosticName>
 {
     private DiagnosticName(string value) : base(value) { }
 
@@ -256,21 +254,16 @@ public static class DiagnosticModule
                           return (name, dto);
                       });
 
+    public static async ValueTask<Option<DiagnosticDto>> TryGetDto(this DiagnosticUri uri, HttpPipeline pipeline, CancellationToken cancellationToken)
+    {
+        var contentOption = await pipeline.GetContentOption(uri.ToUri(), cancellationToken);
+        return contentOption.Map(content => content.ToObjectFromJson<DiagnosticDto>());
+    }
+
     public static async ValueTask<DiagnosticDto> GetDto(this DiagnosticUri uri, HttpPipeline pipeline, CancellationToken cancellationToken)
     {
         var content = await pipeline.GetContent(uri.ToUri(), cancellationToken);
         return content.ToObjectFromJson<DiagnosticDto>();
-    }
-
-    public static async ValueTask<Option<DiagnosticDto>> TryGetDto(this DiagnosticUri uri, HttpPipeline pipeline, CancellationToken cancellationToken)
-    {
-        var either = await pipeline.TryGetContent(uri.ToUri(), cancellationToken);
-
-        return either.Map(content => content.ToObjectFromJson<DiagnosticDto>())
-                     .Match(Option<DiagnosticDto>.Some,
-                            response => response.Status == (int)HttpStatusCode.NotFound
-                                          ? Option<DiagnosticDto>.None
-                                          : throw response.ToHttpRequestException(uri.ToUri()));
     }
 
     public static async ValueTask Delete(this DiagnosticUri uri, HttpPipeline pipeline, CancellationToken cancellationToken) =>
@@ -308,4 +301,9 @@ public static class DiagnosticModule
         var content = await file.ToFileInfo().ReadAsBinaryData(cancellationToken);
         return content.ToObjectFromJson<DiagnosticDto>();
     }
+
+    public static Option<LoggerName> TryGetLoggerName(DiagnosticDto dto) =>
+        from loggerId in Prelude.Optional(dto.Properties.LoggerId)
+        from loggerNameString in loggerId.Split('/').LastOrNone()
+        select LoggerName.From(loggerNameString);
 }

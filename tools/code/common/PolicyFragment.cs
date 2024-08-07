@@ -5,14 +5,13 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace common;
 
-public sealed record PolicyFragmentName : ResourceName
+public sealed record PolicyFragmentName : ResourceName, IResourceName<PolicyFragmentName>
 {
     private PolicyFragmentName(string value) : base(value) { }
 
@@ -185,22 +184,18 @@ public static class PolicyFragmentModule
                           return (name, dto);
                       });
 
+    public static async ValueTask<Option<PolicyFragmentDto>> TryGetDto(this PolicyFragmentUri uri, HttpPipeline pipeline, CancellationToken cancellationToken)
+    {
+        var contentUri = uri.ToUri().AppendQueryParam("format", "rawxml").ToUri();
+        var contentOption = await pipeline.GetContentOption(contentUri, cancellationToken);
+        return contentOption.Map(content => content.ToObjectFromJson<PolicyFragmentDto>());
+    }
+
     public static async ValueTask<PolicyFragmentDto> GetDto(this PolicyFragmentUri uri, HttpPipeline pipeline, CancellationToken cancellationToken)
     {
         var contentUri = uri.ToUri().AppendQueryParam("format", "rawxml").ToUri();
         var content = await pipeline.GetContent(contentUri, cancellationToken);
         return content.ToObjectFromJson<PolicyFragmentDto>();
-    }
-
-    public static async ValueTask<Option<PolicyFragmentDto>> TryGetDto(this PolicyFragmentUri uri, HttpPipeline pipeline, CancellationToken cancellationToken)
-    {
-        var either = await pipeline.TryGetContent(uri.ToUri(), cancellationToken);
-
-        return either.Map(content => content.ToObjectFromJson<PolicyFragmentDto>())
-                     .Match(Option<PolicyFragmentDto>.Some,
-                            response => response.Status == (int)HttpStatusCode.NotFound
-                                          ? Option<PolicyFragmentDto>.None
-                                          : throw response.ToHttpRequestException(uri.ToUri()));
     }
 
     public static async ValueTask Delete(this PolicyFragmentUri uri, HttpPipeline pipeline, CancellationToken cancellationToken) =>

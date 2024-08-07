@@ -2,90 +2,114 @@
 using common;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace extractor;
 
-internal delegate ValueTask ExtractApiTags(ApiName apiName, CancellationToken cancellationToken);
+public delegate ValueTask ExtractApiTags(ApiName apiName, CancellationToken cancellationToken);
+public delegate IAsyncEnumerable<(TagName Name, ApiTagDto Dto)> ListApiTags(ApiName apiName, CancellationToken cancellationToken);
+public delegate ValueTask WriteApiTagArtifacts(TagName name, ApiTagDto dto, ApiName apiName, CancellationToken cancellationToken);
+public delegate ValueTask WriteApiTagInformationFile(TagName name, ApiTagDto dto, ApiName apiName, CancellationToken cancellationToken);
 
-file delegate IAsyncEnumerable<(TagName Name, ApiTagDto Dto)> ListApiTags(ApiName apiName, CancellationToken cancellationToken);
-
-file delegate ValueTask WriteApiTagArtifacts(TagName name, ApiTagDto dto, ApiName apiName, CancellationToken cancellationToken);
-
-file delegate ValueTask WriteApiTagInformationFile(TagName name, ApiTagDto dto, ApiName apiName, CancellationToken cancellationToken);
-
-file sealed class ExtractApiTagsHandler(ListApiTags list, WriteApiTagArtifacts writeArtifacts)
+internal static class ApiTagModule
 {
-    public async ValueTask Handle(ApiName apiName, CancellationToken cancellationToken) =>
-        await list(apiName, cancellationToken)
-                .IterParallel(async apitag => await writeArtifacts(apitag.Name, apitag.Dto, apiName, cancellationToken),
-                              cancellationToken);
-}
-
-file sealed class ListApiTagsHandler(ManagementServiceUri serviceUri, HttpPipeline pipeline)
-{
-    public IAsyncEnumerable<(TagName, ApiTagDto)> Handle(ApiName apiName, CancellationToken cancellationToken) =>
-        ApiTagsUri.From(apiName, serviceUri).List(pipeline, cancellationToken);
-}
-
-file sealed class WriteApiTagArtifactsHandler(WriteApiTagInformationFile writeTagFile)
-{
-    public async ValueTask Handle(TagName name, ApiTagDto dto, ApiName apiName, CancellationToken cancellationToken)
+    public static void ConfigureExtractApiTags(IHostApplicationBuilder builder)
     {
-        await writeTagFile(name, dto, apiName, cancellationToken);
-    }
-}
+        ConfigureListApiTags(builder);
+        ConfigureWriteApiTagArtifacts(builder);
 
-file sealed class WriteApiTagInformationFileHandler(ILoggerFactory loggerFactory, ManagementServiceDirectory serviceDirectory)
-{
-    private readonly ILogger logger = Common.GetLogger(loggerFactory);
-
-    public async ValueTask Handle(TagName name, ApiTagDto dto, ApiName apiName, CancellationToken cancellationToken)
-    {
-        var informationFile = ApiTagInformationFile.From(name, apiName, serviceDirectory);
-
-        logger.LogInformation("Writing API tag information file {ApiTagInformationFile}...", informationFile);
-        await informationFile.WriteDto(dto, cancellationToken);
-    }
-}
-
-internal static class ApiTagServices
-{
-    public static void ConfigureExtractApiTags(IServiceCollection services)
-    {
-        ConfigureListApiTags(services);
-        ConfigureWriteApiTagArtifacts(services);
-
-        services.TryAddSingleton<ExtractApiTagsHandler>();
-        services.TryAddSingleton<ExtractApiTags>(provider => provider.GetRequiredService<ExtractApiTagsHandler>().Handle);
+        builder.Services.TryAddSingleton(GetExtractApiTags);
     }
 
-    private static void ConfigureListApiTags(IServiceCollection services)
+    private static ExtractApiTags GetExtractApiTags(IServiceProvider provider)
     {
-        services.TryAddSingleton<ListApiTagsHandler>();
-        services.TryAddSingleton<ListApiTags>(provider => provider.GetRequiredService<ListApiTagsHandler>().Handle);
+        var list = provider.GetRequiredService<ListApiTags>();
+        var writeArtifacts = provider.GetRequiredService<WriteApiTagArtifacts>();
+        var activitySource = provider.GetRequiredService<ActivitySource>();
+        var logger = provider.GetRequiredService<ILogger>();
+
+        return async (apiName, cancellationToken) =>
+        {
+            using var _ = activitySource.StartActivity(nameof(ExtractApiTags));
+
+            logger.LogInformation("Extracting tags for API {ApiName}...", apiName);
+
+            await list(apiName, cancellationToken)
+                    .IterParallel(async resource => await writeArtifacts(resource.Name, resource.Dto, apiName, cancellationToken),
+                                  cancellationToken);
+        };
     }
 
-    private static void ConfigureWriteApiTagArtifacts(IServiceCollection services)
+    private static void ConfigureListApiTags(IHostApplicationBuilder builder)
     {
-        ConfigureWriteApiTagInformationFile(services);
+        ConfigurationModule.ConfigureFindConfigurationNamesFactory(builder);
+        AzureModule.ConfigureManagementServiceUri(builder);
+        AzureModule.ConfigureHttpPipeline(builder);
 
-        services.TryAddSingleton<WriteApiTagArtifactsHandler>();
-        services.TryAddSingleton<WriteApiTagArtifacts>(provider => provider.GetRequiredService<WriteApiTagArtifactsHandler>().Handle);
+        builder.Services.TryAddSingleton(GetListApiTags);
     }
 
-    private static void ConfigureWriteApiTagInformationFile(IServiceCollection services)
+    private static ListApiTags GetListApiTags(IServiceProvider provider)
     {
-        services.TryAddSingleton<WriteApiTagInformationFileHandler>();
-        services.TryAddSingleton<WriteApiTagInformationFile>(provider => provider.GetRequiredService<WriteApiTagInformationFileHandler>().Handle);
-    }
-}
+        var findConfigurationNamesFactory = provider.GetRequiredService<FindConfigurationNamesFactory>();
+        var serviceUri = provider.GetRequiredService<ManagementServiceUri>();
+        var pipeline = provider.GetRequiredService<HttpPipeline>();
 
-file static class Common
-{
-    public static ILogger GetLogger(ILoggerFactory loggerFactory) =>
-        loggerFactory.CreateLogger("ApiTagExtractor");
+        var findConfigurationTags = findConfigurationNamesFactory.Create<TagName>();
+
+        return (apiName, cancellationToken) =>
+        {
+            var apiTagsUri = ApiTagsUri.From(apiName, serviceUri);
+            var resources = apiTagsUri.List(pipeline, cancellationToken);
+            return resources.Where(resource => shouldExtractTag(resource.Name));
+        };
+
+        bool shouldExtractTag(TagName name) =>
+            findConfigurationTags()
+                .Map(names => names.Contains(name))
+                .IfNone(true);
+    }
+
+    private static void ConfigureWriteApiTagArtifacts(IHostApplicationBuilder builder)
+    {
+        ConfigureWriteApiTagInformationFile(builder);
+
+        builder.Services.TryAddSingleton(GetWriteApiTagArtifacts);
+    }
+
+    private static WriteApiTagArtifacts GetWriteApiTagArtifacts(IServiceProvider provider)
+    {
+        var writeInformationFile = provider.GetRequiredService<WriteApiTagInformationFile>();
+
+        return async (name, dto, apiName, cancellationToken) =>
+            await writeInformationFile(name, dto, apiName, cancellationToken);
+    }
+
+    private static void ConfigureWriteApiTagInformationFile(IHostApplicationBuilder builder)
+    {
+        AzureModule.ConfigureManagementServiceDirectory(builder);
+
+        builder.Services.TryAddSingleton(GetWriteApiTagInformationFile);
+    }
+
+    private static WriteApiTagInformationFile GetWriteApiTagInformationFile(IServiceProvider provider)
+    {
+        var serviceDirectory = provider.GetRequiredService<ManagementServiceDirectory>();
+        var logger = provider.GetRequiredService<ILogger>();
+
+        return async (name, dto, apiName, cancellationToken) =>
+        {
+            var informationFile = ApiTagInformationFile.From(name, apiName, serviceDirectory);
+
+            logger.LogInformation("Writing API tag information file {ApiTagInformationFile}...", informationFile);
+            await informationFile.WriteDto(dto, cancellationToken);
+        };
+    }
 }

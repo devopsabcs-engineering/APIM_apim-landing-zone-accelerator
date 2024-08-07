@@ -1,71 +1,83 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using common;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System.Threading;
-using System.Threading.Tasks;
+using Microsoft.FeatureManagement;
+using System;
+using System.Diagnostics;
 
 namespace extractor;
 
-internal delegate ValueTask RunExtractor(CancellationToken cancellationToken);
-
-file sealed class RunExtractorHandler(ILoggerFactory loggerFactory,
-                                      ExtractNamedValues extractNamedValues,
-                                      ExtractTags extractTags,
-                                      ExtractGateways extractGateways,
-                                      ExtractVersionSets extractVersionSets,
-                                      ExtractBackends extractBackends,
-                                      ExtractLoggers extractLoggers,
-                                      ExtractDiagnostics extractDiagnostics,
-                                      ExtractPolicyFragments extractPolicyFragments,
-                                      ExtractServicePolicies extractServicePolicies,
-                                      ExtractProducts extractProducts,
-                                      ExtractGroups extractGroups,
-                                      ExtractSubscriptions extractSubscriptions,
-                                      ExtractApis extractApis)
+internal static class AppModule
 {
-    private readonly ILogger logger = loggerFactory.CreateLogger("RunExtractor");
-
-    public async ValueTask Handle(CancellationToken cancellationToken)
+    public static void ConfigureRunApplication(IHostApplicationBuilder builder)
     {
-        logger.LogInformation("Running extractor...");
+        NamedValueModule.ConfigureExtractNamedValues(builder);
+        TagModule.ConfigureExtractTags(builder);
+        GatewayModule.ConfigureExtractGateways(builder);
+        VersionSetModule.ConfigureExtractVersionSets(builder);
+        BackendModule.ConfigureExtractBackends(builder);
+        LoggerModule.ConfigureExtractLoggers(builder);
+        DiagnosticModule.ConfigureExtractDiagnostics(builder);
+        PolicyFragmentModule.ConfigureExtractPolicyFragments(builder);
+        ServicePolicyModule.ConfigureExtractServicePolicies(builder);
+        ProductModule.ConfigureExtractProducts(builder);
+        GroupModule.ConfigureExtractGroups(builder);
+        SubscriptionModule.ConfigureExtractSubscriptions(builder);
+        ApiModule.ConfigureExtractApis(builder);
+        WorkspaceModule.ConfigureExtractWorkspaces(builder);
+        builder.Services.AddFeatureManagement();
 
-        await extractNamedValues(cancellationToken);
-        await extractTags(cancellationToken);
-        await extractGateways(cancellationToken);
-        await extractVersionSets(cancellationToken);
-        await extractBackends(cancellationToken);
-        await extractLoggers(cancellationToken);
-        await extractDiagnostics(cancellationToken);
-        await extractPolicyFragments(cancellationToken);
-        await extractServicePolicies(cancellationToken);
-        await extractProducts(cancellationToken);
-        await extractGroups(cancellationToken);
-        await extractSubscriptions(cancellationToken);
-        await extractApis(cancellationToken);
-
-        logger.LogInformation("Extractor completed.");
+        builder.Services.TryAddSingleton(GetRunApplication);
     }
-}
 
-internal static class AppServices
-{
-    public static void ConfigureRunExtractor(IServiceCollection services)
+    private static RunApplication GetRunApplication(IServiceProvider provider)
     {
-        NamedValueServices.ConfigureExtractNamedValues(services);
-        TagServices.ConfigureExtractTags(services);
-        GatewayServices.ConfigureExtractGateways(services);
-        VersionSetServices.ConfigureExtractVersionSets(services);
-        BackendServices.ConfigureExtractBackends(services);
-        LoggerServices.ConfigureExtractLoggers(services);
-        DiagnosticServices.ConfigureExtractDiagnostics(services);
-        PolicyFragmentServices.ConfigureExtractPolicyFragments(services);
-        ServicePolicyServices.ConfigureExtractServicePolicies(services);
-        ProductServices.ConfigureExtractProducts(services);
-        GroupServices.ConfigureExtractGroups(services);
-        SubscriptionServices.ConfigureExtractSubscriptions(services);
-        ApiServices.ConfigureExtractApis(services);
+        var extractNamedValues = provider.GetRequiredService<ExtractNamedValues>();
+        var extractTags = provider.GetRequiredService<ExtractTags>();
+        var extractGateways = provider.GetRequiredService<ExtractGateways>();
+        var extractVersionSets = provider.GetRequiredService<ExtractVersionSets>();
+        var extractBackends = provider.GetRequiredService<ExtractBackends>();
+        var extractLoggers = provider.GetRequiredService<ExtractLoggers>();
+        var extractDiagnostics = provider.GetRequiredService<ExtractDiagnostics>();
+        var extractPolicyFragments = provider.GetRequiredService<ExtractPolicyFragments>();
+        var extractServicePolicies = provider.GetRequiredService<ExtractServicePolicies>();
+        var extractProducts = provider.GetRequiredService<ExtractProducts>();
+        var extractGroups = provider.GetRequiredService<ExtractGroups>();
+        var extractSubscriptions = provider.GetRequiredService<ExtractSubscriptions>();
+        var extractApis = provider.GetRequiredService<ExtractApis>();
+        var extractWorkspaces = provider.GetRequiredService<ExtractWorkspaces>();
+        var featureManager = provider.GetRequiredService<IFeatureManager>();
+        var activitySource = provider.GetRequiredService<ActivitySource>();
+        var logger = provider.GetRequiredService<ILogger>();
 
-        services.TryAddSingleton<RunExtractorHandler>();
-        services.TryAddSingleton<RunExtractor>(provider => provider.GetRequiredService<RunExtractorHandler>().Handle);
+        return async cancellationToken =>
+        {
+            using var activity = activitySource.StartActivity(nameof(RunApplication));
+
+            logger.LogInformation("Running extractor...");
+
+            await extractNamedValues(cancellationToken);
+            await extractTags(cancellationToken);
+            await extractGateways(cancellationToken);
+            await extractVersionSets(cancellationToken);
+            await extractBackends(cancellationToken);
+            await extractLoggers(cancellationToken);
+            await extractDiagnostics(cancellationToken);
+            await extractPolicyFragments(cancellationToken);
+            await extractServicePolicies(cancellationToken);
+            await extractProducts(cancellationToken);
+            await extractGroups(cancellationToken);
+            await extractSubscriptions(cancellationToken);
+            await extractApis(cancellationToken);
+
+            if (await featureManager.IsEnabledAsync("Workspaces"))
+            {
+                await extractWorkspaces(cancellationToken);
+            }
+
+            logger.LogInformation("Extractor completed.");
+        };
     }
 }

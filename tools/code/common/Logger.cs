@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Threading;
@@ -13,15 +12,9 @@ using System.Threading.Tasks;
 
 namespace common;
 
-public sealed record LoggerName : ResourceName
+public sealed record LoggerName : ResourceName, IResourceName<LoggerName>
 {
     private LoggerName(string value) : base(value) { }
-
-    /// <summary>
-    /// Logger names with revisions have the format 'loggerName;revision'
-    /// </summary>
-    public LoggerName ToNonRevisionedName() =>
-        new(Value.Split(';').First());
 
     public static LoggerName From(string value) => new(value);
 }
@@ -175,21 +168,16 @@ public static class LoggerModule
                           return (name, dto);
                       });
 
+    public static async ValueTask<Option<LoggerDto>> TryGetDto(this LoggerUri uri, HttpPipeline pipeline, CancellationToken cancellationToken)
+    {
+        var contentOption = await pipeline.GetContentOption(uri.ToUri(), cancellationToken);
+        return contentOption.Map(content => content.ToObjectFromJson<LoggerDto>());
+    }
+
     public static async ValueTask<LoggerDto> GetDto(this LoggerUri uri, HttpPipeline pipeline, CancellationToken cancellationToken)
     {
         var content = await pipeline.GetContent(uri.ToUri(), cancellationToken);
         return content.ToObjectFromJson<LoggerDto>();
-    }
-
-    public static async ValueTask<Option<LoggerDto>> TryGetDto(this LoggerUri uri, HttpPipeline pipeline, CancellationToken cancellationToken)
-    {
-        var either = await pipeline.TryGetContent(uri.ToUri(), cancellationToken);
-
-        return either.Map(content => content.ToObjectFromJson<LoggerDto>())
-                     .Match(Option<LoggerDto>.Some,
-                            response => response.Status == (int)HttpStatusCode.NotFound
-                                          ? Option<LoggerDto>.None
-                                          : throw response.ToHttpRequestException(uri.ToUri()));
     }
 
     public static async ValueTask Delete(this LoggerUri uri, HttpPipeline pipeline, CancellationToken cancellationToken) =>

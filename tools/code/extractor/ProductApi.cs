@@ -2,90 +2,114 @@
 using common;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace extractor;
 
-internal delegate ValueTask ExtractProductApis(ProductName productName, CancellationToken cancellationToken);
+public delegate ValueTask ExtractProductApis(ProductName productName, CancellationToken cancellationToken);
+public delegate IAsyncEnumerable<(ApiName Name, ProductApiDto Dto)> ListProductApis(ProductName productName, CancellationToken cancellationToken);
+public delegate ValueTask WriteProductApiArtifacts(ApiName name, ProductApiDto dto, ProductName productName, CancellationToken cancellationToken);
+public delegate ValueTask WriteProductApiInformationFile(ApiName name, ProductApiDto dto, ProductName productName, CancellationToken cancellationToken);
 
-file delegate IAsyncEnumerable<(ApiName Name, ProductApiDto Dto)> ListProductApis(ProductName productName, CancellationToken cancellationToken);
-
-file delegate ValueTask WriteProductApiArtifacts(ApiName name, ProductApiDto dto, ProductName productName, CancellationToken cancellationToken);
-
-file delegate ValueTask WriteProductApiInformationFile(ApiName name, ProductApiDto dto, ProductName productName, CancellationToken cancellationToken);
-
-file sealed class ExtractProductApisHandler(ListProductApis list, WriteProductApiArtifacts writeArtifacts)
+internal static class ProductApiModule
 {
-    public async ValueTask Handle(ProductName productName, CancellationToken cancellationToken) =>
-        await list(productName, cancellationToken)
-                .IterParallel(async productapi => await writeArtifacts(productapi.Name, productapi.Dto, productName, cancellationToken),
-                              cancellationToken);
-}
-
-file sealed class ListProductApisHandler(ManagementServiceUri serviceUri, HttpPipeline pipeline)
-{
-    public IAsyncEnumerable<(ApiName, ProductApiDto)> Handle(ProductName productName, CancellationToken cancellationToken) =>
-        ProductApisUri.From(productName, serviceUri).List(pipeline, cancellationToken);
-}
-
-file sealed class WriteProductApiArtifactsHandler(WriteProductApiInformationFile writeApiFile)
-{
-    public async ValueTask Handle(ApiName name, ProductApiDto dto, ProductName productName, CancellationToken cancellationToken)
+    public static void ConfigureExtractProductApis(IHostApplicationBuilder builder)
     {
-        await writeApiFile(name, dto, productName, cancellationToken);
-    }
-}
+        ConfigureListProductApis(builder);
+        ConfigureWriteProductApiArtifacts(builder);
 
-file sealed class WriteProductApiInformationFileHandler(ILoggerFactory loggerFactory, ManagementServiceDirectory serviceDirectory)
-{
-    private readonly ILogger logger = Common.GetLogger(loggerFactory);
-
-    public async ValueTask Handle(ApiName name, ProductApiDto dto, ProductName productName, CancellationToken cancellationToken)
-    {
-        var informationFile = ProductApiInformationFile.From(name, productName, serviceDirectory);
-
-        logger.LogInformation("Writing product api information file {ProductApiInformationFile}...", informationFile);
-        await informationFile.WriteDto(dto, cancellationToken);
-    }
-}
-
-internal static class ProductApiServices
-{
-    public static void ConfigureExtractProductApis(IServiceCollection services)
-    {
-        ConfigureListProductApis(services);
-        ConfigureWriteProductApiArtifacts(services);
-
-        services.TryAddSingleton<ExtractProductApisHandler>();
-        services.TryAddSingleton<ExtractProductApis>(provider => provider.GetRequiredService<ExtractProductApisHandler>().Handle);
+        builder.Services.TryAddSingleton(GetExtractProductApis);
     }
 
-    private static void ConfigureListProductApis(IServiceCollection services)
+    private static ExtractProductApis GetExtractProductApis(IServiceProvider provider)
     {
-        services.TryAddSingleton<ListProductApisHandler>();
-        services.TryAddSingleton<ListProductApis>(provider => provider.GetRequiredService<ListProductApisHandler>().Handle);
+        var list = provider.GetRequiredService<ListProductApis>();
+        var writeArtifacts = provider.GetRequiredService<WriteProductApiArtifacts>();
+        var activitySource = provider.GetRequiredService<ActivitySource>();
+        var logger = provider.GetRequiredService<ILogger>();
+
+        return async (productName, cancellationToken) =>
+        {
+            using var _ = activitySource.StartActivity(nameof(ExtractProductApis));
+
+            logger.LogInformation("Extracting APIs for product {ProductName}...", productName);
+
+            await list(productName, cancellationToken)
+                    .IterParallel(async resource => await writeArtifacts(resource.Name, resource.Dto, productName, cancellationToken),
+                                  cancellationToken);
+        };
     }
 
-    private static void ConfigureWriteProductApiArtifacts(IServiceCollection services)
+    private static void ConfigureListProductApis(IHostApplicationBuilder builder)
     {
-        ConfigureWriteProductApiInformationFile(services);
+        ConfigurationModule.ConfigureFindConfigurationNamesFactory(builder);
+        AzureModule.ConfigureManagementServiceUri(builder);
+        AzureModule.ConfigureHttpPipeline(builder);
 
-        services.TryAddSingleton<WriteProductApiArtifactsHandler>();
-        services.TryAddSingleton<WriteProductApiArtifacts>(provider => provider.GetRequiredService<WriteProductApiArtifactsHandler>().Handle);
+        builder.Services.TryAddSingleton(GetListProductApis);
     }
 
-    private static void ConfigureWriteProductApiInformationFile(IServiceCollection services)
+    private static ListProductApis GetListProductApis(IServiceProvider provider)
     {
-        services.TryAddSingleton<WriteProductApiInformationFileHandler>();
-        services.TryAddSingleton<WriteProductApiInformationFile>(provider => provider.GetRequiredService<WriteProductApiInformationFileHandler>().Handle);
-    }
-}
+        var findConfigurationNamesFactory = provider.GetRequiredService<FindConfigurationNamesFactory>();
+        var serviceUri = provider.GetRequiredService<ManagementServiceUri>();
+        var pipeline = provider.GetRequiredService<HttpPipeline>();
 
-file static class Common
-{
-    public static ILogger GetLogger(ILoggerFactory loggerFactory) =>
-        loggerFactory.CreateLogger("ProductApiExtractor");
+        var findConfigurationApis = findConfigurationNamesFactory.Create<ApiName>();
+
+        return (productName, cancellationToken) =>
+        {
+            var productApisUri = ProductApisUri.From(productName, serviceUri);
+            var resources = productApisUri.List(pipeline, cancellationToken);
+            return resources.Where(resource => shouldExtractApi(resource.Name));
+        };
+
+        bool shouldExtractApi(ApiName name) =>
+            findConfigurationApis()
+                .Map(names => names.Contains(name))
+                .IfNone(true);
+    }
+
+    private static void ConfigureWriteProductApiArtifacts(IHostApplicationBuilder builder)
+    {
+        ConfigureWriteProductApiInformationFile(builder);
+
+        builder.Services.TryAddSingleton(GetWriteProductApiArtifacts);
+    }
+
+    private static WriteProductApiArtifacts GetWriteProductApiArtifacts(IServiceProvider provider)
+    {
+        var writeInformationFile = provider.GetRequiredService<WriteProductApiInformationFile>();
+
+        return async (name, dto, productName, cancellationToken) =>
+            await writeInformationFile(name, dto, productName, cancellationToken);
+    }
+
+    private static void ConfigureWriteProductApiInformationFile(IHostApplicationBuilder builder)
+    {
+        AzureModule.ConfigureManagementServiceDirectory(builder);
+
+        builder.Services.TryAddSingleton(GetWriteProductApiInformationFile);
+    }
+
+    private static WriteProductApiInformationFile GetWriteProductApiInformationFile(IServiceProvider provider)
+    {
+        var serviceDirectory = provider.GetRequiredService<ManagementServiceDirectory>();
+        var logger = provider.GetRequiredService<ILogger>();
+
+        return async (name, dto, productName, cancellationToken) =>
+        {
+            var informationFile = ProductApiInformationFile.From(name, productName, serviceDirectory);
+
+            logger.LogInformation("Writing product API information file {ProductApiInformationFile}...", informationFile);
+            await informationFile.WriteDto(dto, cancellationToken);
+        };
+    }
 }
