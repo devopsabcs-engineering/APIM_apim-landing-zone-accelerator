@@ -153,7 +153,7 @@ products:
   - name: b2c011product
     groups:
       - name: administrators
-      - name: apim-xmjyxcbp4a5fo-aad-main-group-b2c-011
+      #- name: apim-xmjyxcbp4a5fo-aad-main-group-b2c-011
     apis:
       - name: "func-b2c-011"
       - name: "echo-api"
