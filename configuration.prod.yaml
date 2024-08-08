@@ -161,7 +161,7 @@ subscriptions:
       ownerId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-gk7dxthmtgpwg/users/645db6e95ddd171670437412"
       state: active
   - name: 666b13f3fb426812ac4c69b8
-    properties: # fhir product    
+    properties: # fhir product
       name: 666b16cd5ddd171310e29e14
       displayName: "Product FhirProduct subscription (PROD)"
       scope: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-gk7dxthmtgpwg/products/fhir-product"
@@ -202,6 +202,12 @@ subscriptions:
       state: active
 products:
   - name: aad003product
+    displayName: "Aad003Product"
+    description: "PROD: first aad product"
+    approvalRequired: false
+    state: "published"
+    subscriptionRequired: true
+    terms: "PROD: Read the legal fine print Tenant AAD 003!"
     groups:
       - name: administrators
       #- name: 6447ca9293ec4522bd87c4df
@@ -209,12 +215,24 @@ products:
       - name: "func-aad-003"
       - name: "echo-api"
   - name: aad005product
+    displayName: "Aad005Product"
+    description: "PROD: second aad product"
+    approvalRequired: false
+    state: "published"
+    subscriptionRequired: true
+    terms: "PROD: Read the legal fine print Tenant AAD 005!"
     groups:
       - name: administrators
     apis:
       - name: "func-aad-005"
       - name: "echo-api"
   - name: b2c010product
+    displayName: "B2c010Product"
+    description: "PROD: first b2c product"
+    approvalRequired: false
+    state: "published"
+    subscriptionRequired: true
+    terms: "PROD: Read the legal fine print Tenant B2c 010!"
     groups:
       - name: administrators
       #- name: apim-xmjyxcbp4a5fo-aad-main-group-b2c-010
@@ -223,12 +241,25 @@ products:
       #- name: "func-b2c-011" # can also push extra api in prod!
       - name: "echo-api"
   - name: b2c011product
+    displayName: "B2c011Product"
+    description: "PROD: second b2c product"
+    approvalRequired: false
+    state: "published"
+    subscriptionRequired: true
+    terms: "PROD: Read the legal fine print Tenant B2c 011!"
     groups:
       - name: administrators
       #- name: apim-xmjyxcbp4a5fo-aad-main-group-b2c-011
     apis:
       - name: "func-b2c-011"
       - name: "echo-api"
+  - name: alldressed
+    displayName: "AllDressed"
+    description: "PROD: access to all products and apis"
+    approvalRequired: false
+    state: "published"
+    subscriptionRequired: true
+    terms: "PROD: Read the legal fine print Tenant AllDressed!"
 groups:
   # - name: administrators
   #   properties:
