@@ -13,14 +13,18 @@ pool:
   vmImage: 'windows-latest'
 
 variables:
+- name: azureSubscription
+  value: 'APIM_MicrosoftAzureExternal_multitenant'
+- name: storageAccountProd
+  value: stwebn4nccfxiu2ep6
+- name: storageAccountDev
+  value: stweb23x452a77wcmu
 - name: ARTIFACT_NAME_DEV
   value: StaticWebsiteContentDev
 - name: ARTIFACT_NAME_PROD
   value: StaticWebsiteContentProd
 - name: project
   value: 'src/ApimAzureAdB2CSoln/static-website-front-end'
-- name: serviceConnectionName   # Name of the serviceconnection to the target ESLZ Azure subscription
-  value: APIM_MicrosoftAzureExternal_multitenant
 
 stages:
 - stage: Build_Dev
@@ -66,7 +70,7 @@ stages:
     displayName: Deploy to Azure Storage
     environment: APIM_B2C_frontend_development
     variables:
-      AZURE_STORAGE_ACCOUNT: stor3m2fbh7dapcag    
+      AZURE_STORAGE_ACCOUNT: $(storageAccountDev)
     strategy:
       runOnce:
         deploy:
@@ -74,14 +78,14 @@ stages:
           - task: AzureCLI@2
             displayName: 'Delete Existing Files'
             inputs:
-              azureSubscription: '$(serviceConnectionName)'
+              azureSubscription: '$(azureSubscription)'
               scriptType: 'pscore'
               scriptLocation: 'inlineScript'
               inlineScript: 'az storage blob delete-batch -s `$web --account-name $(AZURE_STORAGE_ACCOUNT) --auth-mode login'
           - task: AzureFileCopy@4
             displayName: 'Copy Files to Storage'
             inputs:
-              azureSubscription: '$(serviceConnectionName)'
+              azureSubscription: '$(azureSubscription)'
               SourcePath: '$(Pipeline.Workspace)/$(ARTIFACT_NAME_DEV)/*'
               Destination: 'AzureBlob'
               storage: '$(AZURE_STORAGE_ACCOUNT)'
@@ -130,7 +134,7 @@ stages:
     displayName: Deploy to Azure Storage
     environment: APIM_B2C_frontend_production
     variables:
-      AZURE_STORAGE_ACCOUNT: storqnzxwgg2niqda    
+      AZURE_STORAGE_ACCOUNT: $(storageAccountProd)
     strategy:
       runOnce:
         deploy:
@@ -138,14 +142,14 @@ stages:
           - task: AzureCLI@2
             displayName: 'Delete Existing Files'
             inputs:
-              azureSubscription: '$(serviceConnectionName)'
+              azureSubscription: '$(azureSubscription)'
               scriptType: 'pscore'
               scriptLocation: 'inlineScript'
               inlineScript: 'az storage blob delete-batch -s `$web --account-name $(AZURE_STORAGE_ACCOUNT) --auth-mode login'
           - task: AzureFileCopy@4
             displayName: 'Copy Files to Storage'
             inputs:
-              azureSubscription: '$(serviceConnectionName)'
+              azureSubscription: '$(azureSubscription)'
               SourcePath: '$(Pipeline.Workspace)/$(ARTIFACT_NAME_PROD)/*'
               Destination: 'AzureBlob'
               storage: '$(AZURE_STORAGE_ACCOUNT)'

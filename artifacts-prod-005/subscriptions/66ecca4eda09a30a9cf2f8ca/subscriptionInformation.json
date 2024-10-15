@@ -1,0 +1,9 @@
+{
+  "properties": {
+    "displayName": "GraphQL Subscription (PROD)",
+    "scope": "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.ApiManagement/service/apim-prod-005-cs4jyj6wprtye/products/graphql-product-dev",
+    "allowTracing": false,
+    "ownerId": "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.ApiManagement/service/apim-prod-005-cs4jyj6wprtye/users/1",
+    "state": "active"
+  }
+}

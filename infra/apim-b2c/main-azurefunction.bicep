@@ -1,5 +1,5 @@
 @description('The name of the function app that you wish to create.')
-param appName string = 'fnapp${uniqueString(resourceGroup().id)}'
+param appName string = 'func-${uniqueString(resourceGroup().id)}'
 
 @description('Storage Account type')
 @allowed([
@@ -25,10 +25,19 @@ param runtime string = 'dotnet'
 
 param publicApimVirtualIp string
 
+@secure()
+param backendClientSecret string
+param backendClientId string
+//param b2cTenantName string //= 'testekb2c008'
+//param userFlowId string //= 'frontendapp_dev_signupandsignin'
+param openIdIssuer string //= 'https://testekb2c008.b2clogin.com/testekb2c008.onmicrosoft.com/v2.0/'
+//openIdIssuer: 'https://login.microsoftonline.com/${tenantId}/v2.0'
+//openIdIssuer: 'https://${b2cTenantName}.b2clogin.com/${b2cTenantName}.onmicrosoft.com/v2.0/.well-known/openid-configuration?p=B2C_1_${userFlowId}'
+
 var functionAppName = appName
-var hostingPlanName = appName
-var applicationInsightsName = appName
-var storageAccountName = '${uniqueString(resourceGroup().id)}azfunctions'
+var hostingPlanName = 'plan-${uniqueString(resourceGroup().id)}'
+var applicationInsightsName = 'appi-${uniqueString(resourceGroup().id)}'
+var storageAccountName = 'stf${uniqueString(resourceGroup().id)}'
 var functionWorkerRuntime = runtime
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2022-09-01' = {
@@ -98,6 +107,11 @@ resource functionApp 'Microsoft.Web/sites@2022-03-01' = {
           name: 'WEBSITE_RUN_FROM_PACKAGE'
           value: '1'
         }
+        {
+          name: 'MICROSOFT_PROVIDER_AUTHENTICATION_SECRET' //the official name when generating using express
+          //value: '@Microsoft.KeyVault(SecretUri=${keyVault::adClientSecretKvSecret.properties.secretUriWithVersion})'
+          value: backendClientSecret
+        }
       ]
       ftpsState: 'FtpsOnly'
       minTlsVersion: '1.2'
@@ -148,6 +162,38 @@ resource functionApp 'Microsoft.Web/sites@2022-03-01' = {
   }
 }
 
+resource authSettings 'Microsoft.Web/sites/config@2022-03-01' = {
+  parent: functionApp
+  name: 'authsettingsV2'
+  properties: {
+    globalValidation: {
+      requireAuthentication: true
+      unauthenticatedClientAction: 'Return401' //'RedirectToLoginPage'
+    }
+    identityProviders: {
+      azureActiveDirectory: {
+        enabled: true
+        registration: {
+          openIdIssuer: openIdIssuer
+          clientId: backendClientId
+          clientSecretSettingName: 'MICROSOFT_PROVIDER_AUTHENTICATION_SECRET'
+        }
+        // validation: {
+        //   allowedAudiences: [
+        //     'api://${backendClientId}'
+        //   ]
+        // }
+        isAutoProvisioned: false
+      }
+    }
+    login: {
+      tokenStore: {
+        enabled: true
+      }
+    }
+  }
+}
+
 resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
   name: applicationInsightsName
   location: appInsightsLocation
@@ -166,3 +212,6 @@ module modStorageStaticWebsite 'modules/storage-static-website.bicep' = {
     location: location
   }
 }
+
+output staticWebsiteUrl string = modStorageStaticWebsite.outputs.staticWebsiteUrl
+output functionName string = functionApp.name

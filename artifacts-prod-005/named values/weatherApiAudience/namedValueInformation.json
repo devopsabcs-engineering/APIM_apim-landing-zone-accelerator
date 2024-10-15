@@ -1,0 +1,12 @@
+{
+  "properties": {
+    "displayName": "weatherApiAudience",
+    "secret": false,
+    "tags": [
+      "prod_api",
+      "PROD_audience",
+      "prod_I_have_tags_but_not_DEV"
+    ],
+    "value": "7c0729e5-b6cf-4433-8742-0b3ff1d0bf56"
+  }
+}

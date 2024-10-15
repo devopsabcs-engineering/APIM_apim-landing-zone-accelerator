@@ -1,0 +1,20 @@
+# This is a template for a pipeline that runs CodeQL analysis on a repository.
+# Template Version: 1.0.1
+# Execution Run: 008 April 20, 2024 analysis
+
+trigger:
+  - none
+
+pool:
+  vmImage: ubuntu-latest # Options: ubuntu-22.04, ubuntu-20.04, windows-2022, windows-2019, macOS-13 (preview as of January 2024), macOS-12, macOS-11
+
+steps:
+  - task: AdvancedSecurity-Codeql-Init@1
+    inputs:
+      languages: "csharp" # Options: csharp, cpp, go, java, javascript, python, ruby, swift
+      querysuite: "security-extended" # Options: security-extended, security-and-quality, security-experimental, code-scanning
+  - task: AdvancedSecurity-Codeql-Autobuild@1
+    enabled: true # Remove this line to enable this task
+  - task: AdvancedSecurity-Dependency-Scanning@1
+  - task: AdvancedSecurity-Codeql-Analyze@1
+

@@ -1,0 +1,227 @@
+apimServiceName: apim-prod-005-cs4jyj6wprtye
+namedValues:
+  - name: environment
+    properties:
+      displayName: environment
+      value: "https://www.search2.com"
+  - name: mysecretvalue
+    properties:
+      displayName: mysecretvalue
+      keyVault:
+        identityClientId: 39ae9a6a-260f-4c36-ac12-d65e2f22b918
+        secretIdentifier: https://kv-apim-prod-005-cs4jyj6.vault.azure.net/secrets/mysecretvalue
+  - name: testSecret
+    properties:
+      displayName: testSecret
+      value: "{#testSecretValue#}"
+  - name: helloworldfromfuncapp-key
+    properties:
+      displayName: helloworldfromfuncapp-key
+      value: "{#helloworldfromfuncappkey#}"
+  - name: 634e022983908257b35630b0
+    properties:
+      displayName: helloworldfromlogicapp_manual-invoke_634e022983908257b35630b0
+      value: "{#helloworldfromlogicapp#}"
+  - name: weatherApiAudience
+    properties:
+      displayName: weatherApiAudience
+      value: "7c0729e5-b6cf-4433-8742-0b3ff1d0bf56"
+      tags:
+        - prod_api
+        - "PROD_audience"
+        - prod_I_have_tags_but_not_DEV
+  - name: developerPortalUrl
+    properties:
+      displayName: developerPortalUrl
+      value: "https://apim-prod-005-cs4jyj6wprtye.developer.azure-api.net"
+      tags:
+        - prod
+        - developer
+        - portal
+  - name: sqlDatabaseConnectionString
+    properties:
+      displayName: sqlDatabaseConnectionString
+      keyVault:
+        identityClientId: 39ae9a6a-260f-4c36-ac12-d65e2f22b918
+        secretIdentifier: https://kv-apim-prod-005-cs4jyj6.vault.azure.net/secrets/sqldbconnstring
+      tags:
+        - prod
+        - sql
+        - connection
+        - string
+loggers:
+  - name: apimlogger
+    properties:
+      loggerType: applicationInsights
+      description: PROD application insights
+      resourceId: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.Insights/components/appi-apim-prod-005-cs4jyj6wprtye"
+      credentials:
+        instrumentationKey: "{{instrumentationKey}}"
+      isBuffered: true
+diagnostics:
+  - name: applicationInsights
+    properties:
+      verbosity: Error
+      loggerId: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.ApiManagement/service/apim-prod-005-cs4jyj6wprtye/loggers/apimlogger"
+      sampling:
+        samplingType: fixed
+        percentage: 67
+backends:
+  - name: helloworldfromfuncapp
+    properties:
+      url: "https://helloworldfromprodfuncapp.azurewebsites.net/api"
+      resourceid: "https://management.azure.com/subscriptions/[subscription Guid goes here]/resourceGroups/rg-apim-lab-prod/providers/Microsoft.Web/sites/helloworldfromprodfuncapp"
+      credentials:
+        header:
+          "INSERT-HEADER-NAME":
+            ["***********INSERT HARDCODED VALUE***************"]
+          "INSERT-HEADER-NAME-2": ["{{INSERT SAVED NAME VALUE}}"]
+  - name: LogicApp_helloworldfromlogicapp_rg-apim-lab_77fadbdc74f14ce88962b34400a1f170
+    properties:
+      url: "https://prod-75.eastus.logic.azure.com/workflows/[guid goes here]/triggers"
+      resourceid: "https://management.azure.com/subscriptions/[subscription Guid goes here]/resourceGroups/rg-apim-lab-prod/providers/Microsoft.Logic/workflows/helloworldfromprodlogicapp"
+apis:
+  - name: echo-api
+    properties:
+      displayName: "Echo API"
+      description: "PROD: Echo API"
+      subscriptionRequired: false
+      protocols:
+        - https
+  - name: demo-conference-api
+    properties:
+      displayName: "Demo Conference API"
+      description: "PROD: Demo Conference API"
+      subscriptionRequired: true
+      protocols:
+        - https
+    diagnostics:
+      - name: applicationinsights
+        properties:
+          verbosity: Error
+          loggerId: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.ApiManagement/service/apim-prod-005-cs4jyj6wprtye/loggers/apimlogger"
+subscriptions:
+  - name: 66e87122dccac00079070001
+    properties:
+      displayName: "Starter Subscription (PROD)"
+      allowTracing: false
+      scope: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.ApiManagement/service/apim-prod-005-cs4jyj6wprtye/products/starter"
+      ownerId: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.ApiManagement/service/apim-prod-005-cs4jyj6wprtye/users/1"
+      state: active
+  - name: 66e87122dccac00079070002
+    properties:
+      displayName: "Unlimited Subscription (PROD)"
+      allowTracing: false
+      scope: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.ApiManagement/service/apim-prod-005-cs4jyj6wprtye/products/unlimited"
+      ownerId: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.ApiManagement/service/apim-prod-005-cs4jyj6wprtye/users/1"
+      state: active
+  - name: 66eb390f07d91913e82bcce8
+    properties:
+      displayName: "Conference Subscription (PROD)"
+      allowTracing: false
+      scope: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.ApiManagement/service/apim-prod-005-cs4jyj6wprtye/products/conference"
+      ownerId: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.ApiManagement/service/apim-prod-005-cs4jyj6wprtye/users/1"
+      state: active
+  - name: 66ecca4eda09a30a9cf2f8ca
+    properties:
+      displayName: "GraphQL Subscription (PROD)"
+      allowTracing: false
+      scope: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.ApiManagement/service/apim-prod-005-cs4jyj6wprtye/products/graphql-product-dev"
+      ownerId: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.ApiManagement/service/apim-prod-005-cs4jyj6wprtye/users/1"
+      state: active
+  - name: 66f31dd45d62fa726a373ed6
+    properties:
+      displayName: "Product ProductNoSub subscription (1) (PROD)"
+      allowTracing: true
+      scope: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.ApiManagement/service/apim-prod-005-cs4jyj6wprtye/products/productnosub"
+      ownerId: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.ApiManagement/service/apim-prod-005-cs4jyj6wprtye/users/66f2dc49da09a30f80cf2e50"
+      state: active
+  - name: 66f5ad4f46944df7c8a0595b
+    properties:
+      displayName: "Product WeatherProduct subscription (PROD)"
+      allowTracing: false
+      scope: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.ApiManagement/service/apim-prod-005-cs4jyj6wprtye/products/weatherproduct"
+      ownerId: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.ApiManagement/service/apim-prod-005-cs4jyj6wprtye/users/66fc3b8c72366d0d74e9a983" # user id for Apim User in PROD
+      state: active
+products:
+  - name: starter
+    properties:
+      name: starter
+      displayName: Starter (PROD)
+      description: Starter product (PROD)
+      approvalRequired: false
+      state: "published"
+      subscriptionRequired: true
+      terms: "By using this product, you agree to the terms and conditions (PROD)"
+  - name: unlimited
+    properties:
+      name: unlimited
+      displayName: Unlimited (PROD)
+      description: Unlimited product (PROD)
+      approvalRequired: false
+      state: "published"
+      subscriptionRequired: true
+      terms: "PROD: Read the legal fine print Unlimited-Terms!"
+  - name: conference
+    properties:
+      name: conference
+      displayName: Conference (PROD)
+      description: Conference product (PROD)
+      approvalRequired: false
+      state: "published"
+      subscriptionRequired: true
+      terms: "PROD: Read the legal fine print Conference-Terms!"
+  - name: graphql-product-dev
+    properties:
+      name: graphql-product-dev
+      displayName: GraphQL Product (PROD)
+      description: GraphQL product (PROD)
+      approvalRequired: false
+      state: "published"
+      subscriptionRequired: true
+      terms: "PROD: Read the legal fine print GraphQL-Terms!"
+workspaces:
+  - name: WorkspaceApiTeam001
+    properties:
+      displayName: WorkspaceApiTeam001
+      description: Workspace for API Team 001 (PROD)
+      products:
+        - name: weather-product-ws-001
+          properties:
+            name: weather-product-ws-001
+            displayName: Weather Product WS 001 (PROD)
+            description: weather product for workspace team 001 (PROD)
+            approvalRequired: false
+            state: "published"
+            subscriptionRequired: true
+            terms: "By using this product, you agree to the terms and conditions for WS 001 (PROD)"
+      subscriptions:
+        - name: 66ec5bf707d91918bca66e30
+          properties:
+            displayName: "Weather Subs WS 001 (PROD)"
+            allowTracing: false
+            scope: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.ApiManagement/service/apim-prod-005-cs4jyj6wprtye/workspaces/WorkspaceApiTeam001/products/weather-product-ws-001"
+            ownerId: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.ApiManagement/service/apim-prod-005-cs4jyj6wprtye/users/1"
+            state: active
+  - name: WorkspaceApiTeam002
+    properties:
+      displayName: WorkspaceApiTeam002
+      description: Workspace for API Team 002 (PROD)
+      products:
+        - name: graphql-product-workspaces-002-dev
+          properties:
+            name: graphql-product-workspaces-002-dev
+            displayName: GraphQL Product Workspaces 002 (PROD)
+            description: GraphQL Product Workspaces 002 (PROD) -- for API Team 002
+            approvalRequired: false
+            state: "published"
+            subscriptionRequired: true
+            terms: "By using this product, you agree to the terms and conditions for WS 002 for graphql (PROD)"
+      subscriptions:
+        - name: 66ecf0cc07d91918bca66ecf
+          properties:
+            displayName: "GraphQL Workspaces 002 Sub (PROD)"
+            allowTracing: false
+            scope: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.ApiManagement/service/apim-prod-005-cs4jyj6wprtye/workspaces/WorkspaceApiTeam002/products/graphql-product-workspaces-002-dev"
+            ownerId: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.ApiManagement/service/apim-prod-005-cs4jyj6wprtye/users/1"
+            state: active

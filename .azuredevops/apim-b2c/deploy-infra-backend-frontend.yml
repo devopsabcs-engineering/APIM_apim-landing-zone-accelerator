@@ -1,0 +1,73 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+  paths:
+    include:
+      - infra/apim-b2c
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+- name: azureSubscription
+  value: 'ME-MngEnv019702-emknafo (64c3d212-40ed-4c6d-a825-6adfbdf25dad)'
+- name: resourceGroupNameDev
+  value: rg-poc-apim-b2c-dev-002
+- name: resourceGroupNameProd
+  value: rg-poc-apim-b2c-prod-002
+- name: location
+  value: canadacentral
+- name: bicepFilePath
+  value: $(System.DefaultWorkingDirectory)/infra/apim-b2c/main-azurefunction.bicep
+- name: publicApimVirtualIpDev
+  value: '20.220.131.35'
+- name: publicApimVirtualIpProd
+  value: '20.175.139.19'
+
+stages:
+- stage: Deploy_Dev_Infra
+  displayName: Deploy infra Dev
+  dependsOn: []
+  condition: succeeded()
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy
+    environment: 'APIM_B2C_backend_infra_development_$(resourceGroupNameDev)'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: '$(azureSubscription)'
+              scriptType: 'pscore'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                az group create --name $(resourceGroupNameDev) --location $(location)
+                az deployment group create --resource-group $(resourceGroupNameDev) --template-file $(bicepFilePath) --parameters appInsightsLocation=$(location) publicApimVirtualIp=$(publicApimVirtualIpDev)
+- stage: Deploy_Prod_Infra
+  displayName: Deploy infra Prod
+  dependsOn: Deploy_Dev_Infra
+  condition: succeeded()
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy
+    environment: 'APIM_B2C_backend_infra_production_$(resourceGroupNameProd)'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: '$(azureSubscription)'
+              scriptType: 'pscore'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                az group create --name $(resourceGroupNameProd) --location $(location)
+                az deployment group create --resource-group $(resourceGroupNameProd) --template-file $(bicepFilePath) --parameters appInsightsLocation=$(location) publicApimVirtualIp=$(publicApimVirtualIpProd)
+          

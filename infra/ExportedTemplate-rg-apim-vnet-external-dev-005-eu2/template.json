@@ -1,0 +1,43 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "gateways_WorkspaceApiTeam002_name": {
+            "defaultValue": "WorkspaceApiTeam002",
+            "type": "String"
+        },
+        "service_apim_dev_005_3snpbfdd5kffc_externalid": {
+            "defaultValue": "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-dev-005-eu2/providers/Microsoft.ApiManagement/service/apim-dev-005-3snpbfdd5kffc",
+            "type": "String"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.ApiManagement/gateways",
+            "apiVersion": "2023-09-01-preview",
+            "name": "[parameters('gateways_WorkspaceApiTeam002_name')]",
+            "location": "East US 2",
+            "sku": {
+                "name": "WorkspaceGatewayPremium",
+                "capacity": 1
+            },
+            "properties": {
+                "frontend": {},
+                "backend": {},
+                "virtualNetworkType": "None"
+            }
+        },
+        {
+            "type": "Microsoft.ApiManagement/gateways/configConnections",
+            "apiVersion": "2023-09-01-preview",
+            "name": "[concat(parameters('gateways_WorkspaceApiTeam002_name'), '/WorkspaceApiTe-wl84054cq1exlly')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/gateways', parameters('gateways_WorkspaceApiTeam002_name'))]"
+            ],
+            "properties": {
+                "sourceId": "[concat(parameters('service_apim_dev_005_3snpbfdd5kffc_externalid'), '/workspaces/WorkspaceApiTeam002')]"
+            }
+        }
+    ]
+}

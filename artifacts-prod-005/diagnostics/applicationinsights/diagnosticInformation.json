@@ -1,0 +1,41 @@
+{
+  "properties": {
+    "loggerId": "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.ApiManagement/service/apim-prod-005-cs4jyj6wprtye/loggers/apimlogger",
+    "alwaysLog": "allErrors",
+    "backend": {
+      "request": {
+        "body": {
+          "bytes": 0
+        },
+        "headers": []
+      },
+      "response": {
+        "body": {
+          "bytes": 0
+        },
+        "headers": []
+      }
+    },
+    "frontend": {
+      "request": {
+        "body": {
+          "bytes": 0
+        },
+        "headers": []
+      },
+      "response": {
+        "body": {
+          "bytes": 0
+        },
+        "headers": []
+      }
+    },
+    "httpCorrelationProtocol": "Legacy",
+    "logClientIp": true,
+    "sampling": {
+      "percentage": 67,
+      "samplingType": "fixed"
+    },
+    "verbosity": "error"
+  }
+}

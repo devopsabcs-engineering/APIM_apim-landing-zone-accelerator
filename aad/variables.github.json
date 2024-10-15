@@ -1,0 +1,70 @@
+{
+  "aadTenantId": {
+    "secret": "false",
+    "value": "07e91535-f1a1-480c-b398-cfb61d2a4ed8"
+  },
+  "idpClientIdDev": {
+    "secret": "false",
+    "value": "86e54c7c-b24b-461d-ad99-99b8dca9cefb"
+  },
+  "idpClientSecretDev": {
+    "secret": "false",
+    "value": "sKA8Q~KwEdfTTXyHLQzPStY_3mJIYGXG54mV2du5"
+  },
+  "aadAdoClientCertName": {
+    "secret": "false",
+    "value": "ADO_AAD_Graph_Client_005"
+  },
+  "idpClientSecretPrd": {
+    "secret": "false",
+    "value": "Icq8Q~18ugF0eQu0H9F4l6iqG4iXaDTb.g8WfcR0"
+  },
+  "idpAppDisplayNameDev": {
+    "secret": "false",
+    "value": "apim-bcpcue6zklgaw-multi-tenant-spa-idp"
+  },
+  "userPassword": {
+    "secret": "false",
+    "value": "0moOeH@0uDs2j2"
+  },
+  "aadTenantName": {
+    "secret": "false",
+    "value": "apiMngEnv019702v005"
+  },
+  "idpAppDisplayNamePrd": {
+    "secret": "false",
+    "value": "apim-257jlvys5ho6o-multi-tenant-spa-idp"
+  },
+  "adoPAT": {
+    "secret": "true",
+    "value": "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"
+  },
+  "userId": {
+    "secret": "false",
+    "value": "aad.apiadministrator@apiMngEnv019702v005.onmicrosoft.com"
+  },
+  "aadAdoClientId": {
+    "secret": "false",
+    "value": "4283aec8-e792-4906-a894-e4f79712408e"
+  },
+  "aadAdoClientCertThumbprint": {
+    "secret": "false",
+    "value": "0ADB836EB7DECEF8976B38CBEC08B2F254BA967B"
+  },
+  "aadExtensionsAppClientSecret": {
+    "secret": "false",
+    "value": "64c8Q~s4po0WOo3b593n5774SzkaSHTFNLu.OciV"
+  },
+  "idpClientIdPrd": {
+    "secret": "false",
+    "value": "41dc73be-58ae-45ce-8347-530b4345f439"
+  },
+  "aadExtensionsAppClientId": {
+    "secret": "false",
+    "value": "dee5de4b-fe7d-47a7-a900-cca7baccf971"
+  },
+  "aadAdoClientCertPassword": {
+    "secret": "true",
+    "value": "kBUtVZ7Bw!u@dWrP"
+  }
+}

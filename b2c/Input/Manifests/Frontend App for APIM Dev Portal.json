@@ -1,0 +1,87 @@
+{
+	"id": "241dfe2d-cc06-4b1e-a393-3a897d67cd6c",
+	"acceptMappedClaims": null,
+	"accessTokenAcceptedVersion": 2,
+	"addIns": [],
+	"allowPublicClient": null,
+	"appId": "1010e093-6f00-4dd3-bc95-14d5d969bbf3",
+	"appRoles": [],
+	"oauth2AllowUrlPathMatching": false,
+	"createdDateTime": "2023-02-14T19:36:51Z",
+	"description": null,
+	"certification": null,
+	"disabledByMicrosoftStatus": null,
+	"groupMembershipClaims": null,
+	"identifierUris": [],
+	"informationalUrls": {
+		"termsOfService": null,
+		"support": null,
+		"privacy": null,
+		"marketing": null
+	},
+	"keyCredentials": [],
+	"knownClientApplications": [],
+	"logoUrl": null,
+	"logoutUrl": null,
+	"name": "Frontend App for APIM Dev Portal",
+	"notes": null,
+	"oauth2AllowIdTokenImplicitFlow": false,
+	"oauth2AllowImplicitFlow": false,
+	"oauth2Permissions": [],
+	"oauth2RequirePostResponse": false,
+	"optionalClaims": null,
+	"orgRestrictions": [],
+	"parentalControlSettings": {
+		"countriesBlockedForMinors": [],
+		"legalAgeGroupRule": "Allow"
+	},
+	"passwordCredentials": [
+		{
+			"customKeyIdentifier": null,
+			"endDate": "2023-08-13T18:39:14.354Z",
+			"keyId": "3f1fb62e-340d-4d40-af65-f5a681bfc99f",
+			"startDate": "2023-02-14T19:39:14.354Z",
+			"value": null,
+			"createdOn": "2023-02-14T19:39:25.2793155Z",
+			"hint": "WTx",
+			"displayName": "for apim dev portal"
+		}
+	],
+	"preAuthorizedApplications": [],
+	"publisherDomain": "partnercontosob2c.onmicrosoft.com",
+	"replyUrlsWithType": [
+		{
+			"url": "https://apim-fifgmevnwrnwu.developer.azure-api.net/signin-oauth/code/callback/prodoauthserverb2c",
+			"type": "Web"
+		}
+	],
+	"requiredResourceAccess": [
+		{
+			"resourceAppId": "0712d5e5-8b89-48af-8079-b920b4b99166",
+			"resourceAccess": [
+				{
+					"id": "b323afa9-a1c8-4f74-a55e-24a246bd4af1",
+					"type": "Scope"
+				}
+			]
+		},
+		{
+			"resourceAppId": "00000003-0000-0000-c000-000000000000",
+			"resourceAccess": [
+				{
+					"id": "37f7f235-527c-4136-accd-4a02d197296e",
+					"type": "Scope"
+				},
+				{
+					"id": "7427e0e9-2fba-42fe-b0c0-848c9e6a8182",
+					"type": "Scope"
+				}
+			]
+		}
+	],
+	"samlMetadataUrl": null,
+	"signInUrl": null,
+	"signInAudience": "AzureADandPersonalMicrosoftAccount",
+	"tags": [],
+	"tokenEncryptionKeyId": null
+}

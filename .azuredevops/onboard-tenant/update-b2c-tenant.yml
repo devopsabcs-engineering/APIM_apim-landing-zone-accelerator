@@ -1,0 +1,84 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+  - none
+
+pool:
+  vmImage: ubuntu-latest
+
+parameters:
+  - name: B2CTenantName
+    type: string
+    default: testekb2c008
+  - name: appName
+    type: string
+    default: ADO_Graph_Client_008
+  - name: variableGroupName
+    type: string
+    default: "APIM_B2C_main_vars_008"
+  - name: variableGroupNameDev
+    type: string
+    default: "APIM_b2c_frontend_dev_vars_008"
+  - name: variableGroupNamePrd
+    type: string
+    default: "APIM_b2c_frontend_prd_vars_008"
+
+stages:
+  - stage: UpdateStagePrd
+    displayName: update uris and stuff PRD
+    variables:
+      - group: ${{parameters.variableGroupName}}
+      - group: ${{parameters.variableGroupNamePrd}}
+    jobs:
+      - job: update_job
+        steps:
+          - script: |
+              echo Add other tasks to build, test, and deploy your project.
+              echo $(b2cAdoClientCertName)
+            displayName: "Run a multi-line script"
+          - task: DownloadSecureFile@1
+            name: graphSpCertificate
+            displayName: "Download certificate for Microsoft Graph service principal"
+            inputs:
+              secureFile: "${{parameters.appName}}" #'$(b2cAdoClientCertName)'
+          - task: PowerShell@2
+            displayName: "Install Graph PowerShell module"
+            inputs:
+              targetType: "inline"
+              script: |
+                # Graph module shouldn't be preinstalled on the agent, but checking anyway.
+                if (Get-Module -ListAvailable -Name Microsoft.Graph) {
+                  Write-Host "*** Module Microsoft.Graph exists."
+                }
+                else {
+                  Write-Host "*** Installing Microsoft.Graph module..."
+                  Install-Module Microsoft.Graph -Force
+                }
+                $CertPath = "$(graphSpCertificate.secureFilePath)"
+                Write-Host "*** Certificate path: " $CertPath
+                $Certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($CertPath, "$(b2cAdoClientCertPassword)")
+
+                $tenantId = "${{parameters.B2CTenantName}}.onmicrosoft.com"
+
+                # Connecting using app-only authentication with in-memory certificate.
+                Connect-MgGraph -ClientID "$(b2cAdoClientId)" -TenantId "$tenantId" -Certificate $Certificate
+
+                $app = Get-MgApplication | Where-Object { $_.AppId -eq "$(MSAL_AUTH_CLIENTID)" }
+
+                $newUri = "$(MSAL_AUTH_REDIRECT_URI)"
+
+                Write-Host "front end app $app - checking for uri $newUri"
+
+                if ($app.Spa.RedirectUris.Contains("$newUri")) {
+                  Write-Host "*** Redirect URI $newUri already present, skipping."
+                }
+                else {
+                  # Add FQDN to the registration
+                  $app.Spa.RedirectUris += "$newUri"
+
+                  # Update app registration
+                  Update-MgApplication -ApplicationId $app.Id -Spa $app.Spa
+                }

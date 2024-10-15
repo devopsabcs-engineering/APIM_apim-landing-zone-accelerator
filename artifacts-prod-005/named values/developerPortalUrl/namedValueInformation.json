@@ -1,0 +1,12 @@
+{
+  "properties": {
+    "displayName": "developerPortalUrl",
+    "secret": false,
+    "tags": [
+      "prod",
+      "developer",
+      "portal"
+    ],
+    "value": "https://apim-prod-005-cs4jyj6wprtye.developer.azure-api.net"
+  }
+}

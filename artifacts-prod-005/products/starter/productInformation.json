@@ -1,0 +1,11 @@
+{
+  "properties": {
+    "displayName": "Starter (PROD)",
+    "description": "Starter product (PROD)",
+    "approvalRequired": false,
+    "state": "published",
+    "subscriptionRequired": true,
+    "subscriptionsLimit": 1,
+    "terms": "By using this product, you agree to the terms and conditions (PROD)"
+  }
+}

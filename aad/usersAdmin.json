@@ -1,0 +1,9 @@
+{
+   "users": [
+    {
+      "displayName": "AAD ApiAdministrator",
+      "email": "aad.apiadministrator@__APITenantName__.onmicrosoft.com",
+      "apiMaster": true
+    }
+  ]
+}

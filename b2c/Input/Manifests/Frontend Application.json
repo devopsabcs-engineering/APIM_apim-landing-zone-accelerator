@@ -1,0 +1,87 @@
+{
+	"id": "0aec81b1-2bd0-4a40-a671-e8da91290fc9",
+	"acceptMappedClaims": null,
+	"accessTokenAcceptedVersion": 2,
+	"addIns": [],
+	"allowPublicClient": null,
+	"appId": "24da0dc2-b38f-4bbd-8038-9b6a4688cbc6",
+	"appRoles": [],
+	"oauth2AllowUrlPathMatching": false,
+	"createdDateTime": "2022-12-14T17:47:40Z",
+	"description": null,
+	"certification": null,
+	"disabledByMicrosoftStatus": null,
+	"groupMembershipClaims": null,
+	"identifierUris": [],
+	"informationalUrls": {
+		"termsOfService": null,
+		"support": null,
+		"privacy": null,
+		"marketing": null
+	},
+	"keyCredentials": [],
+	"knownClientApplications": [],
+	"logoUrl": null,
+	"logoutUrl": null,
+	"name": "Frontend Application",
+	"notes": null,
+	"oauth2AllowIdTokenImplicitFlow": false,
+	"oauth2AllowImplicitFlow": false,
+	"oauth2Permissions": [],
+	"oauth2RequirePostResponse": false,
+	"optionalClaims": null,
+	"orgRestrictions": [],
+	"parentalControlSettings": {
+		"countriesBlockedForMinors": [],
+		"legalAgeGroupRule": "Allow"
+	},
+	"passwordCredentials": [
+		{
+			"customKeyIdentifier": null,
+			"endDate": "2023-08-12T17:48:57.523Z",
+			"keyId": "15dac9f0-b3c9-454f-a910-1deeb70c8c9c",
+			"startDate": "2023-02-13T18:48:57.523Z",
+			"value": null,
+			"createdOn": "2023-02-13T18:49:03.7842982Z",
+			"hint": "Y4Q",
+			"displayName": "for APIM OAUTH2 server"
+		}
+	],
+	"preAuthorizedApplications": [],
+	"publisherDomain": "partnercontosob2c.onmicrosoft.com",
+	"replyUrlsWithType": [
+		{
+			"url": "https://storqnzxwgg2niqda.z9.web.core.windows.net",
+			"type": "Spa"
+		}
+	],
+	"requiredResourceAccess": [
+		{
+			"resourceAppId": "0712d5e5-8b89-48af-8079-b920b4b99166",
+			"resourceAccess": [
+				{
+					"id": "b323afa9-a1c8-4f74-a55e-24a246bd4af1",
+					"type": "Scope"
+				}
+			]
+		},
+		{
+			"resourceAppId": "00000003-0000-0000-c000-000000000000",
+			"resourceAccess": [
+				{
+					"id": "37f7f235-527c-4136-accd-4a02d197296e",
+					"type": "Scope"
+				},
+				{
+					"id": "7427e0e9-2fba-42fe-b0c0-848c9e6a8182",
+					"type": "Scope"
+				}
+			]
+		}
+	],
+	"samlMetadataUrl": null,
+	"signInUrl": null,
+	"signInAudience": "AzureADandPersonalMicrosoftAccount",
+	"tags": [],
+	"tokenEncryptionKeyId": null
+}

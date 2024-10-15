@@ -1,0 +1,51 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "String"
+        },
+        "workspaceId": {
+            "type": "String"
+        },
+        "gatewayName": {
+            "type": "String"
+        },
+        "gatewaySku": {
+            "type": "String"
+        },
+        "gatewayCapacity": {
+            "type": "Int"
+        },
+        "gatewayProperties": {
+            "type": "Object"
+        },
+        "networkConfigName": {
+            "type": "String"
+        }
+    },
+    "resources": [
+        {
+            "type": "Microsoft.ApiManagement/gateways",
+            "apiVersion": "2023-09-01-preview",
+            "name": "[parameters('gatewayName')]",
+            "location": "[parameters('location')]",
+            "sku": {
+                "name": "[parameters('gatewaySku')]",
+                "capacity": "[parameters('gatewayCapacity')]"
+            },
+            "properties": "[parameters('gatewayProperties')]"
+        },
+        {
+            "type": "Microsoft.ApiManagement/gateways/configConnections",
+            "apiVersion": "2023-09-01-preview",
+            "name": "[concat(parameters('gatewayName'),'/',parameters('networkConfigName'))]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/gateways/', parameters('gatewayName'))]"
+            ],
+            "properties": {
+                "sourceId": "[parameters('workspaceId')]"
+            }
+        }
+    ]
+}

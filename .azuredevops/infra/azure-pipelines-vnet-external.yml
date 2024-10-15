@@ -1,0 +1,216 @@
+trigger:
+  - none
+
+parameters:
+  - name: instanceNumber
+    type: string
+    default: 005
+  - name: locationDev
+    type: string
+    default: eastus2
+  - name: locationProd
+    type: string
+    default: eastus2
+
+variables:
+  - name: vmImageName
+    value: ubuntu-latest
+  - name: azureSubscription
+    value: "Main CSA Sub v2"
+  - name: resourceGroupNameDev
+    value: rg-apim-vnet-external-dev-${{ parameters.instanceNumber }}-eu2
+  - name: resourceGroupNameProd
+    value: rg-apim-vnet-external-prod-${{ parameters.instanceNumber }}-eu2
+  - name: locationDev
+    value: ${{ parameters.locationDev }}
+  - name: locationProd
+    value: ${{ parameters.locationProd }}
+  - name: instanceNumber
+    value: ${{ parameters.instanceNumber }}
+  - name: templatePath
+    value: $(System.DefaultWorkingDirectory)/infra/api-management-create-with-external-vnet-publicip-stv2
+  - name: templateFilePath
+    value: $(System.DefaultWorkingDirectory)/infra/api-management-create-with-external-vnet-publicip-stv2/main.bicep
+  - name: parametersFilePathDev
+    value: $(System.DefaultWorkingDirectory)/infra/api-management-create-with-external-vnet-publicip-stv2/main.parameters.dev-${{ parameters.instanceNumber }}.json
+  - name: parametersFilePathProd
+    value: $(System.DefaultWorkingDirectory)/infra/api-management-create-with-external-vnet-publicip-stv2/main.parameters.prod-${{ parameters.instanceNumber }}.json
+
+stages:
+  - stage: PrepareAndTestTemplate
+    displayName: Prepare and test template
+    pool:
+      vmImage: $(vmImageName)
+    jobs:
+      - job: test_template
+        steps:
+          - checkout: self
+          - script: |
+              az bicep build --file $(templateFilePath)
+            displayName: "Test template by building it first"
+          - task: AzureCLI@2
+            displayName: Prepare template and build it
+            inputs:
+              azureSubscription: "$(azureSubscription)"
+              scriptType: "pscore"
+              scriptLocation: "inlineScript"
+              inlineScript: |
+                echo "bicep build"
+                az bicep build --file $(templateFilePath) --outdir $(templatePath)
+                echo "bicep build done"
+          - task: AzureResourceManagerTemplateDeployment@3
+            inputs:
+              connectedServiceName: "$(azureSubscription)"
+              location: $(locationDev)
+              deploymentMode: Validation
+              resourceGroupName: $(resourceGroupNameDev)
+              csmFile: $(templateFilePath)
+              csmParametersFile: $(parametersFilePathDev)
+  - stage: DeployInfraDev
+    displayName: Deploy infra apim dev
+    dependsOn: PrepareAndTestTemplate
+    condition: succeeded()
+    jobs:
+      - deployment: DeployDev
+        displayName: Deploy Dev APIM
+        environment: "APIM_$(resourceGroupNameDev)"
+        pool:
+          vmImage: $(vmImageName)
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - task: AzureCLI@2
+                  name: RunWhatIf
+                  displayName: Run what-if
+                  inputs:
+                    azureSubscription: $(azureSubscription)
+                    scriptType: "bash"
+                    scriptLocation: "inlineScript"
+                    inlineScript: |
+                      echo create resource group
+                      az account show
+                      az group create --name $(resourceGroupNameDev) \
+                        --location $(locationDev)
+                      az deployment group what-if --resource-group $(resourceGroupNameDev) \
+                        --template-file $(templateFilePath) \
+                        --name $(resourceGroupNameDev) \
+                        --parameters $(parametersFilePathDev)
+                - task: AzureCLI@2
+                  displayName: Deploy APIM - Main Dev
+                  inputs:
+                    azureSubscription: "$(azureSubscription)"
+                    scriptType: "bash"
+                    scriptLocation: "inlineScript"
+                    inlineScript: |
+                      echo create resource group
+                      az account show
+                      az group create --name $(resourceGroupNameDev) \
+                        --location $(locationDev)
+                      az deployment group create --resource-group $(resourceGroupNameDev) \
+                        --template-file $(templateFilePath) \
+                        --name $(resourceGroupNameDev) \
+                        --parameters $(parametersFilePathDev)
+  - stage: DestroyInfraDev
+    displayName: Destroy Infra Dev
+    dependsOn: DeployInfraDev
+    condition: succeeded()
+    pool:
+      vmImage: $(vmImageName)
+    jobs:
+      - deployment: DestroyDev
+        displayName: Destroy Dev
+        environment: "APIM_$(resourceGroupNameDev)_DESTROY"
+        pool:
+          vmImage: $(vmImageName)
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - task: AzureCLI@2
+                  displayName: Destroy APIM - Main Dev
+                  inputs:
+                    azureSubscription: "$(azureSubscription)"
+                    scriptType: "bash"
+                    scriptLocation: "inlineScript"
+                    inlineScript: |
+                      echo delete resource group
+                      az account show
+                      az group delete --name $(resourceGroupNameDev) --yes
+  - stage: DeployInfraProd
+    displayName: Deploy Infra Prod
+    dependsOn: PrepareAndTestTemplate
+    condition: succeeded()
+    pool:
+      vmImage: $(vmImageName)
+    jobs:
+      - deployment: DeployProdApim
+        displayName: Deploy Prod infra APIM
+        environment: "APIM_$(resourceGroupNameProd)"
+        pool:
+          vmImage: $(vmImageName)
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - task: AzureCLI@2
+                  name: RunWhatIf
+                  displayName: Run what-if
+                  inputs:
+                    azureSubscription: $(azureSubscription)
+                    scriptType: "bash"
+                    scriptLocation: "inlineScript"
+                    inlineScript: |
+                      echo create resource group
+                      az account show
+                      az group create --name $(resourceGroupNameProd) \
+                        --location $(locationProd)
+                      az deployment group what-if --resource-group $(resourceGroupNameProd) \
+                        --template-file $(templateFilePath) \
+                        --name $(resourceGroupNameProd) \
+                        --parameters $(parametersFilePathProd)
+                - task: AzureCLI@2
+                  displayName: Deploy APIM - Main Prod
+                  inputs:
+                    azureSubscription: "$(azureSubscription)"
+                    scriptType: "bash"
+                    scriptLocation: "inlineScript"
+                    inlineScript: |
+                      echo create resource group
+                      az account show
+                      az group create --name $(resourceGroupNameProd) \
+                        --location $(locationProd)
+                      az deployment group create --resource-group $(resourceGroupNameProd) \
+                        --template-file $(templateFilePath) \
+                        --name $(resourceGroupNameProd) \
+                        --parameters $(parametersFilePathProd)
+  - stage: DestroyInfraProd
+    displayName: Destroy Infra Prod
+    dependsOn: DeployInfraProd
+    condition: succeeded()
+    pool:
+      vmImage: $(vmImageName)
+    jobs:
+      - deployment: DestroyProd
+        displayName: Destroy Prod
+        environment: "APIM_$(resourceGroupNameProd)_DESTROY"
+        pool:
+          vmImage: $(vmImageName)
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - task: AzureCLI@2
+                  displayName: Destroy APIM - Main Prod
+                  inputs:
+                    azureSubscription: "$(azureSubscription)"
+                    scriptType: "bash"
+                    scriptLocation: "inlineScript"
+                    inlineScript: |
+                      echo delete resource group
+                      az account show
+                      az group delete --name $(resourceGroupNameProd) --yes

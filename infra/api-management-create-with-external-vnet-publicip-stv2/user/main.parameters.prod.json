@@ -1,0 +1,34 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "apimServiceName": {
+            "value": "apim-257jlvys5ho6o"
+        },
+        "userConfigurations": {
+            "value": [
+                {
+                    "firstName": "Thomas",
+                    "lastName": "SmokeTester010",
+                    "email": "fb27510a-4e4f-444e-b5ca-3d2ab28db6a1@testekb2c010.onmicrosoft.com",
+                    "userObjectIdInAad": "f8709fde-a338-4dc2-a5c6-d26df1da77bb",
+                    "type": "Aad"
+                },
+                {
+                    "firstName": "Thomas",
+                    "lastName": "SmokeTester011",
+                    "email": "f0ff2ad6-c7ad-4898-915d-d0425ba69dc5@testekb2c011.onmicrosoft.com",
+                    "userObjectIdInAad": "f74e29b3-d343-491f-b94b-d726e9d0af7e",
+                    "type": "Aad"
+                },
+                {
+                    "firstName": "Emmanuel",
+                    "lastName": "Knafo",
+                    "email": "emmanuel.knafo@mngenv019702.com",
+                    "userObjectIdInAad": "da178516-eb22-43bc-9cf2-8d5e0e35bb08",
+                    "type": "Aad"
+                }
+            ]
+        }
+    }
+}

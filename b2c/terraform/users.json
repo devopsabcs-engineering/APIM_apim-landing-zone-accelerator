@@ -1,0 +1,14 @@
+{
+   "users": [
+    {
+      "displayName": "Heidi Apimasterova",
+      "email": "heidi.apimaster@alwayson.demo",
+      "apiMaster": true
+    },
+    {
+      "displayName": "Thomas Smoke-Tester",
+      "email": "thomas.smoketester@alwayson.demo",
+      "apiMaster": false
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "properties": {
+    "displayName": "ProductNoSub",
+    "description": "product no sub -- is it possible?",
+    "state": "published",
+    "subscriptionRequired": false
+  }
+}

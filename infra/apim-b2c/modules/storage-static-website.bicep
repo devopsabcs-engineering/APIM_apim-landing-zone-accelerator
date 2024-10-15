@@ -6,7 +6,7 @@
 param location string = resourceGroup().location
 
 @description('The name of the storage account to use for site hosting.')
-param storageAccountName string = 'stor${uniqueString(resourceGroup().id)}'
+param storageAccountName string = 'stweb${uniqueString(resourceGroup().id)}'
 
 @allowed([
   'Standard_LRS'
@@ -45,7 +45,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2022-09-01' = {
 }
 
 resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-11-30' = {
-  name: 'DeploymentScript'
+  name: 'id-DeploymentScript'
   location: location
 }
 

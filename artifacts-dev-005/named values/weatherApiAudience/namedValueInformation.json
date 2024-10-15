@@ -1,0 +1,8 @@
+{
+  "properties": {
+    "displayName": "weatherApiAudience",
+    "secret": false,
+    "tags": [],
+    "value": "e6b456e3-d68d-4e05-b117-38347f1f2746"
+  }
+}

@@ -1,9 +1,9 @@
-apimServiceName: apim-gk7dxthmtgpwg
+apimServiceName: apim-257jlvys5ho6o
 namedValues:
   - name: apimDeveloperPortal
     properties:
       displayName: "apimDeveloperPortal"
-      value: "https://apim-gk7dxthmtgpwg.developer.azure-api.net"
+      value: "https://apim-257jlvys5ho6o.developer.azure-api.net"
   - name: aadpolicy-well-known-openid-003
     properties:
       displayName: "aadpolicy-well-known-openid-003"
@@ -71,134 +71,145 @@ namedValues:
     properties:
       displayName: helloworldfromlogicapp_manual-invoke_634e022983908257b35630b0
       value: "{#helloworldfromlogicapp#}"
-loggers:
-  - name: appi-apimgk7dxthmtgpwg
+  - name: appi-main-instrumentation-key
     properties:
+      name: appi-main-instrumentation-key
+      displayName: Logger-Credentials--appi-main-instrumentation-key
+      tags:
+        - prod logger
+        - "PROD applicationinsights"
+        - prod appInsights
+loggers:
+  - name: appi-main
+    properties:
+      #name: appi-apim257jlvys5ho6o
       loggerType: applicationInsights
-      description: prod application insights
-      resourceId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-002/providers/microsoft.insights/components/appi-apimgk7dxthmtgpwg"
+      description: prod application insights v5
+      resourceId: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-002/providers/microsoft.insights/components/appi-apim257jlvys5ho6o"
       credentials:
-        instrumentationKey: "{{Logger-Credentials--639918ba46346116dc7ad11d}}"
+        instrumentationKey: "{{Logger-Credentials--66be7f074634610c184954bd}}"
       isBuffered: true
 diagnostics:
   - name: applicationinsights
     properties:
-      verbosity: Error
-      loggerId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-gk7dxthmtgpwg/loggers/appi-apimgk7dxthmtgpwg"
+      loggerId: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-257jlvys5ho6o/loggers/appi-main"
+      sampling:
+        samplingType: fixed
+        percentage: 67
 backends:
   - name: func-aad-003
     properties:
       url: "https://func-spqjtnfjnt7xo.azurewebsites.net/api"
-      resourceid: "https://management.azure.com/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-poc-apim-aad-prd-003/providers/Microsoft.Web/sites/func-spqjtnfjnt7xo"
+      resourceid: "https://management.azure.com/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-poc-apim-aad-prd-003/providers/Microsoft.Web/sites/func-spqjtnfjnt7xo"
   - name: func-aad-005
     properties:
       url: "https://func-26rklbpvtfsdi.azurewebsites.net/api"
-      resourceid: "https://management.azure.com/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-poc-apim-aad-prd-005/providers/Microsoft.Web/sites/func-26rklbpvtfsdi"
+      resourceid: "https://management.azure.com/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-poc-apim-aad-prd-005/providers/Microsoft.Web/sites/func-26rklbpvtfsdi"
   - name: func-b2c-010
     properties:
       url: "https://func-zrslpgboxnenq.azurewebsites.net/api"
-      resourceid: "https://management.azure.com/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-poc-apim-b2c-prd-010/providers/Microsoft.Web/sites/func-zrslpgboxnenq"
+      resourceid: "https://management.azure.com/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-poc-apim-b2c-prd-010/providers/Microsoft.Web/sites/func-zrslpgboxnenq"
   - name: func-b2c-011
     properties:
       url: "https://func-xd2jatrnn34pi.azurewebsites.net/api"
-      resourceid: "https://management.azure.com/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-poc-apim-b2c-prd-011/providers/Microsoft.Web/sites/func-xd2jatrnn34pi"
+      resourceid: "https://management.azure.com/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-poc-apim-b2c-prd-011/providers/Microsoft.Web/sites/func-xd2jatrnn34pi"
 #   - name: LogicApp_helloworldfromlogicapp_rg-apim-lab_77fadbdc74f14ce88962b34400a1f170
 #     properties:
 #       url: "https://prod-75.eastus.logic.azure.com/workflows/[guid goes here]/triggers"
-#       resourceid: "https://management.azure.com/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-ApimLZ07-prd-canadacentral-007/providers/Microsoft.Logic/workflows/helloworldfromprodlogicapp"
+#       resourceid: "https://management.azure.com/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-ApimLZ07-prd-canadacentral-007/providers/Microsoft.Logic/workflows/helloworldfromprodlogicapp"
 apis:
   - name: demo-conference-api
     diagnostics:
       - name: applicationinsights
         properties:
           verbosity: Error
-          loggerId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-gk7dxthmtgpwg/loggers/appi-apimgk7dxthmtgpwg"
+          loggerId: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-257jlvys5ho6o/loggers/appi-apimgk7dxthmtgpwg"
 subscriptions:
   - name: dev-sub
     properties:
       displayName: "Dev Subscription all apis (PROD)"
       allowTracing: false
-      ownerId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-gk7dxthmtgpwg/users/646666505ddd170eb06bd16a"
+      ownerId: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-257jlvys5ho6o/users/66be40a24634610c184950aa"
       scope: /apis
       state: active
   - name: dev-sub-echo
     properties:
       displayName: "Dev Subscription echo api scoped (PROD)"
       allowTracing: false
-      #ownerId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-gk7dxthmtgpwg/users/641430e946346116c4c1d4a7"
+      #ownerId: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-257jlvys5ho6o/users/641430e946346116c4c1d4a7"
       scope: /apis/echo-api
       state: active
   - name: 645db7f2d9ce380c9057150d
     properties:
       name: 645db8a9ef724be92a71e322
       displayName: "Product Aad003Product subscription (PROD)"
-      scope: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-gk7dxthmtgpwg/products/aad003product"
+      scope: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-257jlvys5ho6o/products/aad003product"
       allowTracing: false
-      ownerId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-gk7dxthmtgpwg/users/645db68c5ddd17167043740d"
+      ownerId: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-257jlvys5ho6o/users/645db68c5ddd17167043740d"
       state: active
   - name: 645db83b8357d08b7581c406
     properties:
       name: 645db8db2cf3aa87a0959c7f
       displayName: "Product B2c011Product subscription (PROD)"
-      scope: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-gk7dxthmtgpwg/products/b2c011product"
+      scope: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-257jlvys5ho6o/products/b2c011product"
       allowTracing: false
-      ownerId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-gk7dxthmtgpwg/users/645db63b5ddd171670437408"
+      ownerId: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-257jlvys5ho6o/users/66be3a674634610c18495093"
       state: active
   - name: 645db82803e4f2ce8b1632de
     properties:
       name: 645db8cf5694057bb8dda0b1
       displayName: "Product B2c010Product subscription (PROD)"
-      scope: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-gk7dxthmtgpwg/products/b2c010product"
+      scope: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-257jlvys5ho6o/products/b2c010product"
       allowTracing: false
-      ownerId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-gk7dxthmtgpwg/users/645db5e45ddd171670437403"
+      ownerId: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-257jlvys5ho6o/users/66be3c904634610c1849509f"
       state: active
   - name: 645db807427f95d2d0ca9b52
     properties:
       name: 645db8bf00ef01881e0fb1e7
       displayName: "Product Aad005Product subscription (PROD)"
-      scope: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-gk7dxthmtgpwg/products/aad005product"
+      scope: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-257jlvys5ho6o/products/aad005product"
       allowTracing: false
-      ownerId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-gk7dxthmtgpwg/users/645db6e95ddd171670437412"
+      ownerId: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-257jlvys5ho6o/users/645db6e95ddd171670437412"
       state: active
   - name: 666b13f3fb426812ac4c69b8
     properties: # fhir product
       name: 666b16cd5ddd171310e29e14
       displayName: "Product FhirProduct subscription (PROD)"
-      scope: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-gk7dxthmtgpwg/products/fhir-product"
+      scope: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-257jlvys5ho6o/products/fhir-product"
       allowTracing: false
-      ownerId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-gk7dxthmtgpwg/users/1"
+      ownerId: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-257jlvys5ho6o/users/1"
       state: active
   - name: 6497a541fb426819b8cfe88a
     properties:
       name: 6497a8515ddd171a84e7b291 # Product Aad007Product subscription
       displayName: "Product Aad007Product subscription (PROD)"
-      scope: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-gk7dxthmtgpwg/products/aad007product"
+      scope: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-257jlvys5ho6o/products/aad007product"
       allowTracing: false
-      ownerId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-gk7dxthmtgpwg/users/1"
+      ownerId: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-257jlvys5ho6o/users/1"
       state: active
   - name: 64960c49fb426819b8cfe6c0
     properties:
       name: 649613995ddd171a84e7b11d
       displayName: "Product Aad008Product subscription (PROD)"
-      scope: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-gk7dxthmtgpwg/products/aad008product"
+      scope: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-257jlvys5ho6o/products/aad008product"
       allowTracing: false
-      ownerId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-gk7dxthmtgpwg/users/1"
+      ownerId: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-257jlvys5ho6o/users/1"
       state: active
   - name: 646663cbfb42681058f359c8
     properties:
       name: 646666855ddd170eb06bd172
       displayName: "Product AllDressed subscription (PROD)"
-      scope: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-gk7dxthmtgpwg/products/alldressed"
+      scope: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-257jlvys5ho6o/products/alldressed"
       allowTracing: false
-      ownerId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-gk7dxthmtgpwg/users/646666505ddd170eb06bd16a"
+      ownerId: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-257jlvys5ho6o/users/66be40a24634610c184950aa"
       state: active
   - name: 646664159ef41568c08b17a8
     properties:
       name: 646666a885b249bc01681288
       displayName: "Product AllDressed subscription (PROD)"
-      scope: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-gk7dxthmtgpwg/products/alldressed"
+      scope: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-257jlvys5ho6o/products/alldressed"
       allowTracing: false
-      ownerId: "/subscriptions/c04c476e-1725-4c9d-8a98-31f91163a0eb/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-gk7dxthmtgpwg/users/646666505ddd170eb06bd16a"
+      ownerId: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-002/providers/Microsoft.ApiManagement/service/apim-257jlvys5ho6o/users/66be40a24634610c184950aa"
       state: active
 products:
   - name: aad003product
@@ -241,7 +252,7 @@ products:
       terms: "PROD: Read the legal fine print Tenant B2c 010!"
       groups:
         - name: administrators
-        #- name: apim-xmjyxcbp4a5fo-aad-main-group-b2c-010
+        #- name: apim-bcpcue6zklgaw-aad-main-group-b2c-010
       apis:
         - name: "func-b2c-010"
         #- name: "func-b2c-011" # can also push extra api in prod!
@@ -257,7 +268,7 @@ products:
       terms: "PROD: Read the legal fine print Tenant B2c 011!"
       groups:
         - name: administrators
-        #- name: apim-xmjyxcbp4a5fo-aad-main-group-b2c-011
+        #- name: apim-bcpcue6zklgaw-aad-main-group-b2c-011
       apis:
         - name: "func-b2c-011"
         - name: "echo-api"
@@ -291,43 +302,43 @@ groups:
   #     type: system
   - name: 643b00fe84def1e41430962d
     properties:
-      name: apim-xmjyxcbp4a5fo-aad-main-group-b2c-010
-      displayName: "apim-xmjyxcbp4a5fo-aad-main-group-b2c-010"
-      description: "PROD: for apim apim-xmjyxcbp4a5fo-aad-main-group for tenant b2c010 (method1)"
+      name: apim-bcpcue6zklgaw-aad-main-group-b2c-010
+      displayName: "apim-bcpcue6zklgaw-aad-main-group-b2c-010"
+      description: "PROD: for apim apim-bcpcue6zklgaw-aad-main-group for tenant b2c010 (method1)"
       type: external
       externalId: "aad://testekb2c010.onmicrosoft.com/groups/b94f3405-a0be-45c7-b590-945c599479e1"
   - name: 643b010b2d34e7e75d86238f
     properties:
-      name: apim-xmjyxcbp4a5fo-aad-main-group-b2c-011
-      displayName: "apim-xmjyxcbp4a5fo-aad-main-group-b2c-011"
-      description: "PROD: for apim apim-xmjyxcbp4a5fo-aad-main-group for tenant b2c011 (method1)"
+      name: apim-bcpcue6zklgaw-aad-main-group-b2c-011
+      displayName: "apim-bcpcue6zklgaw-aad-main-group-b2c-011"
+      description: "PROD: for apim apim-bcpcue6zklgaw-aad-main-group for tenant b2c011 (method1)"
       type: external
       externalId: "aad://testekb2c011.onmicrosoft.com/groups/9d75c503-d4a9-4e93-99e5-e9f3a71362c8"
   - name: 643b011ebbe699042ec626af
     properties:
-      name: apim-xmjyxcbp4a5fo-aad-main-group-aad-devopsabcs_com
-      displayName: "apim-xmjyxcbp4a5fo-aad-main-group-aad-devopsabcs_com"
+      name: apim-bcpcue6zklgaw-aad-main-group-aad-devopsabcs_com
+      displayName: "apim-bcpcue6zklgaw-aad-main-group-aad-devopsabcs_com"
       description: "PROD: main group for external apim in mngenv019702 (method1)"
       type: external
       externalId: "aad://devopsabcs.com/groups/55b7ec27-9c25-4860-9b15-461c63b0bd1a"
   - name: 643b0136af2af953284e9bd0
     properties:
       name: 6447ca9293ec4522bd87c4df
-      displayName: "apim-xmjyxcbp4a5fo-aad-main-group-aad-003"
+      displayName: "apim-bcpcue6zklgaw-aad-main-group-aad-003"
       description: "PROD: some group for apim"
       type: external
       externalId: "aad://apimngenv019702v003.onmicrosoft.com/groups/3db55460-ff5c-4213-b374-44c2e3ad2ff0"
   - name: 645da95eb43120d55c0f20b2
     properties:
       name: 645db7131cbbbcf42a60f3da
-      displayName: "apim-xmjyxcbp4a5fo-aad-main-group-aad-005"
+      displayName: "apim-bcpcue6zklgaw-aad-main-group-aad-005"
       description: "PROD: for apim group"
       type: external
       externalId: "aad://apimngenv019702v005.onmicrosoft.com/groups/cef1c9cb-6b37-43a1-bfdb-835f1da770bc"
   - name: 645dabfc4c1f10736b099d69
     properties:
       name: 645db00541654abf0e0999e5
-      displayName: "apim-xmjyxcbp4a5fo-aad-main-group-aad-dev-portal-001"
+      displayName: "apim-bcpcue6zklgaw-aad-main-group-aad-dev-portal-001"
       description: "PROD: group for idp provider"
       type: external
       externalId: "aad://devmngenv019702v001.onmicrosoft.com/groups/711573f6-3677-4230-8c65-65250e7b739b"

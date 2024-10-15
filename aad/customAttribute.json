@@ -1,0 +1,8 @@
+{
+    "customSecurityAttributes": {
+        "ApiConsumers": {
+            "@odata.type": "#Microsoft.DirectoryServices.CustomSecurityAttributeValue",
+            "ApiMaster": true
+        }
+    }
+}

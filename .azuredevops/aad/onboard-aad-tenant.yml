@@ -1,0 +1,1173 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+  - none
+
+pool:
+  vmImage: ubuntu-latest
+
+parameters:
+  - name: TenantName
+    type: string
+    default: apiMngEnv019702v003
+  - name: InstanceNumber
+    type: string
+    default: "003"
+  - name: ResourceGroupLocation
+    type: string
+    default: "canadacentral"
+    values:
+      - "canadacentral"
+  - name: variableGroupName
+    type: string
+    default: "APIM_AAD_main_vars_003"
+  - name: variableGroupNameDev
+    type: string
+    default: "APIM_AAD_frontend_dev_vars_003"
+  - name: variableGroupNamePrd
+    type: string
+    default: "APIM_AAD_frontend_prd_vars_003"
+  - name: appName
+    type: string
+    default: ADO_AAD_Graph_Client_003
+  - name: resourceGroupNameDev
+    type: string
+    default: rg-poc-apim-aad-dev-003
+  - name: resourceGroupNamePrd
+    type: string
+    default: rg-poc-apim-aad-prd-003
+  - name: resourceGroupNameApimDev
+    type: string
+    default: rg-apim-vnet-external-dev-002
+  - name: apimServiceNameDev
+    type: string
+    default: apim-bcpcue6zklgaw
+  - name: resourceGroupNameApimPrd
+    type: string
+    default: rg-apim-vnet-external-prod-002
+  - name: apimServiceNamePrd
+    type: string
+    default: apim-257jlvys5ho6o
+
+variables:
+  - name: objectIdForADOServicePrincipal
+    value: "065ef829-a039-434a-a0ca-c02afbcd6870" # hardcoded for now
+  - name: azureSubscription
+    value: "ME-MngEnv019702-emknafo (64c3d212-40ed-4c6d-a825-6adfbdf25dad)"
+  - name: resourceGroupNameDev
+    value: ${{parameters.resourceGroupNameDev}}
+  - name: resourceGroupNamePrd
+    value: ${{parameters.resourceGroupNamePrd}}
+  - name: location
+    value: ${{parameters.ResourceGroupLocation}}
+  - name: bicepFilePath
+    value: $(System.DefaultWorkingDirectory)/infra/apim-b2c/main-azurefunction.bicep
+  #- name: userFlowIdDev
+  #  value: "frontendapp_dev_signupandsignin"
+  #- name: openIdIssuerDev
+  #value: "https://login.microsoftonline.com/${{parameters.TenantName}}.onmicrosoft.com/v2.0"
+  #value: "https://login.microsoftonline.com/${{parameters.TenantName}}.onmicrosoft.com/v2.0/.well-known/openid-configuration"
+  #  value: "https://sts.windows.net/8e965c86-b2ad-48f9-9a70-7e1b05410a1f/"
+  #- name: userFlowIdPrd
+  #  value: "frontendapp_prd_signupandsignin"
+  #- name: openIdIssuerPrd
+  #  value: "https://login.microsoftonline.com/${{parameters.TenantName}}.onmicrosoft.com/v2.0"
+  # Agent VM image name
+  - name: vmImageName
+    value: "windows-2019"
+
+  # Working Directory
+  - name: workingDirectory
+    value: "$(System.DefaultWorkingDirectory)/src/ApimAzureAdB2CSoln/Hello"
+  - name: ARTIFACT_NAME_FNAPP
+    value: FunctionApp
+  - name: ARTIFACT_NAME_DEV
+    value: StaticWebsiteContentDev
+  - name: ARTIFACT_NAME_PROD
+    value: StaticWebsiteContentProd
+  - name: project
+    value: "src/ApimAzureAdB2CSoln/static-website-front-end"
+
+stages:
+  - stage: Create_aad_tenant
+    displayName: Create aad tenant ${{parameters.TenantName}}
+    dependsOn: []
+    jobs:
+      - job: waitForValidation
+        displayName: Wait for manual creation of AAD Tenant through portal and PS script on local machine
+        pool: server
+        timeoutInMinutes: 4320 # job times out in 3 days
+        steps:
+          - task: ManualValidation@0
+            timeoutInMinutes: 1440 # task times out in 1 day
+            inputs:
+              notifyUsers: |
+                admin@MngEnv019702.onmicrosoft.com
+                admin@MngEnv019702.onmicrosoft.com
+              instructions: 'Please run manual script "./Create-AadTenant -TenantName ${{parameters.TenantName}} -AdoOrganization "$(System.CollectionUri)" -AdoProjectName "$(System.TeamProject)" -AdoVariableGroupName "${{parameters.variableGroupName}}" -AppName "${{parameters.appName}}" -ApimServiceNameDev ${{parameters.apimServiceNameDev}} -ApimServiceNamePrd ${{parameters.apimServiceNamePrd}} -AdoPAT ***" and resume. Do not forget to give newly created aad admin user admin privileges (with PIM of course)!'
+              onTimeout: "resume"
+      - job: testMsGraph
+        displayName: Test MSGraph API access
+        dependsOn: [waitForValidation]
+        pool:
+          vmImage: "windows-latest"
+        variables:
+          - group: ${{parameters.variableGroupName}}
+        steps:
+          - task: PowerShell@2
+            displayName: test var exists
+            inputs:
+              targetType: "inline"
+              script: |
+                # Write your PowerShell commands here.
+
+                Write-Host "Hello World"
+                Write-Host $(aadAdoClientCertName) and $(aadAdoClientId)
+              pwsh: true
+          - task: DownloadSecureFile@1
+            name: ADO_Graph_Client_SecureFileTask
+            inputs:
+              secureFile: "${{parameters.appName}}"
+          - task: PowerShell@2
+            displayName: import pfx certificate
+            inputs:
+              targetType: "inline"
+              script: |
+                # Write your PowerShell commands here.
+
+                Write-Host "import cert"
+                $PasswordAsSecureString = ConvertTo-SecureString -String $(aadAdoClientCertPassword) -AsPlainText -Force
+                #Import-PfxCertificate -FilePath $(ADO_Graph_Client_SecureFileTask.secureFilePath) -CertStoreLocation Cert:\CurrentUser\My\ -Password $PasswordAsSecureString
+                Import-PfxCertificate -FilePath $(ADO_Graph_Client_SecureFileTask.secureFilePath) -CertStoreLocation Cert:\LocalMachine\My\ -Password $PasswordAsSecureString
+              pwsh: false
+          - task: PowerShell@2
+            displayName: use ms graph via cert
+            inputs:
+              targetType: "inline"
+              script: |
+                # Write your PowerShell commands here.
+
+                Write-Host "get all certs"
+                Get-ChildItem Cert:\LocalMachine\My\
+
+                # Authenticate
+                #Connect-MgGraph -ClientID $(aadAdoClientId) -TenantId "${{parameters.TenantName}}.onmicrosoft.com" -CertificateName $(aadAdoClientCertName)
+                $certInstore = Get-ChildItem "Cert:\LocalMachine\My\$(aadAdoClientCertThumbprint)"
+                #$certInstore = Get-ChildItem -Path "Cert:\CurrentUser\My" | Where-Object { $_.Subject -Match "$(aadAdoClientCertName)" }
+                #$certInstore = Get-ChildItem -Path "Cert:\CurrentUser\My" | Where-Object { $_.Subject -Match "ADO_Graph_Client" }
+                Write-Host certificate $certInstore
+                Connect-MgGraph -ClientId $(aadAdoClientId) -TenantId "${{parameters.TenantName}}.onmicrosoft.com" -Certificate $certInstore
+
+                Write-Host "APPLICATIONS:"
+                Write-Host "======================================================"
+                Get-MgApplication -Property "id,displayName,appId,requiredResourceAccess" -PageSize 50 | Format-Table DisplayName, Id, AppId, RequiredResourceAccess
+
+                Write-Host "SERVICE PRINCIPALS:"
+                Write-Host "======================================================"
+                Get-MgServicePrincipal -Property "id,displayName,appId,signInAudience" -PageSize 50 | Format-Table DisplayName, Id, AppId, SignInAudience
+
+                Write-Host look for GraphAggregatorServiceServicePrincipalId aka 'Microsoft Graph'
+                (Get-MgServicePrincipal | Where-Object { $_.DisplayName -match "Microsoft Graph" } | Where-Object { $_.AppId -match "00000003-0000-0000-c000-000000000000"}).Id
+
+                Write-Host "USERS:"
+                Write-Host "======================================================"
+                # List first 50 users
+                Get-MgUser -Property "id,displayName" -PageSize 50 | Format-Table DisplayName, Id
+
+                Write-Host "GROUPS:"
+                Write-Host "======================================================"
+                # List first 50 groups
+                Get-MgGroup -Property "id,displayName" -PageSize 50 | Format-Table DisplayName, Id
+
+                # Disconnect
+                Disconnect-MgGraph
+              pwsh: false
+      - deployment: DeployAadTenant
+        dependsOn: [testMsGraph]
+        displayName: Deploy aad tenant ${{parameters.TenantName}}
+        environment: APIM_AAD_tenant_${{parameters.TenantName}}
+        pool:
+          vmImage: "windows-latest"
+        variables:
+          - group: ${{parameters.variableGroupName}}
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - task: DownloadSecureFile@1
+                  name: ADO_Graph_Client_SecureFileTask
+                  inputs:
+                    secureFile: "${{parameters.appName}}"
+                - task: PowerShell@2
+                  displayName: import pfx certificate
+                  inputs:
+                    targetType: "inline"
+                    script: |
+                      # Write your PowerShell commands here.
+
+                      Write-Host "import cert"
+                      $PasswordAsSecureString = ConvertTo-SecureString -String $(aadAdoClientCertPassword) -AsPlainText -Force
+                      #Import-PfxCertificate -FilePath $(ADO_Graph_Client_SecureFileTask.secureFilePath) -CertStoreLocation Cert:\CurrentUser\My\ -Password $PasswordAsSecureString
+                      Import-PfxCertificate -FilePath $(ADO_Graph_Client_SecureFileTask.secureFilePath) -CertStoreLocation Cert:\LocalMachine\My\ -Password $PasswordAsSecureString
+                    pwsh: false
+                - task: PowerShell@2
+                  displayName: Onboard tenant (PS)
+                  enabled: true
+                  env:
+                    userPassword: $(userPassword)
+                  inputs:
+                    targetType: "inline"
+                    script: |
+                      Write-Host "logging in with user $(userId)"                
+                      Write-Host "COMMAND: az login -u `"$(userId)`" -p `"$(userPassword)`" --scope `"https://management.core.windows.net//.default`" --tenant `"${{parameters.TenantName}}.onmicrosoft.com`" --allow-no-subscriptions"
+                      az login -u "$(userId)" -p "$(userPassword)" --scope "https://management.core.windows.net//.default" --tenant "${{parameters.TenantName}}.onmicrosoft.com" --allow-no-subscriptions
+                      Write-Host "DONE logging in with user $(userId)"
+                      Write-Host "CLEANUP:"
+                      Write-Host "======================================================"
+                      $appNames = @("Frontend application dev", 
+                        "Frontend application prd", 
+                        "Backend application dev", 
+                        "Backend application prd", 
+                        "Frontend App for APIM Dev Portal dev", 
+                        "Frontend App for APIM Dev Portal prd")
+                      foreach ($AppName in $appNames) { 
+
+                          Write-Host "delete exisiting app registrations by the same name $AppName (if they exist)"
+                          $currentAppRegs = az ad app list --display-name $AppName
+                          $currentAppRegsObject = $currentAppRegs | ConvertFrom-Json
+                          $currentAppRegsObject | ForEach-Object -Process {
+                              if ($_.displayName -eq $AppName) {
+                                  Write-Host found previous app reg  $_.DisplayName with appId $_.appId
+                                  Write-Host so will delete it
+                                  az ad app delete --id $_.appId
+                              }
+                          }
+                      }
+                      Write-Host Load PS Modules
+                      . ./Create-AzureAAD.ps1
+                      #$userPasswordAsSecureString = ConvertTo-SecureString -String "$(userPassword)" -AsPlainText -Force
+                      $userPasswordAsSecureString = ConvertTo-SecureString "$(userPassword)" -AsPlainText -Force
+                      Write-Host "Create tenant Initialize-AadTenant -TenantName ${{parameters.TenantName}} ..."
+                      Initialize-AadTenant -TenantName ${{parameters.TenantName}} `
+                        -aadAdoClientId $(aadAdoClientId) `
+                        -aadAdoClientCertThumbprint $(aadAdoClientCertThumbprint) `
+                        -userId "$(userId)" `
+                        -userPassword $userPasswordAsSecureString `
+                        -AdoOrganization "$(System.CollectionUri)" `
+                        -AdoProjectName "$(System.TeamProject)" `
+                        -AdoVariableGroupNameDev "${{parameters.variableGroupNameDev}}" `
+                        -AdoVariableGroupNamePrd "${{parameters.variableGroupNamePrd}}" `
+                        -AdoPAT $(adoPAT) `
+                        -aadExtensionsAppClientId $(aadExtensionsAppClientId) `
+                        -aadExtensionsAppClientSecret $(aadExtensionsAppClientSecret) `
+                        -aadTenantId $(aadTenantId)
+                    workingDirectory: "$(System.DefaultWorkingDirectory)/aad"
+                - task: CopyFiles@2
+                  displayName: copy vars json
+                  inputs:
+                    SourceFolder: "$(System.DefaultWorkingDirectory)/aad/Output/variables"
+                    Contents: "**/*.json"
+                    TargetFolder: "$(build.artifactstagingdirectory)"
+                - task: PublishPipelineArtifact@1
+                  displayName: publish vars
+                  inputs:
+                    targetPath: "$(build.artifactstagingdirectory)"
+                    artifact: "variables"
+                    publishLocation: "pipeline"
+  - stage: PostTenantStage
+    dependsOn: [Create_aad_tenant]
+    displayName: After tenant ${{parameters.TenantName}} is created
+    jobs:
+      - job: loadVarsFromJson
+        displayName: Create Variable Groups From Json
+        dependsOn: []
+        pool:
+          vmImage: "ubuntu-latest"
+        variables:
+          - group: ${{parameters.variableGroupName}}
+        steps:
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              buildType: "current"
+              targetPath: "$(Pipeline.Workspace)"
+          - bash: |
+              az pipelines build list
+              #git pr list
+            displayName: "Show build list"
+            enabled: false
+            env:
+              AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)
+          - bash: |
+              az pipelines variable-group list -o table
+            displayName: "Show variable groups with variable count"
+            env:
+              AZURE_DEVOPS_EXT_PAT: $(adoPAT)
+          - task: PowerShell@2
+            enabled: false
+            displayName: test variable files exist
+            inputs:
+              targetType: "inline"
+              script: |
+                # Write your PowerShell commands here.
+
+                Write-Host "Hello World"
+                ls $(Pipeline.Workspace)
+                ls "$(Pipeline.Workspace)/variables"
+              pwsh: true
+          - task: PowerShell@2
+            displayName: create variable groups DEV
+            env:
+              AZURE_DEVOPS_EXT_PAT: $(adoPAT)
+            inputs:
+              filePath: "$(System.DefaultWorkingDirectory)/aad/Update-ADOFromJson.ps1"
+              arguments: '-PatToken $(adoPAT) -OrganizationUrl "$(System.CollectionUri)" -Project "$(System.TeamProject)" -VariableGroupName "${{parameters.variableGroupNameDev}}" -VariableFileLocalPath "$(Pipeline.Workspace)/variables/${{parameters.variableGroupNameDev}}.json"'
+              pwsh: true
+              workingDirectory: "$(System.DefaultWorkingDirectory)/aad"
+          - task: PowerShell@2
+            displayName: create variable groups PRD
+            env:
+              AZURE_DEVOPS_EXT_PAT: $(adoPAT)
+            inputs:
+              filePath: "$(System.DefaultWorkingDirectory)/aad/Update-ADOFromJson.ps1"
+              arguments: '-PatToken $(adoPAT) -OrganizationUrl "$(System.CollectionUri)" -Project "$(System.TeamProject)" -VariableGroupName "${{parameters.variableGroupNamePrd}}" -VariableFileLocalPath "$(Pipeline.Workspace)/variables/${{parameters.variableGroupNamePrd}}.json"'
+              pwsh: true
+              workingDirectory: "$(System.DefaultWorkingDirectory)/aad"
+  - stage: Deploy_Dev_Infra
+    displayName: Deploy infra Dev into rg ${{parameters.resourceGroupNameDev}}
+    dependsOn: [PostTenantStage]
+    condition: succeeded()
+    jobs:
+      - deployment: Deploy_infra_dev
+        displayName: Deploy infra dev
+        variables:
+          - group: ${{parameters.variableGroupName}}
+          - group: ${{parameters.variableGroupNameDev}}
+        environment: "APIM_AAD_backend_infra_development_$(resourceGroupNameDev)"
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - task: AzureCLI@2
+                  inputs:
+                    azureSubscription: "$(azureSubscription)"
+                    scriptType: "pscore"
+                    scriptLocation: "inlineScript"
+                    inlineScript: |
+                      az group create --name $(resourceGroupNameDev) --location $(location)
+                      $publicApimVirtualIpDev = az apim show -g ${{parameters.resourceGroupNameApimDev}} -n ${{parameters.apimServiceNameDev}} --query "publicIpAddresses[0]" | jq -r
+                      Write-Host "apim public ip $publicApimVirtualIpDev"
+                      $deploymentName = "$(resourceGroupNameDev)"
+                      az deployment group create --name $deploymentName --resource-group $(resourceGroupNameDev) `
+                        --template-file $(bicepFilePath) --parameters appInsightsLocation=$(location) `
+                        publicApimVirtualIp=$publicApimVirtualIpDev `
+                        backendClientSecret=$(backendClientSecret) `
+                        backendClientId=$(backendClientId) `
+                        openIdIssuer="https://sts.windows.net/$(aadTenantId)/"
+                      Write-Host "Listing deployments dev"
+                      az deployment group list -o table -g $(resourceGroupNameDev)
+                    failOnStandardError: true
+                - task: AzureCLI@2
+                  displayName: UPDATE variable groups DEV
+                  env:
+                    AZURE_DEVOPS_EXT_PAT: $(adoPAT)
+                  inputs:
+                    azureSubscription: "$(azureSubscription)"
+                    scriptType: "pscore"
+                    scriptLocation: "inlineScript"
+                    inlineScript: |
+                      az pipelines variable-group list -o table
+                      $(System.DefaultWorkingDirectory)/infra/scripts/post-deploy.ps1 -PatToken $(adoPAT) `
+                        -OrganizationUrl "$(System.CollectionUri)" -Project "$(System.TeamProject)" `
+                        -VariableGroupName "${{parameters.variableGroupNameDev}}" -ResourceGroupAzureFunction "${{parameters.resourceGroupNameDev}}" `
+                        -ResourceGroupApim "${{parameters.resourceGroupNameApimDev}}" `
+                        -FunctionAppNameInApim "func-aad-${{parameters.InstanceNumber}}"
+                    workingDirectory: "$(System.DefaultWorkingDirectory)/infra/scripts"
+  - stage: Deploy_Prod_Infra
+    displayName: Deploy infra Prod into rg ${{parameters.resourceGroupNamePrd}}
+    dependsOn: [PostTenantStage]
+    condition: succeeded()
+    jobs:
+      - deployment: Deploy_infra_prod
+        displayName: Deploy Infra Prod
+        variables:
+          - group: ${{parameters.variableGroupName}}
+          - group: ${{parameters.variableGroupNamePrd}}
+        environment: "APIM_AAD_backend_infra_production_$(resourceGroupNamePrd)"
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - task: AzureCLI@2
+                  inputs:
+                    azureSubscription: "$(azureSubscription)"
+                    scriptType: "pscore"
+                    scriptLocation: "inlineScript"
+                    inlineScript: |
+                      az group create --name $(resourceGroupNamePrd) --location $(location)
+                      $publicApimVirtualIpPrd = az apim show -g ${{parameters.resourceGroupNameApimPrd}} -n ${{parameters.apimServiceNamePrd}} --query "publicIpAddresses[0]" | jq -r
+                      Write-Host "apim public ip $publicApimVirtualIpPrd"
+                      $deploymentName = "$(resourceGroupNamePrd)"
+                      az deployment group create --name $deploymentName --resource-group $(resourceGroupNamePrd) `
+                        --template-file $(bicepFilePath) --parameters appInsightsLocation=$(location) `
+                        publicApimVirtualIp=$publicApimVirtualIpPrd `
+                        backendClientSecret=$(backendClientSecret) `
+                        backendClientId=$(backendClientId) `
+                        openIdIssuer="https://sts.windows.net/$(aadTenantId)/"
+                      Write-Host "Listing deployments prd"
+                      az deployment group list -o table -g $(resourceGroupNamePrd)
+                    failOnStandardError: true
+                - task: AzureCLI@2
+                  displayName: UPDATE variable groups PRD
+                  env:
+                    AZURE_DEVOPS_EXT_PAT: $(adoPAT)
+                  inputs:
+                    azureSubscription: "$(azureSubscription)"
+                    scriptType: "pscore"
+                    scriptLocation: "inlineScript"
+                    inlineScript: |
+                      az pipelines variable-group list -o table
+                      $(System.DefaultWorkingDirectory)/infra/scripts/post-deploy.ps1 -PatToken $(adoPAT) `
+                        -OrganizationUrl "$(System.CollectionUri)" -Project "$(System.TeamProject)" `
+                        -VariableGroupName "${{parameters.variableGroupNamePrd}}" -ResourceGroupAzureFunction "${{parameters.resourceGroupNamePrd}}" `
+                        -ResourceGroupApim "${{parameters.resourceGroupNameApimPrd}}" `
+                        -FunctionAppNameInApim "func-aad-${{parameters.InstanceNumber}}"
+                    workingDirectory: "$(System.DefaultWorkingDirectory)/infra/scripts"
+  - stage: BuildApp
+    displayName: Build app stage
+    dependsOn: [Deploy_Dev_Infra, Deploy_Prod_Infra]
+    jobs:
+      - job: Build
+        displayName: Build backend app
+        pool:
+          vmImage: $(vmImageName)
+        steps:
+          - task: DotNetCoreCLI@2
+            displayName: Build
+            inputs:
+              command: "build"
+              projects: |
+                $(workingDirectory)/*.csproj
+              arguments: --output $(System.DefaultWorkingDirectory)/publish_output --configuration Release
+          - task: ArchiveFiles@2
+            displayName: "Archive files"
+            inputs:
+              rootFolderOrFile: "$(System.DefaultWorkingDirectory)/publish_output"
+              includeRootFolder: false
+              archiveType: zip
+              archiveFile: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
+              replaceExistingArchive: true
+
+          - publish: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
+            artifact: $(ARTIFACT_NAME_FNAPP)
+  - stage: Deploy_Dev
+    displayName: Deploy app Dev
+    dependsOn: BuildApp
+    condition: succeeded()
+    jobs:
+      - deployment: Deploy
+        displayName: Deploy be dev
+        environment: "APIM_AAD_backend_app_development_$(resourceGroupNameDev)"
+        pool:
+          vmImage: $(vmImageName)
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: AzureCLI@2
+                  name: printvardevfnapp
+                  displayName: Get Function Name DEV
+                  inputs:
+                    azureSubscription: "$(azureSubscription)"
+                    scriptType: "pscore"
+                    scriptLocation: "inlineScript"
+                    inlineScript: |
+                      Write-Host "looking for function app"
+                      $FunctionAppName = az functionapp list -g $(resourceGroupNameDev) --query "[0].name" | jq -r
+                      Write-Host "found fnapp $FunctionAppName"
+                      echo "##vso[task.setvariable variable=FunctionAppNameDev;isOutput=true]$FunctionAppName"
+                - script: echo $(printvardevfnapp.FunctionAppNameDev)
+                  name: echovardevfnapp
+                - task: AzureFunctionApp@1
+                  enabled: true # not ready to deploy yet!
+                  displayName: "Azure functions app deploy"
+                  inputs:
+                    azureSubscription: "$(azureSubscription)"
+                    appType: functionApp
+                    appName: $(printvardevfnapp.FunctionAppNameDev)
+                    package: "$(Pipeline.Workspace)/$(ARTIFACT_NAME_FNAPP)/$(Build.BuildId).zip"
+  - stage: Deploy_Prod
+    displayName: Deploy app Prod
+    dependsOn: BuildApp
+    condition: succeeded()
+    jobs:
+      - deployment: Deploy
+        displayName: Deploy be prd
+        environment: "APIM_AAD_backend_app_production_$(resourceGroupNamePrd)"
+        pool:
+          vmImage: $(vmImageName)
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: AzureCLI@2
+                  displayName: Get Function Name PRD
+                  name: printvarprdfnapp
+                  inputs:
+                    azureSubscription: "$(azureSubscription)"
+                    scriptType: "pscore"
+                    scriptLocation: "inlineScript"
+                    inlineScript: |
+                      Write-Host "looking for function app"
+                      $FunctionAppName = az functionapp list -g $(resourceGroupNamePrd) --query "[0].name" | jq -r
+                      Write-Host "found fnapp $FunctionAppName"
+                      echo "##vso[task.setvariable variable=FunctionAppNamePrd;isOutput=true]$FunctionAppName"
+                - script: echo $(printvarprdfnapp.FunctionAppNamePrd)
+                  name: echovarprdfnapp
+                - task: AzureFunctionApp@1
+                  enabled: true # not ready to deploy yet!
+                  displayName: "Azure functions app deploy"
+                  inputs:
+                    azureSubscription: "$(azureSubscription)"
+                    appType: functionApp
+                    appName: $(printvarprdfnapp.FunctionAppNamePrd)
+                    package: "$(Pipeline.Workspace)/$(ARTIFACT_NAME_FNAPP)/$(Build.BuildId).zip"
+  - stage: Build_Dev_web
+    dependsOn: [Deploy_Dev, Deploy_Prod]
+    displayName: Build static web Dev
+    jobs:
+      - job: Transform
+        displayName: Transform Input Dev
+        variables:
+          - group: ${{parameters.variableGroupNameDev}}
+        steps:
+          - task: replacetokens@5
+            inputs:
+              rootDirectory: "$(project)"
+              targetFiles: "**/*.html"
+              encoding: "auto"
+              tokenPattern: "default"
+              writeBOM: true
+              actionOnMissing: "warn"
+              keepToken: false
+              actionOnNoFiles: "continue"
+              enableTransforms: false
+              enableRecursion: false
+              useLegacyPattern: false
+              enableTelemetry: true
+          - task: CopyFiles@2
+            displayName: Copy
+            inputs:
+              SourceFolder: "$(Build.SourcesDirectory)/$(project)"
+              Contents: "**"
+              TargetFolder: "$(Build.ArtifactStagingDirectory)/output"
+          - task: PublishPipelineArtifact@1
+            displayName: Share
+            inputs:
+              targetPath: "$(Build.ArtifactStagingDirectory)/output"
+              artifact: "$(ARTIFACT_NAME_DEV)"
+              publishLocation: "pipeline"
+  - stage: Release_Dev_web
+    displayName: Release static web Dev
+    dependsOn: Build_Dev_web
+    pool:
+      vmImage: $(vmImageName)
+    variables:
+      - group: ${{parameters.variableGroupName}}
+      - group: ${{parameters.variableGroupNameDev}}
+    jobs:
+      - deployment: DeployToStorage
+        displayName: Deploy to Azure Storage Dev
+        environment: APIM_AAD_frontend_web_development_$(resourceGroupNameDev)
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - task: AzureCLI@2
+                  displayName: Get Web Storage account Name DEV
+                  name: printvardevstor
+                  inputs:
+                    azureSubscription: "$(azureSubscription)"
+                    scriptType: "pscore"
+                    scriptLocation: "inlineScript"
+                    inlineScript: |
+                      Write-Host "looking for web storage account"
+                      $storages = az storage account list -g $(resourceGroupNameDev) --query "[].name" | ConvertFrom-Json
+                      $StorageAccountName = $storages | Where-Object { $_.Contains("stweb") }
+                      Write-Host "found web storage account $StorageAccountName"
+                      echo "##vso[task.setvariable variable=StorageAccountNameDev;isOutput=true]$StorageAccountName"
+                - script: echo $(printvardevstor.StorageAccountNameDev)
+                  name: echovardevstor
+                - task: AzureCLI@2
+                  displayName: Give Storage Blob Data Owner access DEV
+                  inputs:
+                    azureSubscription: "$(azureSubscription)"
+                    scriptType: "pscore"
+                    scriptLocation: "inlineScript"
+                    inlineScript: |
+                      $storages = az storage account list -g $(resourceGroupNameDev) --query "[].name" | ConvertFrom-Json
+                      $StorageAccountName = $storages | Where-Object { $_.Contains("stweb") }
+                      Write-Host "found web storage account $StorageAccountName"
+                      $scope = az storage account show -g $(resourceGroupNameDev) -n $StorageAccountName --query "id" | ConvertFrom-Json
+                      try {
+                        Write-Host "Assigning Storage Blob Data Owner role to the service principal..."  
+                        New-AzRoleAssignment -ObjectID $(objectIdForADOServicePrincipal) `
+                          -RoleDefinitionName "Storage Blob Data Owner" `
+                          -Scope $scope
+                      }
+                      catch {
+                        Write-Host "Perhaps the role assignment already exists?"
+                      }
+                - task: AzureCLI@2
+                  displayName: "Delete Existing Files"
+                  inputs:
+                    azureSubscription: "$(azureSubscription)"
+                    scriptType: "pscore"
+                    scriptLocation: "inlineScript"
+                    inlineScript: "az storage blob delete-batch -s `$web --account-name $(printvardevstor.StorageAccountNameDev) --auth-mode login"
+                - task: AzureFileCopy@4
+                  enabled: false
+                  displayName: "Copy Files to Storage"
+                  inputs:
+                    azureSubscription: "$(azureSubscription)"
+                    SourcePath: "$(Pipeline.Workspace)/$(ARTIFACT_NAME_DEV)/*"
+                    Destination: "AzureBlob"
+                    storage: "$(printvardevstor.StorageAccountNameDev)"
+                    ContainerName: "$web"
+                - task: AzureCLI@2
+                  displayName: Copy Files to Storage (no warnings)
+                  continueOnError: false
+                  inputs:
+                    azureSubscription: $(azureSubscription)
+                    failOnStandardError: false
+                    scriptType: "pscore"
+                    scriptLocation: "inlineScript"
+                    inlineScript: |
+                      az storage blob upload -f '$(Pipeline.Workspace)/$(ARTIFACT_NAME_DEV)/index.html' -c "`$web" --account-name "$(printvardevstor.StorageAccountNameDev)" --auth-mode login --overwrite
+                - task: AzureCLI@2
+                  displayName: Generate XML Policies DEV
+                  inputs:
+                    azureSubscription: "$(azureSubscription)"
+                    scriptType: "pscore"
+                    scriptLocation: "inlineScript"
+                    inlineScript: |
+                      Write-Host "looking for apim"
+                      $ApimServiceName = az apim list -g ${{parameters.resourceGroupNameApimDev}} --query "[0].name" | jq -r
+                      Write-Host "found apim $ApimServiceName"
+                      Write-Host  "looking for apim public ip"
+                      $apimPublicIp = az apim show -g ${{parameters.resourceGroupNameApimDev}} -n $ApimServiceName --query "publicIpAddresses[0]" | jq -r
+                      Write-Host "public ip is $apimPublicIp"
+                      $apimGatewayUrl = az apim show -g ${{parameters.resourceGroupNameApimDev}} -n $ApimServiceName --query "gatewayUrl" | jq -r
+                      $developerPortalUrl = az apim show -g ${{parameters.resourceGroupNameApimDev}} -n $ApimServiceName --query "developerPortalUrl" | jq -r
+                      Write-Host "apim gateway url is $apimGatewayUrl"
+                      Write-Host "apim dev portal url is $developerPortalUrl"
+                      ./Fix-XmlPolicy.ps1 -PrimaryStorageEndpoint "$(MSAL_AUTH_REDIRECT_URI)" `
+                          -backendApiApplicationClientId $(backendClientId) `
+                          -aadpolicy_well_known_openid "https://login.microsoftonline.com/${{parameters.TenantName}}.onmicrosoft.com/v2.0/.well-known/openid-configuration" `
+                          -environmentName dev -XmlPolicyTemplatePath ./APIM/policies/policies.template.xml `
+                          -apimDeveloperPortal "$developerPortalUrl" `
+                          -XmlRootPolicyTemplatePath ./APIM/policies/policiesRoot.template.xml
+                    workingDirectory: "$(System.DefaultWorkingDirectory)/aad"
+                - task: CopyFiles@2
+                  inputs:
+                    SourceFolder: "$(System.DefaultWorkingDirectory)/aad/APIM/policies"
+                    Contents: "**"
+                    TargetFolder: "$(build.artifactstagingdirectory)"
+                - task: PublishPipelineArtifact@1
+                  inputs:
+                    targetPath: "$(build.artifactstagingdirectory)"
+                    artifact: "apim_policies_dev"
+                    publishLocation: "pipeline"
+  - stage: Build_Prod_web
+    dependsOn: [Deploy_Dev, Deploy_Prod]
+    displayName: Build static web Prod
+    jobs:
+      - job: Transform
+        displayName: Transform Input Prd
+        variables:
+          - group: ${{parameters.variableGroupNamePrd}}
+        steps:
+          - task: replacetokens@5
+            inputs:
+              rootDirectory: "$(project)"
+              targetFiles: "**/*.html"
+              encoding: "auto"
+              tokenPattern: "default"
+              writeBOM: true
+              actionOnMissing: "warn"
+              keepToken: false
+              actionOnNoFiles: "continue"
+              enableTransforms: false
+              enableRecursion: false
+              useLegacyPattern: false
+              enableTelemetry: true
+          - task: CopyFiles@2
+            displayName: Copy
+            inputs:
+              SourceFolder: "$(Build.SourcesDirectory)/$(project)"
+              Contents: "**"
+              TargetFolder: "$(Build.ArtifactStagingDirectory)/output"
+          - task: PublishPipelineArtifact@1
+            displayName: Share
+            inputs:
+              targetPath: "$(Build.ArtifactStagingDirectory)/output"
+              artifact: "$(ARTIFACT_NAME_PROD)"
+              publishLocation: "pipeline"
+  - stage: Release_Prod_web
+    displayName: Release static web Prod
+    dependsOn: Build_Prod_web
+    pool:
+      vmImage: $(vmImageName)
+    variables:
+      - group: ${{parameters.variableGroupName}}
+      - group: ${{parameters.variableGroupNamePrd}}
+    jobs:
+      - deployment: DeployToStorage
+        displayName: Deploy to Azure Storage Prd
+        environment: APIM_AAD_frontend_web_production_$(resourceGroupNamePrd)
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - task: AzureCLI@2
+                  displayName: Get Web Storage account Name PRD
+                  name: printvarprdstor
+                  inputs:
+                    azureSubscription: "$(azureSubscription)"
+                    scriptType: "pscore"
+                    scriptLocation: "inlineScript"
+                    inlineScript: |
+                      Write-Host "looking for web storage account"
+                      $storages = az storage account list -g $(resourceGroupNamePrd) --query "[].name" | ConvertFrom-Json
+                      $StorageAccountName = $storages | Where-Object { $_.Contains("stweb") }
+                      Write-Host "found web storage account $StorageAccountName"
+                      echo "##vso[task.setvariable variable=StorageAccountNamePrd;isOutput=true]$StorageAccountName"
+                - script: echo $(printvarprdstor.StorageAccountNamePrd)
+                  name: echovarprdstor
+                - task: AzureCLI@2
+                  displayName: Give Storage Blob Data Owner access PRD
+                  inputs:
+                    azureSubscription: "$(azureSubscription)"
+                    scriptType: "pscore"
+                    scriptLocation: "inlineScript"
+                    inlineScript: |
+                      $storages = az storage account list -g $(resourceGroupNamePrd) --query "[].name" | ConvertFrom-Json
+                      $StorageAccountName = $storages | Where-Object { $_.Contains("stweb") }
+                      Write-Host "found web storage account $StorageAccountName"
+                      $scope = az storage account show -g $(resourceGroupNamePrd) -n $StorageAccountName --query "id" | ConvertFrom-Json
+                      try {
+                        Write-Host "Assigning Storage Blob Data Owner role to the service principal..."  
+                        New-AzRoleAssignment -ObjectID $(objectIdForADOServicePrincipal) `
+                          -RoleDefinitionName "Storage Blob Data Owner" `
+                          -Scope $scope
+                      }
+                      catch {
+                        Write-Host "Perhaps the role assignment already exists?"
+                      }
+                - task: AzureCLI@2
+                  displayName: "Delete Existing Files"
+                  inputs:
+                    azureSubscription: "$(azureSubscription)"
+                    scriptType: "pscore"
+                    scriptLocation: "inlineScript"
+                    inlineScript: "az storage blob delete-batch -s `$web --account-name $(printvarprdstor.StorageAccountNamePrd) --auth-mode login"
+                - task: AzureFileCopy@4
+                  enabled: false
+                  displayName: "Copy Files to Storage"
+                  inputs:
+                    azureSubscription: "$(azureSubscription)"
+                    SourcePath: "$(Pipeline.Workspace)/$(ARTIFACT_NAME_PROD)/*"
+                    Destination: "AzureBlob"
+                    storage: "$(printvarprdstor.StorageAccountNamePrd)"
+                    ContainerName: "$web"
+                - task: AzureCLI@2
+                  displayName: Copy Files to Storage (no warnings)
+                  continueOnError: false
+                  inputs:
+                    azureSubscription: $(azureSubscription)
+                    failOnStandardError: false
+                    scriptType: "pscore"
+                    scriptLocation: "inlineScript"
+                    inlineScript: |
+                      az storage blob upload -f '$(Pipeline.Workspace)/$(ARTIFACT_NAME_PROD)/index.html' -c "`$web" --account-name "$(printvarprdstor.StorageAccountNamePrd)" --auth-mode login --overwrite
+                - task: AzureCLI@2
+                  displayName: Generate XML Policies PRD
+                  inputs:
+                    azureSubscription: "$(azureSubscription)"
+                    scriptType: "pscore"
+                    scriptLocation: "inlineScript"
+                    inlineScript: |
+                      Write-Host "looking for apim"
+                      $ApimServiceName = az apim list -g ${{parameters.resourceGroupNameApimPrd}} --query "[0].name" | jq -r
+                      Write-Host "found apim $ApimServiceName"
+                      Write-Host  "looking for apim public ip"
+                      $apimPublicIp = az apim show -g ${{parameters.resourceGroupNameApimPrd}} -n $ApimServiceName --query "publicIpAddresses[0]" | jq -r
+                      Write-Host "public ip is $apimPublicIp"
+                      $apimGatewayUrl = az apim show -g ${{parameters.resourceGroupNameApimPrd}} -n $ApimServiceName --query "gatewayUrl" | jq -r
+                      $developerPortalUrl = az apim show -g ${{parameters.resourceGroupNameApimPrd}} -n $ApimServiceName --query "developerPortalUrl" | jq -r
+                      Write-Host "apim gateway url is $apimGatewayUrl"
+                      Write-Host "apim dev portal url is $developerPortalUrl"
+                      ./Fix-XmlPolicy.ps1 -PrimaryStorageEndpoint "$(MSAL_AUTH_REDIRECT_URI)" `
+                          -backendApiApplicationClientId $(backendClientId) `
+                          -aadpolicy_well_known_openid "https://login.microsoftonline.com/${{parameters.TenantName}}.onmicrosoft.com/v2.0/.well-known/openid-configuration" `
+                          -environmentName prd -XmlPolicyTemplatePath ./APIM/policies/policies.template.xml `
+                          -apimDeveloperPortal "$developerPortalUrl" `
+                          -XmlRootPolicyTemplatePath ./APIM/policies/policiesRoot.template.xml
+                    workingDirectory: "$(System.DefaultWorkingDirectory)/aad"
+                - task: CopyFiles@2
+                  inputs:
+                    SourceFolder: "$(System.DefaultWorkingDirectory)/aad/APIM/policies"
+                    Contents: "**"
+                    TargetFolder: "$(build.artifactstagingdirectory)"
+                - task: PublishPipelineArtifact@1
+                  inputs:
+                    targetPath: "$(build.artifactstagingdirectory)"
+                    artifact: "apim_policies_prd"
+                    publishLocation: "pipeline"
+  - stage: UpdateStageDev
+    displayName: update uris and stuff DEV
+    dependsOn: [Release_Dev_web, Release_Prod_web]
+    variables:
+      - group: ${{parameters.variableGroupName}}
+      - group: ${{parameters.variableGroupNameDev}}
+    jobs:
+      - job: update_job
+        displayName: update job dev
+        steps:
+          - script: |
+              echo Add other tasks to build, test, and deploy your project.
+              echo $(aadAdoClientCertName)
+            displayName: "Run a multi-line script"
+          - task: DownloadSecureFile@1
+            name: graphSpCertificate
+            displayName: "Download certificate for Microsoft Graph service principal"
+            inputs:
+              secureFile: "${{parameters.appName}}"
+          - task: PowerShell@2
+            displayName: "Install Graph PowerShell module"
+            inputs:
+              targetType: "inline"
+              script: |
+                # Graph module shouldn't be preinstalled on the agent, but checking anyway.
+                if (Get-Module -ListAvailable -Name Microsoft.Graph) {
+                  Write-Host "*** Module Microsoft.Graph exists."
+                }
+                else {
+                  Write-Host "*** Installing Microsoft.Graph module..."
+                  Install-Module Microsoft.Graph -Force
+                }
+                $CertPath = "$(graphSpCertificate.secureFilePath)"
+                Write-Host "*** Certificate path: " $CertPath
+                $Certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($CertPath, "$(aadAdoClientCertPassword)")
+
+                $tenantId = "${{parameters.TenantName}}.onmicrosoft.com"
+
+                # Connecting using app-only authentication with in-memory certificate.
+                Connect-MgGraph -ClientID "$(aadAdoClientId)" -TenantId "$tenantId" -Certificate $Certificate
+
+                $app = Get-MgApplication | Where-Object { $_.AppId -eq "$(MSAL_AUTH_CLIENTID)" }
+
+                $newUri = "$(MSAL_AUTH_REDIRECT_URI)"
+
+                Write-Host "front end app $app - checking for uri $newUri"
+
+                if ($app.Spa.RedirectUris.Contains("$newUri")) {
+                  Write-Host "*** Redirect URI $newUri already present, skipping."
+                }
+                else {
+                  # Add FQDN to the registration
+                  $app.Spa.RedirectUris += "$newUri"
+
+                  # Update app registration
+                  Update-MgApplication -ApplicationId $app.Id -Spa $app.Spa
+                }
+          - task: AzureCLI@2
+            displayName: add redirect uri for oauth server DEV
+            inputs:
+              azureSubscription: "$(azureSubscription)"
+              scriptType: "pscore"
+              scriptLocation: "inlineScript"
+              inlineScript: |
+                Write-Host "looking for apim"
+                $ApimServiceName = az apim list -g ${{parameters.resourceGroupNameApimDev}} --query "[0].name" | jq -r
+                Write-Host "found apim $ApimServiceName"
+                $developerPortalUrl = az apim show -g ${{parameters.resourceGroupNameApimDev}} -n $ApimServiceName --query "developerPortalUrl" | jq -r
+                Write-Host "apim dev portal url is $developerPortalUrl"
+
+                #front end APIM DEV
+                # Graph module shouldn't be preinstalled on the agent, but checking anyway.
+                if (Get-Module -ListAvailable -Name Microsoft.Graph) {
+                  Write-Host "*** Module Microsoft.Graph exists."
+                }
+                else {
+                  Write-Host "*** Installing Microsoft.Graph module..."
+                  Install-Module Microsoft.Graph -Force
+                }
+                $CertPath = "$(graphSpCertificate.secureFilePath)"
+                Write-Host "*** Certificate path: " $CertPath
+                $Certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($CertPath, "$(aadAdoClientCertPassword)")
+
+                $tenantId = "${{parameters.TenantName}}.onmicrosoft.com"
+
+                # Connecting using app-only authentication with in-memory certificate.
+                Connect-MgGraph -ClientID "$(aadAdoClientId)" -TenantId "$tenantId" -Certificate $Certificate
+
+                $appApim = Get-MgApplication | Where-Object { $_.AppId -eq "$(apimFrontendClientId)" }
+
+                $newUriApim = "$developerPortalUrl/signin-oauth/code/callback/aad${{parameters.InstanceNumber}}oauthserver"
+
+                Write-Host "front end APIM app $appApim - checking for uri $newUriApim"
+
+                if ($appApim.Web.RedirectUris.Contains("$newUriApim")) {
+                  Write-Host "*** Redirect URI $newUriApim already present, skipping."
+                }
+                else {
+                  # Add FQDN to the registration
+                  $appApim.Web.RedirectUris += "$newUriApim"
+
+                  # Update app registration
+                  Update-MgApplication -ApplicationId $appApim.Id -Web $appApim.Web
+                }
+              workingDirectory: "$(System.DefaultWorkingDirectory)/aad"
+          - task: AzureCLI@2
+            displayName: Update Name Value Pair for backend in APIM DEV
+            inputs:
+              azureSubscription: "$(azureSubscription)"
+              scriptType: "pscore"
+              scriptLocation: "inlineScript"
+              inlineScript: |
+                Write-Host "looking for apim"
+                $ApimServiceName = az apim list -g ${{parameters.resourceGroupNameApimDev}} --query "[0].name" | jq -r
+                Write-Host "found apim $ApimServiceName"
+                Write-Host  "looking for apim public ip"
+                $apimPublicIp = az apim show -g ${{parameters.resourceGroupNameApimDev}} -n $ApimServiceName --query "publicIpAddresses[0]" | jq -r
+                Write-Host "public ip is $apimPublicIp"
+                $apimGatewayUrl = az apim show -g ${{parameters.resourceGroupNameApimDev}} -n $ApimServiceName --query "gatewayUrl" | jq -r
+                $developerPortalUrl = az apim show -g ${{parameters.resourceGroupNameApimDev}} -n $ApimServiceName --query "developerPortalUrl" | jq -r
+                Write-Host "apim gateway url is $apimGatewayUrl"
+                Write-Host "apim dev portal url is $developerPortalUrl"
+                az apim nv list --resource-group ${{parameters.resourceGroupNameApimDev}} --service-name $ApimServiceName -o table
+                Write-Host "updating to backend id ${{parameters.InstanceNumber}} $(backendClientId) - if prod will need to fix configuration.prod.yaml in API Ops"
+                try {
+                  az apim nv create --service-name $ApimServiceName -g ${{parameters.resourceGroupNameApimDev}} --named-value-id "aadbackend-api-application-client-id-${{parameters.InstanceNumber}}" --display-name "aadbackend-api-application-client-id-${{parameters.InstanceNumber}}" --value $(backendClientId)
+                }
+                catch {
+                  Wait-Host "already exists so updating it"                
+                  az apim nv update --service-name $ApimServiceName -g ${{parameters.resourceGroupNameApimDev}} --named-value-id "aadbackend-api-application-client-id-${{parameters.InstanceNumber}}" --value $(backendClientId)
+                }
+                Write-Host "updating to web ${{parameters.InstanceNumber}} $(MSAL_AUTH_REDIRECT_URI) - if prod will need to fix configuration.prod.yaml in API Ops"
+                try {
+                  az apim nv create --service-name $ApimServiceName -g ${{parameters.resourceGroupNameApimDev}} --named-value-id "aadPrimaryStorageEndpoint-${{parameters.InstanceNumber}}" --display-name "aadPrimaryStorageEndpoint-${{parameters.InstanceNumber}}" --value $(MSAL_AUTH_REDIRECT_URI)
+                }
+                catch {
+                  Wait-Host "already exists so updating it"                
+                  az apim nv update --service-name $ApimServiceName -g ${{parameters.resourceGroupNameApimDev}} --named-value-id "aadPrimaryStorageEndpoint-${{parameters.InstanceNumber}}" --value $(MSAL_AUTH_REDIRECT_URI)
+                }
+                $wellKnown = "https://login.microsoftonline.com/${{parameters.TenantName}}.onmicrosoft.com/v2.0/.well-known/openid-configuration"
+                Write-Host "updating to well-known ${{parameters.InstanceNumber}} $wellKnown - if prod will need to fix configuration.prod.yaml in API Ops"
+                try {
+                  az apim nv create --service-name $ApimServiceName -g ${{parameters.resourceGroupNameApimDev}} --named-value-id "aadpolicy-well-known-openid-${{parameters.InstanceNumber}}" --display-name "aadpolicy-well-known-openid-${{parameters.InstanceNumber}}" --value $wellKnown
+                }
+                catch {
+                  Wait-Host "already exists so updating it"
+                  az apim nv update --service-name $ApimServiceName -g ${{parameters.resourceGroupNameApimDev}} --named-value-id "aadpolicy-well-known-openid-${{parameters.InstanceNumber}}" --value $wellKnown
+                }
+                az apim nv list --resource-group ${{parameters.resourceGroupNameApimDev}} --service-name $ApimServiceName -o table
+              workingDirectory: "$(System.DefaultWorkingDirectory)/aad"
+          - task: AzureCLI@2
+            displayName: deploy oauth server for dev portal DEV
+            inputs:
+              azureSubscription: "$(azureSubscription)"
+              scriptType: "pscore"
+              scriptLocation: "inlineScript"
+              inlineScript: |
+                Write-Host "looking for apim"
+                $ApimServiceName = az apim list -g ${{parameters.resourceGroupNameApimDev}} --query "[0].name" | jq -r
+                Write-Host "found apim $ApimServiceName"
+                echo adding oauth server
+                az deployment group create --resource-group ${{parameters.resourceGroupNameApimDev}} --name oauthserverdev${{parameters.TenantName}} `
+                  --template-fil ../infra/api-management-create-with-external-vnet-publicip-stv2/oauth-server/main.bicep `
+                  --parameters apimServiceName=$ApimServiceName oauthServerForDevPortalName=aad${{parameters.InstanceNumber}}oauthserver `
+                  authorizationEndpoint="https://login.microsoftonline.com/${{parameters.TenantName}}.onmicrosoft.com/oauth2/v2.0/authorize" `
+                  tokenEndpoint="https://login.microsoftonline.com/${{parameters.TenantName}}.onmicrosoft.com/oauth2/v2.0/token" `
+                  defaultScope="https://${{parameters.TenantName}}.onmicrosoft.com/$(backendClientId)/Hello" `
+                  environmentName=dev `
+                  frontendClientId=$(apimFrontendClientId) frontendClientSecret="$(apimFrontendClientSecret)"
+              workingDirectory: "$(System.DefaultWorkingDirectory)/aad"
+  - stage: UpdateStagePrd
+    displayName: update uris and stuff PRD
+    dependsOn: [Release_Dev_web, Release_Prod_web]
+    variables:
+      - group: ${{parameters.variableGroupName}}
+      - group: ${{parameters.variableGroupNamePrd}}
+    jobs:
+      - job: update_job
+        displayName: update job prd
+        steps:
+          - script: |
+              echo Add other tasks to build, test, and deploy your project.
+              echo $(aadAdoClientCertName)
+            displayName: "Run a multi-line script"
+          - task: DownloadSecureFile@1
+            name: graphSpCertificate
+            displayName: "Download certificate for Microsoft Graph service principal"
+            inputs:
+              secureFile: "${{parameters.appName}}"
+          - task: PowerShell@2
+            displayName: "Install Graph PowerShell module"
+            inputs:
+              targetType: "inline"
+              script: |
+                # Graph module shouldn't be preinstalled on the agent, but checking anyway.
+                if (Get-Module -ListAvailable -Name Microsoft.Graph) {
+                  Write-Host "*** Module Microsoft.Graph exists."
+                }
+                else {
+                  Write-Host "*** Installing Microsoft.Graph module..."
+                  Install-Module Microsoft.Graph -Force
+                }
+                $CertPath = "$(graphSpCertificate.secureFilePath)"
+                Write-Host "*** Certificate path: " $CertPath
+                $Certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($CertPath, "$(aadAdoClientCertPassword)")
+
+                $tenantId = "${{parameters.TenantName}}.onmicrosoft.com"
+
+                # Connecting using app-only authentication with in-memory certificate.
+                Connect-MgGraph -ClientID "$(aadAdoClientId)" -TenantId "$tenantId" -Certificate $Certificate
+
+                $app = Get-MgApplication | Where-Object { $_.AppId -eq "$(MSAL_AUTH_CLIENTID)" }
+
+                $newUri = "$(MSAL_AUTH_REDIRECT_URI)"
+
+                Write-Host "front end app $app - checking for uri $newUri"
+
+                if ($app.Spa.RedirectUris.Contains("$newUri")) {
+                  Write-Host "*** Redirect URI $newUri already present, skipping."
+                }
+                else {
+                  # Add FQDN to the registration
+                  $app.Spa.RedirectUris += "$newUri"
+
+                  # Update app registration
+                  Update-MgApplication -ApplicationId $app.Id -Spa $app.Spa
+                }
+          - task: AzureCLI@2
+            displayName: add redirect uri for oauth server PRD
+            inputs:
+              azureSubscription: "$(azureSubscription)"
+              scriptType: "pscore"
+              scriptLocation: "inlineScript"
+              inlineScript: |
+                Write-Host "looking for apim"
+                $ApimServiceName = az apim list -g ${{parameters.resourceGroupNameApimPrd}} --query "[0].name" | jq -r
+                Write-Host "found apim $ApimServiceName"
+                $developerPortalUrl = az apim show -g ${{parameters.resourceGroupNameApimPrd}} -n $ApimServiceName --query "developerPortalUrl" | jq -r
+                Write-Host "apim dev portal url is $developerPortalUrl"
+
+                #front end APIM PRD
+                # Graph module shouldn't be preinstalled on the agent, but checking anyway.
+                if (Get-Module -ListAvailable -Name Microsoft.Graph) {
+                  Write-Host "*** Module Microsoft.Graph exists."
+                }
+                else {
+                  Write-Host "*** Installing Microsoft.Graph module..."
+                  Install-Module Microsoft.Graph -Force
+                }
+                $CertPath = "$(graphSpCertificate.secureFilePath)"
+                Write-Host "*** Certificate path: " $CertPath
+                $Certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($CertPath, "$(aadAdoClientCertPassword)")
+
+                $tenantId = "${{parameters.TenantName}}.onmicrosoft.com"
+
+                # Connecting using app-only authentication with in-memory certificate.
+                Connect-MgGraph -ClientID "$(aadAdoClientId)" -TenantId "$tenantId" -Certificate $Certificate
+
+                $appApim = Get-MgApplication | Where-Object { $_.AppId -eq "$(apimFrontendClientId)" }
+
+                $newUriApim = "$developerPortalUrl/signin-oauth/code/callback/aad${{parameters.InstanceNumber}}oauthserver"
+
+                Write-Host "front end APIM app $appApim - checking for uri $newUriApim"
+
+                if ($appApim.Web.RedirectUris.Contains("$newUriApim")) {
+                  Write-Host "*** Redirect URI $newUriApim already present, skipping."
+                }
+                else {
+                  # Add FQDN to the registration
+                  $appApim.Web.RedirectUris += "$newUriApim"
+
+                  # Update app registration
+                  Update-MgApplication -ApplicationId $appApim.Id -Web $appApim.Web
+                }
+              workingDirectory: "$(System.DefaultWorkingDirectory)/aad"
+          - task: AzureCLI@2
+            displayName: Update Name Value Pair for backend in APIM PRD
+            inputs:
+              azureSubscription: "$(azureSubscription)"
+              scriptType: "pscore"
+              scriptLocation: "inlineScript"
+              inlineScript: |
+                Write-Host "looking for apim"
+                $ApimServiceName = az apim list -g ${{parameters.resourceGroupNameApimPrd}} --query "[0].name" | jq -r
+                Write-Host "found apim $ApimServiceName"
+                Write-Host  "looking for apim public ip"
+                $apimPublicIp = az apim show -g ${{parameters.resourceGroupNameApimPrd}} -n $ApimServiceName --query "publicIpAddresses[0]" | jq -r
+                Write-Host "public ip is $apimPublicIp"
+                $apimGatewayUrl = az apim show -g ${{parameters.resourceGroupNameApimPrd}} -n $ApimServiceName --query "gatewayUrl" | jq -r
+                $developerPortalUrl = az apim show -g ${{parameters.resourceGroupNameApimPrd}} -n $ApimServiceName --query "developerPortalUrl" | jq -r
+                Write-Host "apim gateway url is $apimGatewayUrl"
+                Write-Host "apim dev portal url is $developerPortalUrl"
+                az apim nv list --resource-group ${{parameters.resourceGroupNameApimPrd}} --service-name $ApimServiceName -o table
+                Write-Host "updating to backend id ${{parameters.InstanceNumber}} $(backendClientId) - if prod will need to fix configuration.prod.yaml in API Ops"
+                try {
+                  az apim nv create --service-name $ApimServiceName -g ${{parameters.resourceGroupNameApimPrd}} --named-value-id "aadbackend-api-application-client-id-${{parameters.InstanceNumber}}" --display-name "aadbackend-api-application-client-id-${{parameters.InstanceNumber}}" --value $(backendClientId)
+                }
+                catch {
+                  Wait-Host "already exists so updating it"                
+                  az apim nv update --service-name $ApimServiceName -g ${{parameters.resourceGroupNameApimPrd}} --named-value-id "aadbackend-api-application-client-id-${{parameters.InstanceNumber}}" --value $(backendClientId)
+                }
+                Write-Host "updating to web ${{parameters.InstanceNumber}} $(MSAL_AUTH_REDIRECT_URI) - if prod will need to fix configuration.prod.yaml in API Ops"
+                try {
+                  az apim nv create --service-name $ApimServiceName -g ${{parameters.resourceGroupNameApimPrd}} --named-value-id "aadPrimaryStorageEndpoint-${{parameters.InstanceNumber}}" --display-name "aadPrimaryStorageEndpoint-${{parameters.InstanceNumber}}" --value $(MSAL_AUTH_REDIRECT_URI)
+                }
+                catch {
+                  Wait-Host "already exists so updating it"                
+                  az apim nv update --service-name $ApimServiceName -g ${{parameters.resourceGroupNameApimPrd}} --named-value-id "aadPrimaryStorageEndpoint-${{parameters.InstanceNumber}}" --value $(MSAL_AUTH_REDIRECT_URI)
+                }
+                $wellKnown = "https://login.microsoftonline.com/${{parameters.TenantName}}.onmicrosoft.com/v2.0/.well-known/openid-configuration"
+                Write-Host "updating to well-known ${{parameters.InstanceNumber}} $wellKnown - if prod will need to fix configuration.prod.yaml in API Ops"
+                try {
+                  az apim nv create --service-name $ApimServiceName -g ${{parameters.resourceGroupNameApimPrd}} --named-value-id "aadpolicy-well-known-openid-${{parameters.InstanceNumber}}" --display-name "aadpolicy-well-known-openid-${{parameters.InstanceNumber}}" --value $wellKnown
+                }
+                catch {
+                  Wait-Host "already exists so updating it"
+                  az apim nv update --service-name $ApimServiceName -g ${{parameters.resourceGroupNameApimPrd}} --named-value-id "aadpolicy-well-known-openid-${{parameters.InstanceNumber}}" --value $wellKnown
+                }
+                az apim nv list --resource-group ${{parameters.resourceGroupNameApimPrd}} --service-name $ApimServiceName -o table
+              workingDirectory: "$(System.DefaultWorkingDirectory)/aad"
+          - task: AzureCLI@2
+            displayName: deploy oauth server for dev portal PRD
+            inputs:
+              azureSubscription: "$(azureSubscription)"
+              scriptType: "pscore"
+              scriptLocation: "inlineScript"
+              inlineScript: |
+                Write-Host "looking for apim"
+                $ApimServiceName = az apim list -g ${{parameters.resourceGroupNameApimPrd}} --query "[0].name" | jq -r
+                Write-Host "found apim $ApimServiceName"
+                echo adding oauth server
+                az deployment group create --resource-group ${{parameters.resourceGroupNameApimPrd}} --name oauthserverprd${{parameters.TenantName}} `
+                  --template-fil ../infra/api-management-create-with-external-vnet-publicip-stv2/oauth-server/main.bicep `
+                  --parameters apimServiceName=$ApimServiceName oauthServerForDevPortalName=aad${{parameters.InstanceNumber}}oauthserver `
+                  authorizationEndpoint="https://login.microsoftonline.com/${{parameters.TenantName}}.onmicrosoft.com/oauth2/v2.0/authorize" `
+                  tokenEndpoint="https://login.microsoftonline.com/${{parameters.TenantName}}.onmicrosoft.com/oauth2/v2.0/token" `
+                  defaultScope="https://${{parameters.TenantName}}.onmicrosoft.com/$(backendClientId)/Hello" `
+                  environmentName=prd `
+                  frontendClientId=$(apimFrontendClientId) frontendClientSecret="$(apimFrontendClientSecret)"
+              workingDirectory: "$(System.DefaultWorkingDirectory)/aad"

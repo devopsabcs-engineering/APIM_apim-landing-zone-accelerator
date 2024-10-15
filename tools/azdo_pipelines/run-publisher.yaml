@@ -4,17 +4,17 @@ trigger:
       - main
   paths:
     exclude:
-    - tools/*
-    - .azuredevops/*
-    - reference-implementations/*
-    - src/*
-    - infra/*
+      - tools/*
+      - .azuredevops/*
+      - reference-implementations/*
+      - src/*
+      - infra/*
 
 parameters:
   - name: API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH
     type: string
     displayName: Folder where the artifacts reside
-    default: "artifacts"
+    default: "artifacts-dev-005" # CHANGE THIS TO THE FOLDER NAME WHERE THE ARTIFACTS RESIDE
   - name: COMMIT_ID
     type: string
     displayName: Choose "publish-all-artifacts-in-repo" only when you want to force republishing all artifacts (e.g. after build failure). Otherwise stick with the default behavior of "publish-artifacts-in-last-commit"
@@ -24,7 +24,7 @@ parameters:
       - publish-all-artifacts-in-repo
 
 variables:
-  - group: APIM_apim-automation-landing-zone_002
+  - group: APIM_rg-apim-vnet-external-dev-005-eu2-stable # CHANGE THIS TO YOUR RESOURCE GROUP VARIABLE GROUP
   - name: System.Debug
     value: true
 
@@ -40,9 +40,9 @@ stages:
           - template: run-publisher-with-env.yaml
             parameters:
               API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH: ${{ parameters.API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH }}
-              RESOURCE_GROUP_NAME : $(RESOURCE_GROUP_NAME)
-              API_MANAGEMENT_SERVICE_NAME : $(APIM_NAME)
-              ENVIRONMENT: "Dev"
+              RESOURCE_GROUP_NAME: $(RESOURCE_GROUP_NAME)
+              API_MANAGEMENT_SERVICE_NAME: $(APIM_NAME)
+              ENVIRONMENT: "Dev-005-stable" # CHANGE THIS TO YOUR ENVIRONMENT NAME for display purposes ONLY
               COMMIT_ID: ${{ parameters.COMMIT_ID }}
   - stage: push_changes_to_Prod_APIM
     displayName: Push changes to Prod APIM
@@ -55,17 +55,16 @@ stages:
         pool:
           vmImage: ubuntu-latest
         # creates an environment if it doesn't exist
-        environment: 'APIM_LandingZone_Prod'
+        environment: "APIM_rg-apim-vnet-external-prod-005-eu2_apiops-stable" # CHANGE THIS TO YOUR ENVIRONMENT NAME for Production APIM
         strategy:
           # default deployment strategy, more coming...
           runOnce:
             deploy:
-               steps:
-                 - template: run-publisher-with-env.yaml
-                   parameters:
-                     API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH: ${{ parameters.API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH }}
-                     RESOURCE_GROUP_NAME : $(RESOURCE_GROUP_NAME_Prod)
-                     CONFIGURATION_YAML_PATH:  $(Build.SourcesDirectory)/configuration.prod.yaml
-                     ENVIRONMENT: "Prod"
-                     COMMIT_ID: ${{ parameters.COMMIT_ID }}
-              
+              steps:
+                - template: run-publisher-with-env.yaml
+                  parameters:
+                    API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH: ${{ parameters.API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH }}
+                    RESOURCE_GROUP_NAME: $(RESOURCE_GROUP_NAME_Prod)
+                    CONFIGURATION_YAML_PATH: $(Build.SourcesDirectory)/configuration.prod-005.yaml # CHANGE THIS TO THE PATH OF YOUR CONFIGURATION FILE
+                    ENVIRONMENT: "Prod-005-stable" # CHANGE THIS TO YOUR ENVIRONMENT NAME for display purposes ONLY
+                    COMMIT_ID: ${{ parameters.COMMIT_ID }}

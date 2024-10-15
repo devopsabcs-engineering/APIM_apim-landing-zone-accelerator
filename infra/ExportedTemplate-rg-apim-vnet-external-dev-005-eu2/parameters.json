@@ -1,0 +1,12 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "gateways_WorkspaceApiTeam002_name": {
+            "value": null
+        },
+        "service_apim_dev_005_3snpbfdd5kffc_externalid": {
+            "value": null
+        }
+    }
+}

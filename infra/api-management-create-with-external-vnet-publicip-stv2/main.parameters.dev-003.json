@@ -1,0 +1,40 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "publisherEmail": {
+            "value": "admin@MngEnvMCAP675646.onmicrosoft.com"
+        },
+        "publisherName": {
+            "value": "Emmanuel Knafo"
+        },
+        "location": {
+            "value": "CanadaCentral"
+        },
+        "sku": {
+            "value": "Premium"
+        },
+        "skuCount": {
+            "value": 2
+        },
+        "environmentName": {
+            "value": "dev"
+        },
+        "instanceNumber": {
+            "value": "003"
+        },
+        "apimSubnetServiceEndpoints": {
+            "value": [
+                {
+                    "service": "Microsoft.Storage"
+                },
+                {
+                    "service": "Microsoft.Sql"
+                },
+                {
+                    "service": "Microsoft.EventHub"
+                }
+            ]
+        }
+    }
+}

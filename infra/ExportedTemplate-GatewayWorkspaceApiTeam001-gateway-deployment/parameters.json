@@ -1,0 +1,29 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "value": "eastus2"
+        },
+        "workspaceId": {
+            "value": "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-dev-006-eu2/providers/Microsoft.ApiManagement/service/apim-dev-006-etf4jh4kgbjje/workspaces/WorkspaceApiTeam001"
+        },
+        "gatewayName": {
+            "value": "GatewayWorkspaceApiTeam001"
+        },
+        "gatewaySku": {
+            "value": "WorkspaceGatewayPremium"
+        },
+        "gatewayCapacity": {
+            "value": 1
+        },
+        "gatewayProperties": {
+            "value": {
+                "virtualNetworkType": "None"
+            }
+        },
+        "networkConfigName": {
+            "value": "WorkspaceApiTe-89uo8wzeynfhju8"
+        }
+    }
+}

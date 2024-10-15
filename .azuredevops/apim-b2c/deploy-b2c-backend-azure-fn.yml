@@ -12,18 +12,23 @@ trigger:
       #- tools/code/extractor
 
 variables:
-  # Azure Resource Manager connection created during pipeline creation
-  azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+# Azure Resource Manager connection created during pipeline creation
+- name: azureSubscription
+  value: 'APIM_MicrosoftAzureExternal_multitenant'
 
-  # Function app name
-  functionAppNameProd: 'fnappqnzxwgg2niqda'
-  functionAppNameDev: 'fnapp3m2fbh7dapcag'
+# Function app name
+- name: functionAppNameProd
+  value: 'func-n4nccfxiu2ep6'
+- name: functionAppNameDev
+  value: 'func-23x452a77wcmu'
 
-  # Agent VM image name
-  vmImageName: 'windows-2019'
+# Agent VM image name
+- name: vmImageName
+  value: 'windows-2019'
 
-  # Working Directory
-  workingDirectory: '$(System.DefaultWorkingDirectory)/src/ApimAzureAdB2CSoln/Hello'
+# Working Directory
+- name: workingDirectory
+  value: '$(System.DefaultWorkingDirectory)/src/ApimAzureAdB2CSoln/Hello'
 
 stages:
 - stage: Build
@@ -60,18 +65,15 @@ stages:
   displayName: Deploy stage Dev
   dependsOn: Build
   condition: succeeded()
-
   jobs:
   - deployment: Deploy
     displayName: Deploy
     environment: 'APIM_B2C_backend_development'
     pool:
       vmImage: $(vmImageName)
-
     strategy:
       runOnce:
         deploy:
-
           steps:
           - task: AzureFunctionApp@1
             enabled: true # not ready to deploy yet!
@@ -85,18 +87,15 @@ stages:
   displayName: Deploy stage Prod
   dependsOn: Deploy_Dev
   condition: succeeded()
-
   jobs:
   - deployment: Deploy
     displayName: Deploy
     environment: 'APIM_B2C_backend_production'
     pool:
       vmImage: $(vmImageName)
-
     strategy:
       runOnce:
         deploy:
-
           steps:
           - task: AzureFunctionApp@1
             enabled: true # not ready to deploy yet!

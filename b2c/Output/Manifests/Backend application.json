@@ -1,0 +1,89 @@
+{
+	"id": "da461135-9bf5-4b53-9e80-953ca5508b0e",
+	"acceptMappedClaims": null,
+	"accessTokenAcceptedVersion": 2,
+	"addIns": [],
+	"allowPublicClient": null,
+	"appId": "936041d5-a56e-43be-ada9-72f1223aaff6",
+	"appRoles": [],
+	"oauth2AllowUrlPathMatching": false,
+	"createdDateTime": "2023-02-17T12:48:09Z",
+	"description": null,
+	"certification": null,
+	"disabledByMicrosoftStatus": null,
+	"groupMembershipClaims": null,
+	"identifierUris": [
+		"https://testek001b2c.onmicrosoft.com/936041d5-a56e-43be-ada9-72f1223aaff6"
+	],
+	"informationalUrls": {
+		"termsOfService": null,
+		"support": null,
+		"privacy": null,
+		"marketing": null
+	},
+	"keyCredentials": [],
+	"knownClientApplications": [],
+	"logoUrl": null,
+	"logoutUrl": null,
+	"name": "Backend application",
+	"notes": null,
+	"oauth2AllowIdTokenImplicitFlow": false,
+	"oauth2AllowImplicitFlow": false,
+	"oauth2Permissions": [
+		{
+			"adminConsentDescription": "Hello consent description",
+			"adminConsentDisplayName": "Hello",
+			"id": "428839e8-0b36-4726-a248-8ecc68926270",
+			"isEnabled": true,
+			"lang": null,
+			"origin": "Application",
+			"type": "Admin",
+			"userConsentDescription": null,
+			"userConsentDisplayName": null,
+			"value": "Hello"
+		}
+	],
+	"oauth2RequirePostResponse": false,
+	"optionalClaims": null,
+	"orgRestrictions": [],
+	"parentalControlSettings": {
+		"countriesBlockedForMinors": [],
+		"legalAgeGroupRule": "Allow"
+	},
+	"passwordCredentials": [
+		{
+			"customKeyIdentifier": null,
+			"endDate": "2025-02-17T12:48:14.7421348Z",
+			"keyId": "0beb8603-7c1c-43bb-9f55-f6bf86707a71",
+			"startDate": "2023-02-17T12:48:14.7421348Z",
+			"value": null,
+			"createdOn": "2023-02-17T12:48:16.5712232Z",
+			"hint": "hs0",
+			"displayName": "Backend client secret"
+		}
+	],
+	"preAuthorizedApplications": [],
+	"publisherDomain": "testek001b2c.onmicrosoft.com",
+	"replyUrlsWithType": [
+		{
+			"url": "https://jwt.ms",
+			"type": "Web"
+		}
+	],
+	"requiredResourceAccess": [
+		{
+			"resourceAppId": "00000003-0000-0000-c000-000000000000",
+			"resourceAccess": [
+				{
+					"id": "e1fe6dd8-ba31-4d61-89e7-88639da4683d",
+					"type": "Scope"
+				}
+			]
+		}
+	],
+	"samlMetadataUrl": null,
+	"signInUrl": null,
+	"signInAudience": "AzureADandPersonalMicrosoftAccount",
+	"tags": [],
+	"tokenEncryptionKeyId": null
+}

@@ -1,0 +1,10 @@
+{
+  "properties": {
+    "displayName": "mysecretvalue",
+    "keyVault": {
+      "secretIdentifier": "https://kv-apim-dev-005-3snpbfdd.vault.azure.net/secrets/mysecretvalue"
+    },
+    "secret": true,
+    "tags": []
+  }
+}

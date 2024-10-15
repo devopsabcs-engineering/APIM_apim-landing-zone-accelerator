@@ -1,0 +1,23 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "apimServiceName": {
+            "value": "apim-257jlvys5ho6o"
+        },
+        "signinTenant": {
+            "value": "mngenv019702.com"
+        },
+        "clientId": {
+            "value": "blahblahblah"
+        },
+        "allowedTenants": {
+            "value": [
+                "testekb2c010.onmicrosoft.com",
+                "testekb2c011.onmicrosoft.com",
+                "mngenv019702.com",
+                "devopsabcs.com"
+            ]
+        }
+    }
+}

@@ -1,20 +1,20 @@
 parameters:
   - name: APIM_INSTANCE_NAME
-    displayName: APIM instance name
-    default: 'apim-xmjyxcbp4a5fo'
+    displayName: APIM instance name (use apim-prod-005-cs4jyj6wprtye for prod APIM)
+    default: "apim-dev-005-3snpbfdd5kffc" # CHANGE THIS TO YOUR APIM DEV instance name
     type: string
   - name: RESOURCE_GROUP_NAME
     displayName: APIM instance resource group name
-    default: 'rg-apim-vnet-external-dev-002'
+    default: "rg-apim-vnet-external-dev-005-eu2" # CHANGE THIS TO YOUR RESOURCE GROUP for the APIM DEV instance
     type: string
   - name: APIM_REPOSITORY_NAME
     type: string
     displayName: APIM repository for pull request
-    default: 'APIM_apim-landing-zone-accelerator'
+    default: "APIM_apim-landing-zone-accelerator" # CHANGE THIS TO YOUR REPOSITORY NAME
   - name: API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH
     type: string
     displayName: Folder where you want to extract the artifacts
-    default: 'artifacts'
+    default: "artifacts-dev-005" # CHANGE THIS TO YOUR FOLDER PATH
   - name: TARGET_BRANCH_NAME
     type: string
     displayName: Target branch for pull request
@@ -24,7 +24,7 @@ parameters:
     displayName: Optional configuration file
     values:
       - Extract All
-      - configuration.extractor.yaml
+      - configuration.extractor-dev-005.yaml
   - name: API_SPECIFICATION_FORMAT
     type: string
     displayName: API Specification Format
@@ -37,7 +37,7 @@ parameters:
 trigger: none
 
 variables:
-  - group: APIM_apim-automation-landing-zone_002
+  - group: APIM_rg-apim-vnet-external-dev-005-eu2-stable # CHANGE THIS TO YOUR RESOURCE GROUP VARIABLE GROUP
   - name: System.Debug
     value: true
 
@@ -66,7 +66,7 @@ stages:
                 Write-Host "##vso[task.setvariable issecret=true;variable=AZURE_CLIENT_ID]$env:servicePrincipalId"
                 Write-Host "##vso[task.setvariable issecret=true;variable=AZURE_CLIENT_SECRET]$env:servicePrincipalKey"
                 Write-Host "##vso[task.setvariable issecret=true;variable=AZURE_TENANT_ID]$env:tenantId"
-                
+
                 if (-not $env:AZURE_SUBSCRIPTION_ID) {
                     $subscriptionCount = az account list --query "length([])" --output tsv
                     if ($subscriptionCount -eq 1) {
@@ -162,25 +162,25 @@ stages:
           #Running Super Linting Tool on the API(s) - START
           - task: NodeTool@0
             inputs:
-              versionSpec: '20.x'
-            displayName: 'Install Node.js'
+              versionSpec: "20.x"
+            displayName: "Install Node.js"
 
           - script: |
               npm install -g @stoplight/spectral-cli
-            displayName: 'Install Spectral'
+            displayName: "Install Spectral"
 
           - script: |
               spectral lint --format stylish --format junit --output.junit $(Build.ArtifactStagingDirectory)/spectral-result.xml $(Build.ArtifactStagingDirectory)/${{ parameters.API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH }}/apis/**/specification.{json,yaml,yml} -r https://raw.githubusercontent.com/connectedcircuits/devops-api-linter/main/rules.yaml
-            displayName: 'Run Spectral Linting'
+            displayName: "Run Spectral Linting"
             continueOnError: true
             failOnStderr: true
-          
+
           - task: PublishTestResults@2
             inputs:
-              testResultsFormat: 'JUnit'
-              testResultsFiles: '**/spectral-result.xml'
+              testResultsFormat: "JUnit"
+              testResultsFiles: "**/spectral-result.xml"
               searchFolder: $(Build.ArtifactStagingDirectory)
-              testRunTitle: 'Linting results for API $(Build.SourceBranchName)'
+              testRunTitle: "Linting results for API $(Build.SourceBranchName)"
               failTaskOnFailedTests: false
           #Running Super Linting Tool on the API(s) - END
           - task: PublishPipelineArtifact@1
@@ -191,14 +191,14 @@ stages:
               artifactName: artifacts-from-portal
 
           - task: Bash@3
-            displayName: 'Pipeline Summary Tab Upload'
+            displayName: "Pipeline Summary Tab Upload"
             inputs:
-              targetType: 'inline'
+              targetType: "inline"
               script: |
                 outputFilePath="$(Build.ArtifactStagingDirectory)/run-extractor.md"
                 apiDirectoryPath="$(Build.ArtifactStagingDirectory)/artifacts"
                 cd "$apiDirectoryPath" # exclude top directory
-                
+
                 echo "# Azure APIM Modifications Summary" > "$outputFilePath"
                 echo "" >> "outputFilePath" #newline                
                 echo '```' >> "$outputFilePath"
@@ -210,7 +210,7 @@ stages:
 
                 # Display the Markdown file in the pipeline summary
                 echo "##vso[task.uploadsummary]$outputFilePath"
-          
+
   - stage: create_template_branch
     displayName: Create template branch
     jobs:
@@ -280,7 +280,7 @@ stages:
                     Write-Information "No changes exist to be published."
                     return
                 }
-                
+
                 Write-Information "Setting git user information..."
                 git config --global user.email "azuredevopsagent@azuredevops.com"
                 git config --global user.name "Azure Devops agent"
