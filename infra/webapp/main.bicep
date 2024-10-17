@@ -38,6 +38,40 @@ resource appService 'Microsoft.Web/sites@2023-12-01' = {
     siteConfig: {
       linuxFxVersion: linuxFxVersion
       ftpsState: 'FtpsOnly'
+      appSettings: [
+        {
+          name: 'APPINSIGHTS_INSTRUMENTATIONKEY'
+          value: appInsights.properties.InstrumentationKey
+        }
+        {
+          name: 'Logging__LogLevel__Default'
+          value: 'Information'
+        }
+        {
+          name: 'Logging__LogLevel__Microsoft.AspNetCore'
+          value: 'Warning'
+        }
+        {
+          name: 'Logging__ApplicationInsights__LogLevel__Default'
+          value: 'Debug'
+        }
+        {
+          name: 'Logging__ApplicationInsights__LogLevel__Microsoft'
+          value: 'Error'
+        }
+        {
+          name: 'AllowedHosts'
+          value: '*'
+        }
+        {
+          name: 'ApplicationInsights__InstrumentationKey'
+          value: appInsights.properties.InstrumentationKey
+        }
+        {
+          name: 'ApplicationInsights__ConnectionString'
+          value: appInsights.properties.ConnectionString
+        }
+      ]
     }
     httpsOnly: true
   }
