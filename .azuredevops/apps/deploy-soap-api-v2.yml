@@ -162,7 +162,7 @@ stages:
     condition: and(succeeded(), eq(variables['deployInfra'], true))
     jobs:
       - deployment: deploy
-        displayName: Deploy
+        displayName: Deploy Infra job
         environment: "APIM_Soap_Api_Infra_production"
         strategy:
           runOnce:
@@ -189,7 +189,7 @@ stages:
     dependsOn: deployInfra
     jobs:
       - deployment: Deploy
-        displayName: Deploy
+        displayName: Deploy App job
         environment: "APIM_Soap_Api_production"
         strategy:
           runOnce:
