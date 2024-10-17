@@ -16,6 +16,8 @@ variables:
     value: "Any CPU"
   - name: buildConfiguration
     value: "Release"
+  - name: testProject
+    value: "$(System.DefaultWorkingDirectory)/src/soap-service-dotnetcore-example/AddressBook.Service.SOAP.IntegrationTests/AddressBook.Service.SOAP.IntegrationTests.csproj"
 
 stages:
   - stage: set_version
@@ -63,23 +65,28 @@ stages:
               version: 8.x
               performMultiLevelLookup: true
               includePreviewVersions: true # Required for preview versions
-
           - task: DotNetCoreCLI@2
+            enabled: false
             displayName: "Restore NuGet packages"
             inputs:
-              command: 'restore'
-              projects: '$(Solution)'
-              feedsToUse: 'config'
-
+              command: "restore"
+              projects: "$(Solution)"
+              feedsToUse: "config"
           - task: DotNetCoreCLI@2
             inputs:
-              command: 'build'
-              projects: '$(Solution)'
-              arguments: '--configuration $(buildConfiguration)'
+              command: "build"
+              projects: "$(Solution)"
+              arguments: "--configuration $(buildConfiguration)"
             displayName: "dotnet build $(buildConfiguration)"
-
           - task: DotNetCoreCLI@2
             inputs:
               command: test
-              projects: "$(System.DefaultWorkingDirectory)/src/soap-service-dotnetcore-example/*Tests/*.csproj"
+              projects: $(testProject)
               arguments: "--configuration $(buildConfiguration)"
+            displayName: "dotnet test $(buildConfiguration)"
+          - script: dotnet test $(testProject) --logger trx
+          - task: PublishTestResults@2
+            condition: succeededOrFailed()
+            inputs:
+              testRunner: VSTest
+              testResultsFiles: "**/*.trx"
