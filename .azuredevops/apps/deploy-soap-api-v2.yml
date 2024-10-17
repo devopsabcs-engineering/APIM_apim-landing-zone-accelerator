@@ -38,6 +38,8 @@ variables:
     value: "$(System.DefaultWorkingDirectory)/src/soap-service-dotnetcore-example/AddressBook.Service.SOAP.IntegrationTests/AddressBook.Service.SOAP.IntegrationTests.csproj"
   - name: artifactName
     value: "myWebsites"
+  - name: azureSubscription
+    value: APIM_MicrosoftAzureExternal_multitenant
 
 stages:
   - stage: set_version
@@ -141,10 +143,10 @@ stages:
         strategy:
           runOnce:
             deploy:
-              steps:                
+              steps:
                 - task: AzureWebApp@1
                   inputs:
-                    azureSubscription: "AzureRmConnection"
+                    azureSubscription: "$(azureSubscription)"
                     appName: "soap-service-dotnetcore-example"
                     package: "$(Build.ArtifactStagingDirectory)/**/*.zip"
                     deploymentMethod: "auto"
