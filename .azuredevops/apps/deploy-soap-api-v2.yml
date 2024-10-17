@@ -150,7 +150,7 @@ stages:
               steps:
                 - task: AzureWebApp@1
                   inputs:
-                    azureSubscription: '$(azureSubscription)'
-                    appType: 'webAppLinux'
-                    appName: '$(appName)'
-                    package: '**/$(artifactName)/**/$(websitePackageName)'
+                    azureSubscription: "$(azureSubscription)"
+                    appType: "webAppLinux"
+                    appName: "$(appName)"
+                    package: "$(Pipeline.Workspace)/$(artifactName)/$(websitePackageName)"
