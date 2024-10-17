@@ -36,6 +36,9 @@ namespace AddressBook.Service.SOAP
                 app.UseDeveloperExceptionPage();
             }
 
+            //// add application insights
+            //app.UseApplicationInsightsRequestTelemetry();
+
             app.UseHttpsRedirection();
             app.UseRouting();
             app.UseAuthorization();
@@ -45,10 +48,6 @@ namespace AddressBook.Service.SOAP
                 options.Path = "/PersonProfileService.asmx";
                 options.Binding = new BasicHttpsBinding();
             });
-
-            //app.UseEndpoints(endpoints => {
-            //    endpoints.UseSoapEndpoint<PersonProfileService>("/PersonProfileService.asmx", new BasicHttpBinding());
-            //});
         }
     }
 }
