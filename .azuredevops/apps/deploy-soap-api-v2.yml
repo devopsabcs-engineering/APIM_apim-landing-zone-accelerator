@@ -105,6 +105,19 @@ stages:
       - job: Build
         displayName: Build
         steps:
+          - checkout: self
+            persistCredentials: true
+            fetchDepth: 0
+          - task: gitversion/setup@3
+            enabled: true
+            displayName: "Install GitTools"
+            inputs:
+              versionSpec: "5.x"
+          - task: gitversion/execute@3
+            enabled: true
+            displayName: "Calculate SemVer"
+          - script: echo current version is $(GitVersion.SemVer)
+            displayName: "Display calculated version"
           - task: UseDotNet@2
             displayName: "Install .NET Core SDK"
             inputs:
@@ -151,7 +164,7 @@ stages:
             inputs:
               command: "publish"
               publishWebProjects: true
-              arguments: "--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)"
+              arguments: "--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory) -p:Version=$(GitVersion.SemVer) -p:FileVersion=$(GitVersion.AssemblySemFileVer) -p:AssemblyVersion=$(GitVersion.AssemblySemVer)"
               workingDirectory: "$(System.DefaultWorkingDirectory)/src/soap-service-dotnetcore-example"
           # this code takes all the files in $(Build.ArtifactStagingDirectory) and uploads them as an artifact of your build.
           - task: PublishPipelineArtifact@1
@@ -173,6 +186,7 @@ stages:
                 - checkout: self
                 # azure cli
                 - task: AzureCLI@2
+                  displayName: "Azure CLI Login $(azureSubscription) - deployInfra"
                   inputs:
                     azureSubscription: "$(azureSubscription)"
                     scriptType: "bash"
