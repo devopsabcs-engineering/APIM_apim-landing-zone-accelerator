@@ -17,7 +17,7 @@ namespace AddressBook.Service.SOAP.IntegrationTests
         [Fact]
         public void GetAllProfiles_ReturnsAllProfiles_ViaSoapService()
         {
-            var binding = new BasicHttpBinding();
+            var binding = new BasicHttpsBinding();
             var endpoint = new EndpointAddress(new Uri(WSDLUrl));
             ChannelFactory<IPersonProfileService> channelFactory = new ChannelFactory<IPersonProfileService>(binding, endpoint);
             IPersonProfileService serviceClient = channelFactory.CreateChannel();

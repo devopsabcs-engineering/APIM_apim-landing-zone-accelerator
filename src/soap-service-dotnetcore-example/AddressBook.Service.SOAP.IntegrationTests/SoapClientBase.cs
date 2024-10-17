@@ -6,7 +6,7 @@ namespace AddressBook.Service.SOAP.IntegrationTests
 {
     public class SoapClientBase: IDisposable
     {
-        private const string ProviderUri = "http://127.0.0.1:9410";
+        private const string ProviderUri = "https://addressbookservicesoap20241016210613.azurewebsites.net"; //"https://localhost:9310";
         protected static readonly string WSDLUrl = $"{ProviderUri}/PersonProfileService.asmx";
         private bool _disposedValue;
         private readonly IWebHost _webHost;

@@ -1,5 +1,3 @@
-using System.ServiceModel;
-using AddressBook.Service.SOAP.Domain;
 using AddressBook.Service.SOAP.Repositories;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -8,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using SoapCore;
+using System.ServiceModel;
 
 namespace AddressBook.Service.SOAP
 {
@@ -40,10 +39,16 @@ namespace AddressBook.Service.SOAP
             app.UseHttpsRedirection();
             app.UseRouting();
             app.UseAuthorization();
-            
-            app.UseEndpoints(endpoints => {
-                endpoints.UseSoapEndpoint<PersonProfileService>("/PersonProfileService.asmx", new BasicHttpBinding());
+
+            app.UseSoapEndpoint<PersonProfileService>(options =>
+            {
+                options.Path = "/PersonProfileService.asmx";
+                options.Binding = new BasicHttpsBinding();
             });
+
+            //app.UseEndpoints(endpoints => {
+            //    endpoints.UseSoapEndpoint<PersonProfileService>("/PersonProfileService.asmx", new BasicHttpBinding());
+            //});
         }
     }
 }
