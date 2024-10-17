@@ -40,6 +40,10 @@ variables:
     value: "myWebsites"
   - name: azureSubscription
     value: APIM_MicrosoftAzureExternal_multitenant
+  - name: websitePackageName
+    value: AddressBook.Service.SOAP.zip
+  - name: appName
+    value: app-soap-api-l6isc4zatv5ny
 
 stages:
   - stage: set_version
@@ -146,7 +150,7 @@ stages:
               steps:
                 - task: AzureWebApp@1
                   inputs:
-                    azureSubscription: "$(azureSubscription)"
-                    appName: "soap-service-dotnetcore-example"
-                    package: "$(Build.ArtifactStagingDirectory)/**/*.zip"
-                    deploymentMethod: "auto"
+                    azureSubscription: '$(azureSubscription)'
+                    appType: 'webAppLinux'
+                    appName: '$(appName)'
+                    package: '**/$(artifactName)/**/$(websitePackageName)'
