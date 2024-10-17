@@ -23,9 +23,16 @@ trigger:
       - src/soap-service-dotnetcore-example/AddressBook.Service.SOAP/Dockerfile
       # include pipeline file
       - .azuredevops/apps/deploy-soap-api-v2.yml
+      # include infra files
+      - infra/webapp/main.bicep
 
 pool:
   vmImage: "ubuntu-latest"
+
+parameters:
+  - name: deployInfra
+    type: boolean
+    default: true
 
 variables:
   - name: solution
@@ -44,6 +51,16 @@ variables:
     value: AddressBook.Service.SOAP.zip
   - name: appName
     value: app-soap-api-l6isc4zatv5ny
+  - name: resourceGroupName
+    value: rg-soap-appservice-linux-002
+  - name: location
+    value: eastus2
+  - name: deploymentName
+    value: infra-deployment
+  - name: templateFile
+    value: $(System.DefaultWorkingDirectory)/infra/webapp/main.bicep
+  - name: baseName
+    value: soap-api
 
 stages:
   - stage: set_version
@@ -81,6 +98,7 @@ stages:
                 git push origin $(GitVersion.SemVer)
   - stage: build
     displayName: Build
+    dependsOn: set_version
     jobs:
       - job: Build
         displayName: Build
@@ -138,8 +156,37 @@ stages:
             inputs:
               targetPath: "$(Build.ArtifactStagingDirectory)"
               artifactName: $(artifactName)
+  - stage: deployInfra
+    displayName: Deploy Infra
+    dependsOn: build
+    condition: and(succeeded(), eq(variables['deployInfra'], true))
+    jobs:
+      - deployment: deploy
+        displayName: Deploy
+        environment: "APIM_Soap_Api_Infra_production"
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                # azure cli
+                - task: AzureCLI@2
+                  inputs:
+                    azureSubscription: "$(azureSubscription)"
+                    scriptType: "bash"
+                    scriptLocation: "inlineScript"
+                    inlineScript: |
+                      echo "Deploying to Azure"
+                      az group create --name $(resourceGroupName) \
+                          --location $(location)
+
+                      az deployment group create --name $(deploymentName) \
+                          --resource-group $(resourceGroupName) \
+                          --template-file $(templateFile) \
+                          --parameters baseName=$(baseName)
   - stage: Deploy
-    displayName: Deploy
+    displayName: Deploy App
+    dependsOn: deployInfra
     jobs:
       - deployment: Deploy
         displayName: Deploy
