@@ -25,6 +25,8 @@ namespace AddressBook.Service.SOAP
             services.AddSoapCore();
             services.AddSingleton<PersonProfileRepository>();
             services.TryAddSingleton<PersonProfileService>();
+            services.AddSingleton<SoftwareVersionRepository>();
+            services.TryAddSingleton<SoftwareVersionService>();
             services.AddMvc();
             // application insights
             services.AddApplicationInsightsTelemetry(options =>
@@ -49,6 +51,11 @@ namespace AddressBook.Service.SOAP
             app.UseSoapEndpoint<PersonProfileService>(options =>
             {
                 options.Path = "/PersonProfileService.asmx";
+                options.Binding = new BasicHttpsBinding();
+            });
+            app.UseSoapEndpoint<SoftwareVersionService>(options =>
+            {
+                options.Path = "/SoftwareVersionService.asmx";
                 options.Binding = new BasicHttpsBinding();
             });
         }
