@@ -36,9 +36,6 @@ namespace AddressBook.Service.SOAP
                 app.UseDeveloperExceptionPage();
             }
 
-            //// add application insights
-            //app.UseApplicationInsightsRequestTelemetry();
-
             app.UseHttpsRedirection();
             app.UseRouting();
             app.UseAuthorization();
