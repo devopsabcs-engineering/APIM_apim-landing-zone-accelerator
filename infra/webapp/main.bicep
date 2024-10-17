@@ -3,10 +3,10 @@
 param appName string = 'app-${baseName}-${uniqueString(resourceGroup().id)}'
 
 @description('The SKU of App Service Plan ')
-param sku string = 'S1'
+param sku string = 'F1' // 'S1'
 
 @description('The Runtime stack of current web app')
-param linuxFxVersion string = 'php|7.4'
+param linuxFxVersion string = 'DOTNETCORE|8.0' // 'php|7.4'
 
 @description('Location for all resources.')
 param location string = resourceGroup().location
@@ -32,7 +32,7 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2023-12-01' = {
 resource appService 'Microsoft.Web/sites@2023-12-01' = {
   name: appName
   location: location
-  kind: 'app'
+  kind: 'app,linux'
   properties: {
     serverFarmId: appServicePlan.id
     siteConfig: {
@@ -43,6 +43,13 @@ resource appService 'Microsoft.Web/sites@2023-12-01' = {
   }
   identity: {
     type: 'SystemAssigned'
+  }
+  resource basicPublishingCredentialsPolicies 'basicPublishingCredentialsPolicies@2023-12-01' = {
+    name: 'scm'
+    //kind: 'string'
+    properties: {
+      allow: true
+    }
   }
 }
 

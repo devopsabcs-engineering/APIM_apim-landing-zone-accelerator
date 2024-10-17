@@ -2,23 +2,25 @@
 # Build and push an image to Azure Container Registry
 # https://docs.microsoft.com/azure/devops/pipelines/languages/docker
 
-trigger:
-  batch: true
-  branches:
-    include:
-      - main
-    exclude:
-      - features/experimental/*
-  paths:
-    exclude:
-      - README.md
-    include:
-      - src/soap-service-dotnetcore-example/*
-      - src/soap-service-dotnetcore-example/AddressBook.Service.SOAP/*
-      - src/soap-service-dotnetcore-example/AddressBook.Service.SOAP/AddressBook.Service.SOAP.csproj
-      - src/soap-service-dotnetcore-example/AddressBook.Service.SOAP/Dockerfile
-      # include pipeline file
-      - .azuredevops/apps/deploy-soap-api.yml
+trigger: none
+
+# trigger:
+#   batch: true
+#   branches:
+#     include:
+#       - main
+#     exclude:
+#       - features/experimental/*
+#   paths:
+#     exclude:
+#       - README.md
+#     include:
+#       - src/soap-service-dotnetcore-example/*
+#       - src/soap-service-dotnetcore-example/AddressBook.Service.SOAP/*
+#       - src/soap-service-dotnetcore-example/AddressBook.Service.SOAP/AddressBook.Service.SOAP.csproj
+#       - src/soap-service-dotnetcore-example/AddressBook.Service.SOAP/Dockerfile
+#       # include pipeline file
+#       - .azuredevops/apps/deploy-soap-api.yml
 
 resources:
   - repo: self

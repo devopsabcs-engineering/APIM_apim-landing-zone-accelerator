@@ -26,6 +26,12 @@ namespace AddressBook.Service.SOAP
             services.AddSingleton<PersonProfileRepository>();
             services.TryAddSingleton<PersonProfileService>();
             services.AddMvc();
+            // application insights
+            services.AddApplicationInsightsTelemetry(options =>
+            {
+                options.ConnectionString = Configuration["ApplicationInsights:ConnectionString"];
+            });
+            services.AddApplicationInsightsTelemetry(Configuration["ApplicationInsights:InstrumentationKey"]);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

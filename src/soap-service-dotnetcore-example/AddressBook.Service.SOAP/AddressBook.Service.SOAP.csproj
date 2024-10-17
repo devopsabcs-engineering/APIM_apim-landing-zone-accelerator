@@ -3,7 +3,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <RootNamespace>AddressBook.Service.SOAP</RootNamespace>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
-    <ApplicationInsightsResourceId>/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-soap-appservice/providers/microsoft.insights/components/appi-soap-api-k5qu64zoneaec</ApplicationInsightsResourceId>
+    <ApplicationInsightsResourceId>/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-soap-appservice-linux-002/providers/microsoft.insights/components/appi-soap-api-l6isc4zatv5ny</ApplicationInsightsResourceId>
     <UserSecretsId>fc08ed0e-effa-4093-a162-8f34b45d9372</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>

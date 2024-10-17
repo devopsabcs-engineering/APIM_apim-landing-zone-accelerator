@@ -1,11 +1,12 @@
 {
   "dependencies": {
     "secrets1": {
-      "type": "secrets.user"
+      "type": "secrets.user",
+      "dynamicId": null
     },
     "appInsights1": {
       "secretStore": "LocalSecretsFile",
-      "resourceId": "/subscriptions/[parameters('subscriptionId')]/resourceGroups/[parameters('resourceGroupName')]/providers/microsoft.insights/components/appi-soap-api-k5qu64zoneaec",
+      "resourceId": "/subscriptions/[parameters('subscriptionId')]/resourceGroups/[parameters('resourceGroupName')]/providers/microsoft.insights/components/appi-soap-api-l6isc4zatv5ny",
       "type": "appInsights.azure",
       "connectionId": "APPLICATIONINSIGHTS_CONNECTION_STRING",
       "dynamicId": null

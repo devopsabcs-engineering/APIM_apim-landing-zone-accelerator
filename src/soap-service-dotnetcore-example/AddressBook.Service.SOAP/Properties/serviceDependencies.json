@@ -1,7 +1,8 @@
 {
   "dependencies": {
     "secrets1": {
-      "type": "secrets"
+      "type": "secrets",
+      "dynamicId": null
     },
     "appInsights1": {
       "type": "appInsights",
