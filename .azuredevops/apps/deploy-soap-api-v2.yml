@@ -3,8 +3,26 @@
 # Add steps that publish symbols, save build artifacts, and more:
 # https://docs.microsoft.com/azure/devops/pipelines/languages/dotnet-core
 
+# trigger:
+#   - none
+
 trigger:
-  - none
+  batch: true
+  branches:
+    include:
+      - main
+    exclude:
+      - features/experimental/*
+  paths:
+    exclude:
+      - README.md
+    include:
+      - src/soap-service-dotnetcore-example/*
+      - src/soap-service-dotnetcore-example/AddressBook.Service.SOAP/*
+      - src/soap-service-dotnetcore-example/AddressBook.Service.SOAP/AddressBook.Service.SOAP.csproj
+      - src/soap-service-dotnetcore-example/AddressBook.Service.SOAP/Dockerfile
+      # include pipeline file
+      - .azuredevops/apps/deploy-soap-api-v2.yml
 
 pool:
   vmImage: "ubuntu-latest"
@@ -18,6 +36,8 @@ variables:
     value: "Release"
   - name: testProject
     value: "$(System.DefaultWorkingDirectory)/src/soap-service-dotnetcore-example/AddressBook.Service.SOAP.IntegrationTests/AddressBook.Service.SOAP.IntegrationTests.csproj"
+  - name: artifactName
+    value: "myWebsites"
 
 stages:
   - stage: set_version
@@ -111,7 +131,7 @@ stages:
           - task: PublishPipelineArtifact@1
             inputs:
               targetPath: "$(Build.ArtifactStagingDirectory)"
-              artifactName: "myWebsite"
+              artifactName: $(artifactName)
   - stage: Deploy
     displayName: Deploy
     jobs:
@@ -121,26 +141,7 @@ stages:
         strategy:
           runOnce:
             deploy:
-              steps:
-                - task: DownloadPipelineArtifact@2
-                  inputs:
-                    buildType: "specific"
-                    project: "soap-service-dotnetcore-example"
-                    definition: "soap-service-dotnetcore-example-CI"
-                    buildVersionToDownload: "latest"
-                    targetPath: "$(System.DefaultWorkingDirectory)/artifacts"
-                - task: UseDotNet@2
-                  displayName: "Install .NET Core SDK"
-                  inputs:
-                    version: 8.x
-                    performMultiLevelLookup: true
-                    includePreviewVersions: true # Required for preview versions
-                - task: DotNetCoreCLI@2
-                  inputs:
-                    command: "publish"
-                    publishWebProjects: true
-                    arguments: "--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)"
-                    workingDirectory: "$(System.DefaultWorkingDirectory)/artifacts/src/soap-service-dotnetcore-example"
+              steps:                
                 - task: AzureWebApp@1
                   inputs:
                     azureSubscription: "AzureRmConnection"
