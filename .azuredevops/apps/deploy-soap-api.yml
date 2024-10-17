@@ -6,17 +6,19 @@ trigger:
   batch: true
   branches:
     include:
-    - main
+      - main
     exclude:
-    - features/experimental/*
+      - features/experimental/*
   paths:
     exclude:
-    - README.md
+      - README.md
     include:
       - src/soap-service-dotnetcore-example/*
       - src/soap-service-dotnetcore-example/AddressBook.Service.SOAP/*
       - src/soap-service-dotnetcore-example/AddressBook.Service.SOAP/AddressBook.Service.SOAP.csproj
       - src/soap-service-dotnetcore-example/AddressBook.Service.SOAP/Dockerfile
+      # include pipeline file
+      - .azuredevops/apps/deploy-soap-api.yml
 
 resources:
   - repo: self
