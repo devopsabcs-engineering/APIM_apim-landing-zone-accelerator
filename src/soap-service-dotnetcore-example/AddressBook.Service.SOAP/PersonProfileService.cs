@@ -18,13 +18,13 @@ namespace AddressBook.Service.SOAP
         
         public IEnumerable<PersonProfile> GetAllProfiles()
         {
-            _logger.LogInformation("Fetched all profiles.");
+            _logger.LogInformation("Fetching all profiles.");
             return _repository.FetchAll();
         }
 
         public PersonProfile GetProfileById(int id)
         {
-            _logger.LogInformation("Fetched all profiles.");
+            _logger.LogInformation($"Fetching profile by id {id}");
             return _repository.FindById(id);
         }
     }
