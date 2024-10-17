@@ -61,6 +61,8 @@ variables:
     value: $(System.DefaultWorkingDirectory)/infra/webapp/main.bicep
   - name: baseName
     value: soap-api
+  - name: deployInfra
+    value: ${{ parameters.deployInfra }}
 
 stages:
   - stage: set_version
