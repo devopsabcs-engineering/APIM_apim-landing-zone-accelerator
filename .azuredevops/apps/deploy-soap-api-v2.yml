@@ -103,12 +103,47 @@ stages:
               mergeTestResults: true
           - task: DotNetCoreCLI@2
             inputs:
-              command: 'publish'
+              command: "publish"
               publishWebProjects: true
-              arguments: '--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)'
-              workingDirectory: '$(System.DefaultWorkingDirectory)/src/soap-service-dotnetcore-example'
+              arguments: "--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)"
+              workingDirectory: "$(System.DefaultWorkingDirectory)/src/soap-service-dotnetcore-example"
           # this code takes all the files in $(Build.ArtifactStagingDirectory) and uploads them as an artifact of your build.
           - task: PublishPipelineArtifact@1
             inputs:
               targetPath: "$(Build.ArtifactStagingDirectory)"
               artifactName: "myWebsite"
+  - stage: Deploy
+    displayName: Deploy
+    jobs:
+      - deployment: Deploy
+        displayName: Deploy
+        environment: "APIM_Soap_Api_production"
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: DownloadPipelineArtifact@2
+                  inputs:
+                    buildType: "specific"
+                    project: "soap-service-dotnetcore-example"
+                    definition: "soap-service-dotnetcore-example-CI"
+                    buildVersionToDownload: "latest"
+                    targetPath: "$(System.DefaultWorkingDirectory)/artifacts"
+                - task: UseDotNet@2
+                  displayName: "Install .NET Core SDK"
+                  inputs:
+                    version: 8.x
+                    performMultiLevelLookup: true
+                    includePreviewVersions: true # Required for preview versions
+                - task: DotNetCoreCLI@2
+                  inputs:
+                    command: "publish"
+                    publishWebProjects: true
+                    arguments: "--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)"
+                    workingDirectory: "$(System.DefaultWorkingDirectory)/artifacts/src/soap-service-dotnetcore-example"
+                - task: AzureWebApp@1
+                  inputs:
+                    azureSubscription: "AzureRmConnection"
+                    appName: "soap-service-dotnetcore-example"
+                    package: "$(Build.ArtifactStagingDirectory)/**/*.zip"
+                    deploymentMethod: "auto"
