@@ -10,7 +10,7 @@ resources:
 
 variables:
   - name: dockerRegistryServiceConnection
-    value: "containerRegistrySoapApi"
+    value: "APIM_containerRegistrySoapApi"
   - name: imageRepository
     value: "soapapi"
   - name: containerRegistry
