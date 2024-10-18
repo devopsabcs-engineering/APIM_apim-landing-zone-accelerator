@@ -143,6 +143,20 @@ subscriptions:
       scope: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.ApiManagement/service/apim-prod-005-cs4jyj6wprtye/products/weatherproduct"
       ownerId: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.ApiManagement/service/apim-prod-005-cs4jyj6wprtye/users/66fc3b8c72366d0d74e9a983" # user id for Apim User in PROD
       state: active
+  - name: Subscription-All-Apis
+    properties:
+      displayName: "Subscription-All-Apis (PROD)"
+      allowTracing: false
+      scope: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.ApiManagement/service/apim-prod-005-cs4jyj6wprtye/apis"
+      ownerId: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.ApiManagement/service/apim-prod-005-cs4jyj6wprtye/users/66f2dc49da09a30f80cf2e50"
+      state: active
+  - name: 6712c5b1fdfb1416c8cfa44d
+    properties:
+      displayName: "SOAP prod sub (PROD)"
+      allowTracing: false
+      scope: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.ApiManagement/service/apim-prod-005-cs4jyj6wprtye/products/soapproduct"
+      ownerId: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.ApiManagement/service/apim-prod-005-cs4jyj6wprtye/users/66fc3b8c72366d0d74e9a983" # user id for Apim User in PROD
+      state: active
 products:
   - name: starter
     properties:
@@ -180,6 +194,24 @@ products:
       state: "published"
       subscriptionRequired: true
       terms: "PROD: Read the legal fine print GraphQL-Terms!"
+  - name: soapproduct
+    properties:
+      name: soapproduct
+      displayName: SOAP Product (PROD)
+      description: SOAP product (PROD)
+      approvalRequired: false
+      state: "published"
+      subscriptionRequired: false
+      terms: "PROD: Read the legal fine print SOAP-Terms!"
+  - name: weatherproduct
+    properties:
+      name: weatherproduct
+      displayName: Weather Product (PROD)
+      description: Weather product (PROD)
+      approvalRequired: false
+      state: "published"
+      subscriptionRequired: true
+      terms: "PROD: Read the legal fine print Weather-Terms!"
 workspaces:
   - name: WorkspaceApiTeam001
     properties:
