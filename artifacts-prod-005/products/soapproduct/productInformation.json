@@ -1,0 +1,11 @@
+{
+  "properties": {
+    "displayName": "SOAP Product (PROD)",
+    "description": "SOAP product (PROD)",
+    "approvalRequired": false,
+    "state": "published",
+    "subscriptionRequired": true,
+    "subscriptionsLimit": 0,
+    "terms": "PROD: Read the legal fine print SOAP-Terms!"
+  }
+}
