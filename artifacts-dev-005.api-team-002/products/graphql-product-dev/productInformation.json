@@ -1,0 +1,10 @@
+{
+  "properties": {
+    "displayName": "GraphQL Product (DEV)",
+    "description": "for graphql apis",
+    "approvalRequired": false,
+    "state": "published",
+    "subscriptionRequired": true,
+    "terms": "graphql legal terms DEV"
+  }
+}
