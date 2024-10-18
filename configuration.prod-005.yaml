@@ -49,6 +49,17 @@ namedValues:
         - sql
         - connection
         - string
+  - name: instrumentationKey
+    properties:
+      displayName: instrumentationKey
+      keyVault:
+        #identityClientId: 39ae9a6a-260f-4c36-ac12-d65e2f22b918
+        secretIdentifier: https://kv-apim-prod-005-cs4jyj6.vault.azure.net/secrets/sqldbconnstring
+      tags:
+        - prod
+        - appi
+        - connection
+        - string
 loggers:
   - name: apimlogger
     properties:
