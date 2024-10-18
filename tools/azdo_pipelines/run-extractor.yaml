@@ -19,6 +19,7 @@ parameters:
       - artifacts-dev-005
       - artifacts-dev-005.api-team-001
       - artifacts-dev-005.api-team-002
+      - artifacts-prod-005
   - name: TARGET_BRANCH_NAME
     type: string
     displayName: Target branch for pull request
