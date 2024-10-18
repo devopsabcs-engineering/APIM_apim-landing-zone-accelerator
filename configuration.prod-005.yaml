@@ -54,7 +54,7 @@ namedValues:
       displayName: instrumentationKey
       keyVault:
         #identityClientId: 39ae9a6a-260f-4c36-ac12-d65e2f22b918
-        secretIdentifier: https://kv-apim-prod-005-cs4jyj6.vault.azure.net/secrets/sqldbconnstring
+        secretIdentifier: https://kv-apim-prod-005-cs4jyj6.vault.azure.net/secrets/AppInsightsKeyApim
       tags:
         - prod
         - appi
@@ -212,7 +212,7 @@ products:
       description: SOAP product (PROD)
       #approvalRequired: false
       state: "published"
-      subscriptionRequired: false
+      subscriptionRequired: true
       terms: "PROD: Read the legal fine print SOAP-Terms!"
       subscriptionsLimit: 0
   - name: weatherproduct
