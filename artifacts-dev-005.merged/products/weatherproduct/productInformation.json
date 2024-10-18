@@ -1,0 +1,9 @@
+{
+  "properties": {
+    "displayName": "WeatherProduct",
+    "description": "product for the weather",
+    "approvalRequired": false,
+    "state": "published",
+    "subscriptionRequired": true
+  }
+}
