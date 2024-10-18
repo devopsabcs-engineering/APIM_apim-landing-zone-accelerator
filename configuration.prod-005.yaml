@@ -224,6 +224,10 @@ products:
       state: "published"
       subscriptionRequired: true
       terms: "PROD: Read the legal fine print Weather-Terms!"
+policyFragments:
+  - name: SampleEmptyPolicyFragment
+    properties:
+      description: "Empty policy fragment (PROD)"
 workspaces:
   - name: WorkspaceApiTeam001
     properties:
