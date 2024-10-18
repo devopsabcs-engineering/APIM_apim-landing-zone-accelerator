@@ -1,0 +1,35 @@
+apiNames:
+  - demo-conference-api
+  - demo-conference-api-versioned
+  - demo-conference-api-versioned-v2
+  - echo-api
+  - ipersonprofileservice
+  - isoftwareversionservice
+  - movie-reviews
+  - weatherapi
+
+tagNames:
+  - WeatherForecast
+
+loggerNames:
+  - apimlogger
+  - azuremonitor
+
+namedValueNames:
+  - developerPortalUrl
+  - instrumentationKey
+  - mysecretvalue
+  - sqlDatabaseConnectionString
+  - weatherApiAudience
+
+productNames:
+  - conference
+  - graphql-product-dev
+  - productnosub
+  - starter
+  - unlimited
+  - weatherproduct
+
+backendNames:
+  - WebApp_app-weather-api-gyt73mi6rca7g
+

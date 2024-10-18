@@ -24,7 +24,9 @@ parameters:
     displayName: Optional configuration file
     values:
       - Extract All
-      - configuration.extractor-dev-005.yaml
+      - configuration.extractor.dev-005.yaml
+      - configuration.extractor.dev-005.api-team-001.yaml
+      - configuration.extractor.dev-005.api-team-002.yaml
   - name: API_SPECIFICATION_FORMAT
     type: string
     displayName: API Specification Format
