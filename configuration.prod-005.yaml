@@ -228,6 +228,13 @@ policyFragments:
   - name: SampleEmptyPolicyFragment
     properties:
       description: "Empty policy fragment (PROD)"
+tags:
+  - name: sampleapitag
+    properties:
+      displayName: sampleApiTagProd
+  - name: WeatherForecast
+    properties:
+      displayName: WeatherForecastProd
 workspaces:
   - name: WorkspaceApiTeam001
     properties:
