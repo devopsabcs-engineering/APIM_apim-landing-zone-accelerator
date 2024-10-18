@@ -13,15 +13,15 @@ namedValues:
   - name: testSecret
     properties:
       displayName: testSecret
-      value: "{#testSecretValue#}"
+      value: "{#testSecretValue#}" # this is a placeholder - will be replaced by the actual value in the publish pipeline replacetokens@3 task
   - name: helloworldfromfuncapp-key
     properties:
       displayName: helloworldfromfuncapp-key
-      value: "{#helloworldfromfuncappkey#}"
+      value: "{#helloworldfromfuncappkey#}" # this is a placeholder - will be replaced by the actual value in the publish pipeline replacetokens@3 task
   - name: 634e022983908257b35630b0
     properties:
       displayName: helloworldfromlogicapp_manual-invoke_634e022983908257b35630b0
-      value: "{#helloworldfromlogicapp#}"
+      value: "{#helloworldfromlogicapp#}" # this is a placeholder - will be replaced by the actual value in the publish pipeline replacetokens@3 task
   - name: weatherApiAudience
     properties:
       displayName: weatherApiAudience
