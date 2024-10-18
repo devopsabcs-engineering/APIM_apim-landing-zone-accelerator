@@ -210,10 +210,11 @@ products:
       name: soapproduct
       displayName: SOAP Product (PROD)
       description: SOAP product (PROD)
-      approvalRequired: false
+      #approvalRequired: false
       state: "published"
       subscriptionRequired: false
       terms: "PROD: Read the legal fine print SOAP-Terms!"
+      subscriptionsLimit: 0
   - name: weatherproduct
     properties:
       name: weatherproduct
