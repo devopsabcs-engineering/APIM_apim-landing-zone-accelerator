@@ -1,8 +1,0 @@
-{
-  "properties": {
-    "description": "app-weather-api-gyt73mi6rca7g",
-    "protocol": "http",
-    "resourceId": "https://management.azure.com/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-weather-appservice/providers/Microsoft.Web/sites/app-weather-api-gyt73mi6rca7g",
-    "url": "https://app-weather-api-gyt73mi6rca7g.azurewebsites.net"
-  }
-}
