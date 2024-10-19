@@ -1,0 +1,30 @@
+<policies>
+	<inbound>
+		<cors allow-credentials="true">
+			<allowed-origins>
+				<origin>{{apimDeveloperPortal}}</origin>
+				<origin>{{aadPrimaryStorageEndpoint-003}}</origin>
+				<origin>{{aadPrimaryStorageEndpoint-005}}</origin>
+				<origin>{{aadPrimaryStorageEndpoint-007}}</origin>
+				<origin>{{aadPrimaryStorageEndpoint-008}}</origin>
+				<origin>{{b2cPrimaryStorageEndpoint-010}}</origin>
+				<origin>{{b2cPrimaryStorageEndpoint-011}}</origin>
+				<origin>https://apim-xmjyxcbp4a5fo.developer.azure-api.net</origin>
+			</allowed-origins>
+			<allowed-methods preflight-result-max-age="300">
+				<method>*</method>
+			</allowed-methods>
+			<allowed-headers>
+				<header>*</header>
+			</allowed-headers>
+			<expose-headers>
+				<header>*</header>
+			</expose-headers>
+		</cors>
+	</inbound>
+	<backend>
+		<forward-request />
+	</backend>
+	<outbound />
+	<on-error />
+</policies>

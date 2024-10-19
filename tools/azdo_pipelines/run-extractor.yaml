@@ -14,12 +14,12 @@ parameters:
   - name: API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH
     type: string
     displayName: Folder where you want to extract the artifacts
-    default: "artifacts-dev-005" # CHANGE THIS TO YOUR FOLDER PATH
+    default: "artifacts.dev-005" # CHANGE THIS TO YOUR FOLDER PATH
     values:
-      - artifacts-dev-005
-      - artifacts-dev-005.api-team-001
-      - artifacts-dev-005.api-team-002
-      - artifacts-prod-005
+      - artifacts.dev-005
+      - artifacts.dev-005.api-team-001
+      - artifacts.dev-005.api-team-002
+      - artifacts.prod-005
   - name: TARGET_BRANCH_NAME
     type: string
     displayName: Target branch for pull request
