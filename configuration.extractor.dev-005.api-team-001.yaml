@@ -1,4 +1,4 @@
-# Note: With the introduction of workspaces we recommend using workspaces with APIOps when possible to limit what can be extracted whenever possible. 
+# Note: With the introduction of workspaces we recommend using workspaces with APIOps when possible to limit what can be extracted whenever possible.
 # More information about workspaces can be found here https://learn.microsoft.com/en-us/azure/api-management/workspaces-overview
 
 apiNames:
@@ -11,8 +11,9 @@ apiNames:
   #- movie-reviews
   #- weatherapi
 
-#tagNames:
-#  - WeatherForecast
+tagNames:
+  - sampleapitag
+  #- WeatherForecast
 
 loggerNames:
   - apimlogger
@@ -28,11 +29,10 @@ namedValueNames:
 productNames:
   - conference
   #- graphql-product-dev
-  #- productnosub
+  #- soapproduct
   - starter
   - unlimited
   #- weatherproduct
-
 #backendNames:
-#  - WebApp_app-weather-api-gyt73mi6rca7g
+#  - backend-weather-api
 
