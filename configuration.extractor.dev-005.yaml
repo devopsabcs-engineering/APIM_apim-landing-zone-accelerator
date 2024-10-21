@@ -36,3 +36,6 @@ productNames:
 
 backendNames:
   - backend-weather-api
+
+policyFragmentNames:
+  - SampleEmptyPolicyFragment

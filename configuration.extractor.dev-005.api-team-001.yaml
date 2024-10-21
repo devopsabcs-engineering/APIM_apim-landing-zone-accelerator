@@ -33,6 +33,10 @@ productNames:
   - starter
   - unlimited
   #- weatherproduct
-#backendNames:
-#  - backend-weather-api
 
+backendNames:
+  [ignore]
+  #- backend-weather-api
+
+policyFragmentNames:
+  - SampleEmptyPolicyFragment
