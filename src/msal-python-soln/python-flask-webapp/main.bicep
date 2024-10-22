@@ -7,11 +7,11 @@ param location string = resourceGroup().location
 @description('Name of key vault. It has to be unique.Type a name followed by your resource group name. (<name>-<resourceGroupName>)')
 param keyVaultName string = 'kv-${uniqueString(resourceGroup().id)}'
 
-@description('Python version to use for the app. Valid values are: 3.6, 3.7, 3.8, 3.9, 3.10, 3.11, 3.12')
+@description('Python version to use for the app. Valid values are: 3.9, 3.10, 3.11, 3.12')
 @allowed([
-  '3.6'
-  '3.7'
-  '3.8'
+  //'3.6'
+  //'3.7'
+  //'3.8'
   '3.9'
   '3.10'
   '3.11'
