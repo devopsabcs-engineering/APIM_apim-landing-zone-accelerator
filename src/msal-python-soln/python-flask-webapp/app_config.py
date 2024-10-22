@@ -42,6 +42,8 @@ SCOPE = ["User.Read"]
 
 # Tells the Flask-session extension to store sessions in the filesystem
 SESSION_TYPE = "filesystem"
+
+VERSION = "__VERSION__"  # The version of this sample, for troubleshooting purpose
 # In production, your setup may use multiple web servers behind a load balancer,
 # and the subsequent requests may not be routed to the same web server.
 # In that case, you may either use a centralized database-backed session store,

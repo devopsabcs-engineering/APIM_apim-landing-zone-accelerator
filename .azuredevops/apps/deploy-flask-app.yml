@@ -46,10 +46,46 @@ variables:
   - name: deploymentName
     value: "infra-deployment"
   - group: APIM_flask_app_vars
+  - name: appConfigFile
+    value: $(System.DefaultWorkingDirectory)/src/msal-python-soln/python-flask-webapp/app_config.py
 
 stages:
+  - stage: set_version
+    displayName: Set version and create tag
+    jobs:
+      - job: set_version
+        displayName: Set version
+        steps:
+          - checkout: self
+            persistCredentials: true
+            fetchDepth: 0
+          - task: gitversion/setup@3
+            enabled: true
+            displayName: "Install GitTools"
+            inputs:
+              versionSpec: "5.x"
+          - task: gitversion/execute@3
+            enabled: true
+            displayName: "Calculate SemVer"
+          - script: echo current version is $(GitVersion.SemVer)
+            displayName: "Display calculated version"
+          - task: CmdLine@2
+            enabled: true
+            displayName: Init git global config
+            inputs:
+              script: |
+                git config --global user.email $(Build.RequestedForEmail)
+                git config --global user.name $(Build.RequestedFor)
+          - task: CmdLine@2
+            enabled: true
+            displayName: Create Git tag for current version
+            inputs:
+              script: |
+                git tag -a $(GitVersion.SemVer) -m "Main version $(GitVersion.SemVer)"
+                git push origin $(GitVersion.SemVer)
   - stage: Build
     displayName: Build stage
+    dependsOn: set_version
     jobs:
       - job: BuildJob
         pool:
@@ -95,6 +131,26 @@ stages:
             deploy:
               steps:
                 - checkout: self
+                  persistCredentials: true
+                  fetchDepth: 0
+                - task: gitversion/setup@3
+                  enabled: true
+                  displayName: "Install GitTools"
+                  inputs:
+                    versionSpec: "5.x"
+                - task: gitversion/execute@3
+                  enabled: true
+                  displayName: "Calculate SemVer"
+                - script: echo current version is $(GitVersion.SemVer)
+                  displayName: "Display calculated version"
+                # run bash script to find and replace values in the app_config.py file
+                - bash: |
+                    # find and replace values in the app_config.py file
+                    # replace the value of '__VERSION__' with the value of the variable $(GitVersion.SemVer)
+                    echo "Replacing values in app_config.py file"
+                    echo "Replacing __VERSION__ with $(GitVersion.SemVer)"                   
+                    sed -i "s/__VERSION__/$(GitVersion.SemVer)/g" $(appConfigFile)
+                  displayName: "Find and replace values in app_config.py file"
                 - task: AzureCLI@2
                   inputs:
                     azureSubscription: $(azureServiceConnectionId)
