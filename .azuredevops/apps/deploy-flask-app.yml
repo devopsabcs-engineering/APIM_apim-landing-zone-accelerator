@@ -91,11 +91,30 @@ stages:
         pool:
           vmImage: $(vmImageName)
         steps:
+          - task: gitversion/setup@3
+            enabled: true
+            displayName: "Install GitTools"
+            inputs:
+              versionSpec: "5.x"
+          - task: gitversion/execute@3
+            enabled: true
+            displayName: "Calculate SemVer"
+          - script: echo current version is $(GitVersion.SemVer)
+            displayName: "Display calculated version"
+          # run bash script to find and replace values in the app_config.py file
+          - bash: |
+              # find and replace values in the app_config.py file
+              # replace the value of '__VERSION__' with the value of the variable $(GitVersion.SemVer)
+              echo "Replacing values in app_config.py file"
+              echo "Replacing __VERSION__ with $(GitVersion.SemVer)"
+              sed -i "s/__VERSION__/$(GitVersion.SemVer)/g" $(appConfigFile)
+              echo "display contents"
+              cat $(appConfigFile)
+            displayName: "Find and replace values in app_config.py file"
           - task: UsePythonVersion@0
             inputs:
               versionSpec: "$(pythonVersion)"
             displayName: "Use Python $(pythonVersion)"
-
           - script: |
               python -m venv antenv
               source antenv/bin/activate
@@ -133,24 +152,6 @@ stages:
                 - checkout: self
                   persistCredentials: true
                   fetchDepth: 0
-                - task: gitversion/setup@3
-                  enabled: true
-                  displayName: "Install GitTools"
-                  inputs:
-                    versionSpec: "5.x"
-                - task: gitversion/execute@3
-                  enabled: true
-                  displayName: "Calculate SemVer"
-                - script: echo current version is $(GitVersion.SemVer)
-                  displayName: "Display calculated version"
-                # run bash script to find and replace values in the app_config.py file
-                - bash: |
-                    # find and replace values in the app_config.py file
-                    # replace the value of '__VERSION__' with the value of the variable $(GitVersion.SemVer)
-                    echo "Replacing values in app_config.py file"
-                    echo "Replacing __VERSION__ with $(GitVersion.SemVer)"                   
-                    sed -i "s/__VERSION__/$(GitVersion.SemVer)/g" $(appConfigFile)
-                  displayName: "Find and replace values in app_config.py file"
                 - task: AzureCLI@2
                   displayName: "Deploy Infrastructure"
                   inputs:
@@ -184,7 +185,6 @@ stages:
                   inputs:
                     versionSpec: "$(pythonVersion)"
                   displayName: "Use Python version"
-
                 - task: AzureWebApp@1
                   displayName: "Deploy Azure Web App : app-flask-iru5pc6fcyhre"
                   inputs:
