@@ -5,6 +5,8 @@ from flask_session import Session
 
 import app_config
 
+from platform import python_version
+
 #__version__ = "1.2.3"  # The version of this sample, for troubleshooting purpose
 
 app = Flask(__name__)
@@ -12,6 +14,7 @@ app.config.from_object(app_config)
 assert app.config["REDIRECT_PATH"] != "/", "REDIRECT_PATH must not be /"
 # get the version from config
 __version__ = app.config.get("VERSION", "1.2.3")
+__python_version__ = python_version()
 Session(app)
 
 # This section is needed for url_for("foo", _external=True) to automatically
@@ -60,7 +63,7 @@ def index():
         return render_template('config_error.html')
     if not auth.get_user():
         return redirect(url_for("login"))
-    return render_template('index.html', user=auth.get_user(), version=__version__)
+    return render_template('index.html', user=auth.get_user(), version=__version__, pythonVersion=__python_version__)
 
 
 @app.route("/call_downstream_api")
