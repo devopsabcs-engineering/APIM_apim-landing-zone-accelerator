@@ -7,12 +7,25 @@ param location string = resourceGroup().location
 @description('Name of key vault. It has to be unique.Type a name followed by your resource group name. (<name>-<resourceGroupName>)')
 param keyVaultName string = 'kv-${uniqueString(resourceGroup().id)}'
 
+@description('Python version to use for the app. Valid values are: 3.6, 3.7, 3.8, 3.9, 3.10')
+@allowed([
+  '3.6'
+  '3.7'
+  '3.8'
+  '3.9'
+  '3.10'
+  '3.11'
+  '3.12'
+  '3.13'
+])
+param pythonVersion string = '3.9'
+
 var alwaysOn = false
 var sku = 'Free'
 var skuCode = 'F1'
 var workerSizeId = 0
 var numberOfWorkers = 1
-var linuxFxVersion = 'PYTHON|3.9'
+var linuxFxVersion = 'PYTHON|${pythonVersion}'
 var hostingPlanName = 'asp-${resourceGroup().name}'
 
 resource webApp 'Microsoft.Web/sites@2023-12-01' = {

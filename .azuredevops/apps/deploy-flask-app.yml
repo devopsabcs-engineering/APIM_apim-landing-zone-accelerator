@@ -165,7 +165,8 @@ stages:
                       az deployment group create --resource-group $(ResourceGroupName) \
                           --name $(deploymentName) \
                           --template-file $(templateFile) \
-                          --parameters secretValue=$(secretValue)
+                          --parameters secretValue=$(secretValue) \
+                          --parameters pythonVersion=$(pythonVersion)
   - stage: DeployWebApp
     displayName: "Deploy Web App"
     dependsOn: DeployInfra
