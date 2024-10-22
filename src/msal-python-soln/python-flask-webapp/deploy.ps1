@@ -1,3 +1,34 @@
+param (
+    [Parameter()]
+    [string] $ResourceGroupName = "rg-msal-python-soln",
+    [Parameter()]
+    [string] $Location = "canadacentral",
+    [Parameter()]
+    [string] $Subscription = "ME-MngEnvMCAP675646-emknafo-1",
+    [Parameter()]
+    [string] $templateFile = "main.bicep",
+    [Parameter()]
+    [string] $deploymentName = "msal-python-soln-deployment"
+)
+
 az login
-az account set --subscription "ME-MngEnvMCAP675646-emknafo-1"
-az webapp up --runtime PYTHON:3.9 --sku B1 --logs
+az account set --subscription $Subscription
+az group create --name $ResourceGroupName `
+    --location $Location
+
+# deploy infrastructure
+az deployment group create --resource-group "rg-msal-python-soln" `
+    --name $deploymentName `
+    --template-file $templateFile 
+
+# get webapp name
+$webappName = az deployment group show --resource-group "rg-msal-python-soln" `
+    --name $deploymentName --query properties.outputs.webAppName.value -o tsv
+
+# deploy webapp
+az webapp up --runtime PYTHON:3.9 `
+    --name $webappName --logs `
+    --resource-group $ResourceGroupName `
+    --location $Location `
+    --subscription $Subscription
+
