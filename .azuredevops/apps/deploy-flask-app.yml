@@ -91,6 +91,9 @@ stages:
         pool:
           vmImage: $(vmImageName)
         steps:
+          - checkout: self
+            persistCredentials: true
+            fetchDepth: 0
           - task: gitversion/setup@3
             enabled: true
             displayName: "Install GitTools"
@@ -123,7 +126,6 @@ stages:
               pip install -r requirements.txt
             workingDirectory: $(projectRoot)
             displayName: "Install requirements"
-
           - task: ArchiveFiles@2
             displayName: "Archive files"
             inputs:
@@ -132,7 +134,6 @@ stages:
               archiveType: zip
               archiveFile: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
               replaceExistingArchive: true
-
           - upload: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
             displayName: "Upload package"
             artifact: drop
