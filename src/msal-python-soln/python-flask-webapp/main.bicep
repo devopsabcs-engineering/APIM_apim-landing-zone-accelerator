@@ -38,7 +38,7 @@ resource webApp 'Microsoft.Web/sites@2023-12-01' = {
         }
         {
           name: 'AUTHORITY'
-          value: '${environment().authentication.loginEndpoint}/${tenant().tenantId}'
+          value: '${environment().authentication.loginEndpoint}${tenant().tenantId}'
         }
       ]
     }
