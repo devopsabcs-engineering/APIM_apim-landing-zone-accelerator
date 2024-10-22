@@ -17,21 +17,35 @@ trigger:
 
 variables:
   # Azure Resource Manager connection created during pipeline creation
-  azureServiceConnectionId: "fe55e4ed-12be-41f8-87eb-5d661b8b8e83"
-
+  - name: azureServiceConnectionId
+    value: "fe55e4ed-12be-41f8-87eb-5d661b8b8e83"
   # Web app name
-  webAppName: "app-flask-iru5pc6fcyhre"
-
+  - name: webAppName
+    value: "app-flask-iru5pc6fcyhre"
   # Agent VM image name
-  vmImageName: "ubuntu-latest"
-
+  - name: vmImageName
+    value: "ubuntu-latest"
   # Environment name
-  environmentName: "APIM_app-flask-iru5pc6fcyhre"
-
+  - name: environmentName
+    value: "APIM_app-flask-iru5pc6fcyhre"
+  # Environment name for infra
+  - name: environmentNameInfra
+    value: "APIM_app-flask-iru5pc6fcyhre_Infra"
   # Project root folder. Point to the folder containing manage.py file.
-  projectRoot: $(System.DefaultWorkingDirectory)/src/msal-python-soln/python-flask-webapp
-
-  pythonVersion: "3.9"
+  - name: projectRoot
+    value: $(System.DefaultWorkingDirectory)/src/msal-python-soln/python-flask-webapp
+  # Location of the main.bicep file
+  - name: templateFile
+    value: $(System.DefaultWorkingDirectory)/src/msal-python-soln/python-flask-webapp/main.bicep
+  - name: pythonVersion
+    value: "3.9"
+  - name: ResourceGroupName
+    value: "rg-msal-python-soln"
+  - name: Location
+    value: "canadacentral"
+  - name: deploymentName
+    value: "infra-deployment"
+  - group: APIM_flask_app_vars
 
 stages:
   - stage: Build
@@ -67,10 +81,38 @@ stages:
           - upload: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
             displayName: "Upload package"
             artifact: drop
-
-  - stage: Deploy
-    displayName: "Deploy Web App"
+  - stage: deployInfra
+    displayName: "Deploy Infra"
     dependsOn: Build
+    condition: succeeded()
+    jobs:
+      - deployment: DeploymentJob
+        pool:
+          vmImage: $(vmImageName)
+        environment: $(environmentNameInfra)
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - task: AzureCLI@2
+                  inputs:
+                    azureSubscription: $(azureServiceConnectionId)
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      az group create --name $(ResourceGroupName) \
+                          --location $(Location)
+
+                      # deploy infrastructure
+                      az deployment group create --resource-group $(ResourceGroupName) \
+                          --name $(deploymentName) \
+                          --template-file $(templateFile) \
+                          --parameters secretValue=$(secretValue)
+                    displayName: "Build Bicep"
+  - stage: DeployWebApp
+    displayName: "Deploy Web App"
+    dependsOn: DeployInfra
     condition: succeeded()
     jobs:
       - deployment: DeploymentJob

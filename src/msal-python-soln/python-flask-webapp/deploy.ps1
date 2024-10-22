@@ -8,7 +8,9 @@ param (
     [Parameter()]
     [string] $templateFile = "main.bicep",
     [Parameter()]
-    [string] $deploymentName = "msal-python-soln-deployment"
+    [string] $deploymentName = "msal-python-soln-deployment",
+    [Parameter()]
+    [string] $secretValue = "bla***************"
 )
 
 az login
@@ -19,7 +21,8 @@ az group create --name $ResourceGroupName `
 # deploy infrastructure
 az deployment group create --resource-group "rg-msal-python-soln" `
     --name $deploymentName `
-    --template-file $templateFile 
+    --template-file $templateFile `
+    --parameters secretValue=$secretValue
 
 # get webapp name
 $webappName = az deployment group show --resource-group "rg-msal-python-soln" `
@@ -33,6 +36,7 @@ if ($deployWebApp) {
         --resource-group $ResourceGroupName `
         --location $Location `
         --subscription $Subscription
+        
 }
 else {
     Write-Output "Skipping webapp deployment"
