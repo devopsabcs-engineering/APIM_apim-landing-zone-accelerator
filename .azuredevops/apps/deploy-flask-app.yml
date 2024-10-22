@@ -1,10 +1,19 @@
-# Python to Linux Web App on Azure
-# Build your Python project and deploy it to Azure as a Linux Web App.
-# Change python version to one thats appropriate for your application.
-# https://docs.microsoft.com/azure/devops/pipelines/languages/python
-
 trigger:
-  - main
+  batch: true
+  branches:
+    include:
+      - main
+    exclude:
+      - features/experimental/*
+  paths:
+    exclude:
+      - README.md
+    include:
+      - src/msal-python-soln/python-flask-webapp/*
+      # include pipeline file
+      - .azuredevops/apps/deploy-flask-app.yml
+      # include infra files
+      - src/msal-python-soln/python-flask-webapp/main.bicep
 
 variables:
   # Azure Resource Manager connection created during pipeline creation
