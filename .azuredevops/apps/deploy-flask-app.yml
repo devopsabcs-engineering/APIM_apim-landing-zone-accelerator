@@ -17,7 +17,7 @@ variables:
   vmImageName: "ubuntu-latest"
 
   # Environment name
-  environmentName: "app-flask-iru5pc6fcyhre"
+  environmentName: "APIM_app-flask-iru5pc6fcyhre"
 
   # Project root folder. Point to the folder containing manage.py file.
   projectRoot: $(System.DefaultWorkingDirectory)/src/msal-python-soln/python-flask-webapp
