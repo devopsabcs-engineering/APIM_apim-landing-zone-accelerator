@@ -19,6 +19,28 @@ resource webApp 'Microsoft.Web/sites@2023-12-01' = {
     siteConfig: {
       linuxFxVersion: linuxFxVersion
       alwaysOn: alwaysOn
+      appSettings: [
+        {
+          name: 'SCM_DO_BUILD_DURING_DEPLOYMENT'
+          value: 'true'
+        }
+        {
+          name: 'WEBSITE_HTTPLOGGING_RETENTION_DAYS'
+          value: '3'
+        }
+        {
+          name: 'CLIENT_ID'
+          value: '239749a9-dccf-4e6b-b13c-ed390b53cc9b'
+        }
+        {
+          name: 'CLIENT_SECRET'
+          value: 'y2Z8Q~lUmZ_EnoEFZ6Mn~Peso~WZEPiUHvpydbdU'
+        }
+        {
+          name: 'AUTHORITY'
+          value: '${environment().authentication.loginEndpoint}/${tenant().tenantId}'
+        }
+      ]
     }
     serverFarmId: hostingPlan.id
     clientAffinityEnabled: false

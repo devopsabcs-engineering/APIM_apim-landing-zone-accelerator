@@ -26,9 +26,15 @@ $webappName = az deployment group show --resource-group "rg-msal-python-soln" `
     --name $deploymentName --query properties.outputs.webAppName.value -o tsv
 
 # deploy webapp
-az webapp up --runtime PYTHON:3.9 `
-    --name $webappName --logs `
-    --resource-group $ResourceGroupName `
-    --location $Location `
-    --subscription $Subscription
+$deployWebApp = $false
+if ($deployWebApp) {
+    az webapp up --runtime PYTHON:3.9 `
+        --name $webappName --logs `
+        --resource-group $ResourceGroupName `
+        --location $Location `
+        --subscription $Subscription
+}
+else {
+    Write-Output "Skipping webapp deployment"
+}
 
