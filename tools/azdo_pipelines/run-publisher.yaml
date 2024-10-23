@@ -1,14 +1,15 @@
-trigger:
-  branches:
-    include:
-      - main
-  paths:
-    exclude:
-      - tools/*
-      - .azuredevops/*
-      - reference-implementations/*
-      - src/*
-      - infra/*
+trigger: none
+# trigger:
+#   branches:
+#     include:
+#       - main
+#   paths:
+#     exclude:
+#       - tools/*
+#       - .azuredevops/*
+#       - reference-implementations/*
+#       - src/*
+#       - infra/*
 
 parameters:
   - name: API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH

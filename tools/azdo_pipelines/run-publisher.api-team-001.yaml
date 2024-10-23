@@ -3,6 +3,8 @@ trigger:
     include:
       - main
   paths:
+    include:
+      - artifacts.dev-005.api-team-001/*
     exclude:
       - tools/*
       - .azuredevops/*
