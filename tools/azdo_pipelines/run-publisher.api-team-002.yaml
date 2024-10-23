@@ -16,7 +16,7 @@ parameters:
   - name: API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH
     type: string
     displayName: Folder where the artifacts reside (no clobbering will occur)
-    default: "artifacts.dev-005" # CHANGE THIS TO THE FOLDER NAME WHERE THE ARTIFACTS RESIDE
+    default: "artifacts.dev-005.api-team-002" # CHANGE THIS TO THE FOLDER NAME WHERE THE ARTIFACTS RESIDE
     values:
       #- artifacts.dev-005
       #- artifacts.dev-005.api-team-001
