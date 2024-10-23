@@ -21,8 +21,8 @@ param keyVaultName string = 'kv-${uniqueString(resourceGroup().id)}'
 param pythonVersion string = '3.9'
 
 var alwaysOn = false
-var sku = 'Free'
-var skuCode = 'F1'
+var sku = 'Basic' // 'Free'
+var skuCode = 'B1' // 'F1'
 var workerSizeId = 0
 var numberOfWorkers = 1
 var linuxFxVersion = 'PYTHON|${pythonVersion}'

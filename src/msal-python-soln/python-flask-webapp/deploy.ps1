@@ -10,8 +10,16 @@ param (
     [Parameter()]
     [string] $deploymentName = "msal-python-soln-deployment",
     [Parameter()]
-    [string] $secretValue = "bla***************"
+    [string] $secretValue
 )
+
+# if secret value is not provided, get it from environment variable CLIENT_SECRET_FLASK_APP
+if (-not $secretValue) {
+    $secretValue = $env:CLIENT_SECRET_FLASK_APP
+}
+else {
+    Write-Host "Secret value provided"
+}
 
 az login
 az account set --subscription $Subscription

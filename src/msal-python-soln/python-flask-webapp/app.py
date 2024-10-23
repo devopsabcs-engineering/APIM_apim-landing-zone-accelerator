@@ -77,7 +77,7 @@ def call_downstream_api():
         headers={'Authorization': 'Bearer ' + token['access_token']},
         timeout=30,
     ).json()
-    return render_template('display.html', result=api_result)
+    return render_template('display.html', result=api_result, bearerToken=token['access_token'])
 
 
 if __name__ == "__main__":
