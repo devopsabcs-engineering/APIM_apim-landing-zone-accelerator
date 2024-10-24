@@ -4,6 +4,8 @@ param (
     [string]$location = "eastus2"
 )
 
+az login
+
 $deploymentName = "infra-deployment"
 az group create --name $resourceGroupName `
     --location $location

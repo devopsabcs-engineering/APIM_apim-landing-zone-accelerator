@@ -20,8 +20,8 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2023-12-01' = {
     reserved: true
   }
   sku: {
-    name: 'F1'
-    tier: 'Free'
+    name: 'B1' // 'F1'
+    tier: 'Basic' // 'Free'
   }
   kind: 'linux'
 }
@@ -67,6 +67,20 @@ resource appService 'Microsoft.Web/sites@2023-12-01' = {
           value: appInsights.properties.ConnectionString
         }
       ]
+    }
+    httpsOnly: true
+  }
+
+  //enable basic auth for the app
+  identity: {
+    type: 'SystemAssigned'
+  }
+
+  resource scm 'basicPublishingCredentialsPolicies@2023-12-01' = {
+    name: 'scm'
+    properties: {
+      //enable basic auth for the app
+      allow: true
     }
   }
 }

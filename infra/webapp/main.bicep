@@ -3,7 +3,7 @@
 param appName string = 'app-${baseName}-${uniqueString(resourceGroup().id)}'
 
 @description('The SKU of App Service Plan ')
-param sku string = 'F1' // 'S1'
+param sku string = 'B1' // 'F1' // 'S1'
 
 @description('The Runtime stack of current web app')
 param linuxFxVersion string = 'DOTNETCORE|8.0' // 'php|7.4'
