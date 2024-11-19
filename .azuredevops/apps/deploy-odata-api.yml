@@ -192,7 +192,7 @@ stages:
     jobs:
       - deployment: deploy
         displayName: Deploy Infra job
-        environment: ${{ parameters.environmentNameInfra }}
+        environment: ${{ variables.environmentNameInfra }}
         strategy:
           runOnce:
             deploy:
@@ -221,7 +221,7 @@ stages:
     jobs:
       - deployment: Deploy
         displayName: Deploy App job
-        environment: ${{ parameters.environmentNameApp }}
+        environment: ${{ variables.environmentNameApp }}
         strategy:
           runOnce:
             deploy:
