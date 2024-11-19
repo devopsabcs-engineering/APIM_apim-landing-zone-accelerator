@@ -27,15 +27,18 @@ parameters:
   - name: deployInfra
     type: boolean
     default: true
-  - name: environmentNameInfra
+  - name: instanceNumber
     type: string
-    default: "APIM_Odata_Api_infra_production_002"
-  - name: environmentNameApp
-    type: string
-    default: "APIM_Odata_Api_app_production_002"
-  - name: resourceGroupName
-    type: string
-    default: "rg-odata-appservice-linux-002"
+    default: 002
+  # - name: environmentNameInfra
+  #   type: string
+  #   default: "APIM_Odata_Api_infra_production_002"
+  # - name: environmentNameApp
+  #   type: string
+  #   default: "APIM_Odata_Api_app_production_002"
+  # - name: resourceGroupName
+  #   type: string
+  #   default: "rg-odata-appservice-linux-002"
 
 variables:
   - name: solution
@@ -55,7 +58,7 @@ variables:
   #- name: appName
   #  value: app-soap-api-l6isc4zatv5ny
   - name: resourceGroupName
-    value: ${{ parameters.resourceGroupName }}
+    value: rg-odata-appservice-linux-${{ parameters.instanceNumber }}
   - name: location
     value: eastus2
   - name: deploymentName
@@ -64,10 +67,16 @@ variables:
     value: $(System.DefaultWorkingDirectory)/infra/appservice/main.bicep
   - name: baseName
     value: odata-api
+  - name: imageName
+    value: odataapi
   - name: deployInfra
     value: ${{ parameters.deployInfra }}
   - name: workingDirectory
     value: "$(System.DefaultWorkingDirectory)/src/OdataAppSoln/OdataApp"
+  - name: environmentNameInfra
+    value: APIM_Odata_Api_infra_production_${{ parameters.instanceNumber }}
+  - name: environmentNameApp
+    value: APIM_Odata_Api_app_production_${{ parameters.instanceNumber }}
 
 stages:
   - stage: set_version
