@@ -73,8 +73,10 @@ variables:
     value: ${{ parameters.deployInfra }}
   - name: workingDirectory
     value: "$(System.DefaultWorkingDirectory)/src/OdataAppSoln/OdataApp"
-  - name: workingDirectoryDocker
+  - name: workingDirectoryDockerContext
     value: "$(System.DefaultWorkingDirectory)/src/OdataAppSoln"
+  - name: dockerfilePath
+    value: "$(System.DefaultWorkingDirectory)/src/OdataAppSoln/OdataApp/Dockerfile"
   - name: environmentNameInfra
     value: APIM_Odata_Api_infra_production_${{ parameters.instanceNumber }}
   - name: environmentNameApp
@@ -253,10 +255,10 @@ stages:
               scriptLocation: "inlineScript"
               inlineScript: |
                 echo "Building and pushing image to container registry"                
-                az acr build --registry $(get_container_registry.containerRegistry) --image $(imageName):$(Build.BuildId) .
+                az acr build --registry $(get_container_registry.containerRegistry) --image $(imageName):$(Build.BuildId) $(dockerfilePath)
                 # push latest tag
-                az acr build --registry $(get_container_registry.containerRegistry) --image $(imageName):latest .
-              workingDirectory: "$(workingDirectoryDocker)"
+                az acr build --registry $(get_container_registry.containerRegistry) --image $(imageName):latest $(dockerfilePath)
+              workingDirectory: "$(workingDirectoryDockerContext)"
   - stage: Deploy
     displayName: Deploy App
     dependsOn: BuildAndPush
