@@ -66,6 +66,22 @@ resource appService 'Microsoft.Web/sites@2023-12-01' = {
           name: 'ApplicationInsights__ConnectionString'
           value: appInsights.properties.ConnectionString
         }
+        {
+          name: 'DOCKER_ENABLE_CI'
+          value: 'true'
+        }
+        {
+          name: 'DOCKER_REGISTRY_SERVER_URL'
+          value: containerRegistry.properties.loginServer
+        }
+        {
+          name: 'DOCKER_REGISTRY_SERVER_USERNAME'
+          value: containerRegistry.listCredentials().username
+        }
+        {
+          name: 'DOCKER_REGISTRY_SERVER_PASSWORD'
+          value: containerRegistry.listCredentials().passwords[0].value
+        }
       ]
     }
     httpsOnly: true
