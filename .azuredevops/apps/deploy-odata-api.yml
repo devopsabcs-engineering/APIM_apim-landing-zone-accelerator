@@ -39,7 +39,7 @@ parameters:
 
 variables:
   - name: solution
-    value: "$(System.DefaultWorkingDirectory)/src/OdataAppSoln/OdataApp.sln"
+    value: "$(System.DefaultWorkingDirectory)/src/OdataAppSoln/OdataAppSoln.sln"
   - name: buildPlatform
     value: "Any CPU"
   - name: buildConfiguration
