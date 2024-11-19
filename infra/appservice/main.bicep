@@ -120,3 +120,4 @@ output appServiceId string = appService.id
 output appInsightsId string = appInsights.id
 output containerRegistryId string = containerRegistry.id
 output appName string = appService.name
+output containerRegistryName string = containerRegistry.name

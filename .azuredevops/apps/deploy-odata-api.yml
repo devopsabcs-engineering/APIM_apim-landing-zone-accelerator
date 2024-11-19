@@ -214,10 +214,35 @@ stages:
                           --resource-group $(resourceGroupName) \
                           --template-file $(templateFile) \
                           --parameters baseName=$(baseName) \
-                          --parameters imageName=$imageName
+                          --parameters imageName=$(imageName)
+  - stage: BuildAndPush
+    displayName: Build and push stage
+    dependsOn: deployInfra
+    jobs:
+      - job: BuildImage
+        displayName: Build and push an image to container registry
+        steps:
+          # get container registry from azure deployment
+          - script: |
+              echo "##vso[task.setvariable variable=containerRegistry;isOutput=true]$(az deployment group show --name $(deploymentName) --resource-group $(resourceGroupName) --query properties.outputs.containerRegistryName.value -o tsv)"
+            name: get_container_registry
+          # echo container registry
+          - script: echo $(get_container_registry.containerRegistry)
+            displayName: "Container Registry"
+          - task: Docker@2
+            displayName: Build and push an image to container registry
+            inputs:
+              containerRegistry: "$(get_container_registry.containerRegistry)"
+              repository: "$(imageRepository)"
+              command: "buildAndPush"
+              Dockerfile: "$(dockerfilePath)"
+              buildContext: $(buildContext)
+              tags: |
+                $(tag)
+                latest
   - stage: Deploy
     displayName: Deploy App
-    dependsOn: deployInfra
+    dependsOn: BuildAndPush
     jobs:
       - deployment: Deploy
         displayName: Deploy App job
@@ -237,5 +262,5 @@ stages:
                   inputs:
                     azureSubscription: "$(azureSubscription)"
                     appType: "webAppLinux"
-                    appName: "$(appName)"
+                    appName: "$(get_app_name.appName)"
                     package: "$(Pipeline.Workspace)/$(artifactName)/$(websitePackageName)"
