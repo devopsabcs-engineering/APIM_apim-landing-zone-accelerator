@@ -241,7 +241,7 @@ stages:
                 az acr build --registry $(get_container_registry.containerRegistry) --image $(imageName):$(Build.BuildId) .
                 # push latest tag
                 az acr build --registry $(get_container_registry.containerRegistry) --image $(imageName):latest .
-            workingDirectory: "$(workingDirectory)"
+              workingDirectory: "$(workingDirectory)"
   - stage: Deploy
     displayName: Deploy App
     dependsOn: BuildAndPush
