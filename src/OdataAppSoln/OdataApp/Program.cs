@@ -19,6 +19,9 @@ namespace OdataApp
                     "odata",
                     modelBuilder.GetEdmModel()));
 
+            // add application insights telemetry
+            builder.Services.AddApplicationInsightsTelemetry();
+
             var app = builder.Build();
 
             app.UseRouting();

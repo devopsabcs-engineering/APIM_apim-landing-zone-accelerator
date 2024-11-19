@@ -24,15 +24,24 @@
                     }))
             }));
 
+        private readonly ILogger<CustomersController> _logger;
+
+        public CustomersController(ILogger<CustomersController> logger)
+        {
+            _logger = logger;
+        }
+
         [EnableQuery]
         public ActionResult<IEnumerable<Customer>> Get()
         {
+            _logger.LogInformation("Getting customers");
             return Ok(customers);
         }
 
         [EnableQuery]
         public ActionResult<Customer> Get([FromRoute] int key)
         {
+            _logger.LogInformation("Getting customer {key}", key);
             var item = customers.SingleOrDefault(d => d.Id.Equals(key));
 
             if (item == null)
