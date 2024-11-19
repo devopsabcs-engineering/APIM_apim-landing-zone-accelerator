@@ -232,7 +232,7 @@ stages:
               inlineScript: |
                 echo "Getting container registry"
                 echo "##vso[task.setvariable variable=containerRegistry;isOutput=true]$(az deployment group show --name $(deploymentName) --resource-group $(resourceGroupName) --query properties.outputs.containerRegistryName.value -o tsv)"
-            workingDirectory: "$(workingDirectory)"
+              workingDirectory: "$(workingDirectory)"
           # echo container registry
           - script: echo $(get_container_registry.containerRegistry)
             displayName: "Container Registry"
