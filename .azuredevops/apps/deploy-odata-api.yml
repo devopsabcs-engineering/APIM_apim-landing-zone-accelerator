@@ -255,10 +255,10 @@ stages:
               scriptLocation: "inlineScript"
               inlineScript: |
                 echo "Building and pushing image to container registry"                
-                az acr build --registry $(get_container_registry.containerRegistry) --image $(imageName):$(Build.BuildId) $(dockerfilePath)
+                az acr build --registry $(get_container_registry.containerRegistry) --image $(imageName):$(Build.BuildId) --file $(dockerfilePath) $(workingDirectoryDockerContext)
                 # push latest tag
-                az acr build --registry $(get_container_registry.containerRegistry) --image $(imageName):latest $(dockerfilePath)
-              workingDirectory: "$(workingDirectoryDockerContext)"
+                az acr build --registry $(get_container_registry.containerRegistry) --image $(imageName):latest --file $(dockerfilePath) $(workingDirectoryDockerContext)
+              #workingDirectory: "$(workingDirectoryDockerContext)"
   - stage: Deploy
     displayName: Deploy App
     dependsOn: BuildAndPush
