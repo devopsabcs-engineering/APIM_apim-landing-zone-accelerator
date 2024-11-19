@@ -1,6 +1,6 @@
 # deploy infrastructure via bicep
 param (
-    [string]$resourceGroupName = "rg-odata-appservice-001",
+    [string]$resourceGroupName = "rg-odata-appservice-002",
     [string]$location = "eastus2",
     [string]$baseName = "odata-api",
     [string]$imageName = "odataapi",
