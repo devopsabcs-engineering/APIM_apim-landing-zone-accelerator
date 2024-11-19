@@ -229,17 +229,19 @@ stages:
           # echo container registry
           - script: echo $(get_container_registry.containerRegistry)
             displayName: "Container Registry"
-          - task: Docker@2
-            displayName: Build and push an image to container registry
+          # build and push image to container registry via azure cli
+          - task: AzureCLI@2
+            displayName: "Azure CLI Login $(azureSubscription) - Build and push image"
             inputs:
-              containerRegistry: "$(get_container_registry.containerRegistry)"
-              repository: "$(imageRepository)"
-              command: "buildAndPush"
-              Dockerfile: "$(dockerfilePath)"
-              buildContext: $(buildContext)
-              tags: |
-                $(tag)
-                latest
+              azureSubscription: "$(azureSubscription)"
+              scriptType: "bash"
+              scriptLocation: "inlineScript"
+              inlineScript: |
+                echo "Building and pushing image to container registry"                
+                az acr build --registry $(get_container_registry.containerRegistry) --image $(imageName):$(Build.BuildId) .
+                # push latest tag
+                az acr build --registry $(get_container_registry.containerRegistry) --image $(imageName):latest .
+            workingDirectory: "$(workingDirectory)"
   - stage: Deploy
     displayName: Deploy App
     dependsOn: BuildAndPush
