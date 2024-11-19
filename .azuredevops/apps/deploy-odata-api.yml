@@ -225,6 +225,7 @@ stages:
           # get container registry from azure deployment with azure cli
           - task: AzureCLI@2
             displayName: "Azure CLI Login $(azureSubscription) - get_container_registry"
+            name: get_container_registry
             inputs:
               azureSubscription: "$(azureSubscription)"
               scriptType: "bash"
@@ -268,13 +269,19 @@ stages:
                 # get app name from azure deployment with azure cli
                 - task: AzureCLI@2
                   displayName: "Azure CLI Login $(azureSubscription) - get_app_name"
+                  name: get_app_name
                   inputs:
                     azureSubscription: "$(azureSubscription)"
                     scriptType: "bash"
                     scriptLocation: "inlineScript"
                     inlineScript: |
                       echo "Getting app name"
-                      echo "##vso[task.setvariable variable=appName;isOutput=true]$(az deployment group show --name $(deploymentName) --resource-group $(resourceGroupName) --query properties.outputs.appName.value -o tsv)"
+                      $appName = az deployment group show --name $(deploymentName) \
+                        --resource-group $(resourceGroupName) \
+                        --query properties.outputs.webAppName.value \
+                        -o tsv
+                      echo "App Name: $appName"
+                      echo "##vso[task.setvariable variable=appName;isOutput=true]$appName"
                 # echo app name
                 - script: echo $(get_app_name.appName)
                   displayName: "App Name"
