@@ -3,10 +3,10 @@ param (
     [string]$resourceGroupName = "rg-odata-appservice-001",
     [string]$location = "eastus2",
     [string]$baseName = "odata-api",
-    [string]$imageName = "odataapi"
+    [string]$imageName = "odataapi",
+    $deploymentName = "infra-deployment"
 )
 
-$deploymentName = "infra-deployment"
 Write-Output "Deploying infrastructure for $baseName in $location"
 az group create --name $resourceGroupName `
     --location $location

@@ -232,10 +232,10 @@ stages:
               scriptLocation: "inlineScript"
               inlineScript: |
                 echo "Getting container registry"
-                $containerRegistryName = az deployment group show --name $(deploymentName) \
+                containerRegistryName=$(az deployment group show --name $(deploymentName) \
                   --resource-group $(resourceGroupName) \
                   --query properties.outputs.containerRegistryName.value \
-                  -o tsv
+                  -o tsv)
                 echo "Container Registry: $containerRegistryName"
                 echo "##vso[task.setvariable variable=containerRegistry;isOutput=true]$containerRegistryName"
               workingDirectory: "$(workingDirectory)"
@@ -276,10 +276,10 @@ stages:
                     scriptLocation: "inlineScript"
                     inlineScript: |
                       echo "Getting app name"
-                      $appName = az deployment group show --name $(deploymentName) \
+                      appName=$(az deployment group show --name $(deploymentName) \
                         --resource-group $(resourceGroupName) \
                         --query properties.outputs.webAppName.value \
-                        -o tsv
+                        -o tsv)
                       echo "App Name: $appName"
                       echo "##vso[task.setvariable variable=appName;isOutput=true]$appName"
                 # echo app name
