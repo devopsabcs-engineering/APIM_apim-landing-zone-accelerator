@@ -73,6 +73,8 @@ variables:
     value: ${{ parameters.deployInfra }}
   - name: workingDirectory
     value: "$(System.DefaultWorkingDirectory)/src/OdataAppSoln/OdataApp"
+  - name: workingDirectoryDocker
+    value: "$(System.DefaultWorkingDirectory)/src/OdataAppSoln"
   - name: environmentNameInfra
     value: APIM_Odata_Api_infra_production_${{ parameters.instanceNumber }}
   - name: environmentNameApp
@@ -254,7 +256,7 @@ stages:
                 az acr build --registry $(get_container_registry.containerRegistry) --image $(imageName):$(Build.BuildId) .
                 # push latest tag
                 az acr build --registry $(get_container_registry.containerRegistry) --image $(imageName):latest .
-              workingDirectory: "$(workingDirectory)"
+              workingDirectory: "$(workingDirectoryDocker)"
   - stage: Deploy
     displayName: Deploy App
     dependsOn: BuildAndPush
