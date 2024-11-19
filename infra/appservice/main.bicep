@@ -119,3 +119,4 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-11-01-pr
 output appServiceId string = appService.id
 output appInsightsId string = appInsights.id
 output containerRegistryId string = containerRegistry.id
+output appName string = appService.name

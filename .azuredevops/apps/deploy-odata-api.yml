@@ -1,0 +1,232 @@
+# trigger:
+#   - none
+
+trigger:
+  batch: true
+  branches:
+    include:
+      - main
+    exclude:
+      - features/experimental/*
+  paths:
+    exclude:
+      - README.md
+    include:
+      - src/OdataAppSoln/*
+      - src/OdataAppSoln/OdataApp/*
+      - src/OdataAppSoln/OdataApp/Dockerfile
+      # include pipeline file
+      - .azuredevops/apps/deploy-odata-api.yml
+      # include infra files
+      - infra/appservice/main.bicep
+
+pool:
+  vmImage: "ubuntu-latest"
+
+parameters:
+  - name: deployInfra
+    type: boolean
+    default: true
+  - name: environmentNameInfra
+    type: string
+    default: "APIM_Odata_Api_infra_production_002"
+  - name: environmentNameApp
+    type: string
+    default: "APIM_Odata_Api_app_production_002"
+  - name: resourceGroupName
+    type: string
+    default: "rg-odata-appservice-linux-002"
+
+variables:
+  - name: solution
+    value: "$(System.DefaultWorkingDirectory)/src/OdataAppSoln/OdataApp.sln"
+  - name: buildPlatform
+    value: "Any CPU"
+  - name: buildConfiguration
+    value: "Release"
+  #- name: testProject
+  #  value: "$(System.DefaultWorkingDirectory)/src/soap-service-dotnetcore-example/AddressBook.Service.SOAP.IntegrationTests/AddressBook.Service.SOAP.IntegrationTests.csproj"
+  - name: artifactName
+    value: "myWebsites"
+  - name: azureSubscription
+    value: APIM_MicrosoftAzureExternal_multitenant
+  - name: websitePackageName
+    value: OdataApp.zip
+  #- name: appName
+  #  value: app-soap-api-l6isc4zatv5ny
+  - name: resourceGroupName
+    value: ${{ parameters.resourceGroupName }}
+  - name: location
+    value: eastus2
+  - name: deploymentName
+    value: infra-deployment
+  - name: templateFile
+    value: $(System.DefaultWorkingDirectory)/infra/appservice/main.bicep
+  - name: baseName
+    value: odata-api
+  - name: deployInfra
+    value: ${{ parameters.deployInfra }}
+  - name: workingDirectory
+    value: "$(System.DefaultWorkingDirectory)/src/OdataAppSoln/OdataApp"
+
+stages:
+  - stage: set_version
+    displayName: Set version and create tag
+    jobs:
+      - job: set_version
+        displayName: Set version
+        steps:
+          - checkout: self
+            persistCredentials: true
+            fetchDepth: 0
+          - task: gitversion/setup@3
+            enabled: true
+            displayName: "Install GitTools"
+            inputs:
+              versionSpec: "5.x"
+          - task: gitversion/execute@3
+            enabled: true
+            displayName: "Calculate SemVer"
+          - script: echo current version is $(GitVersion.SemVer)
+            displayName: "Display calculated version"
+          - task: CmdLine@2
+            enabled: true
+            displayName: Init git global config
+            inputs:
+              script: |
+                git config --global user.email $(Build.RequestedForEmail)
+                git config --global user.name $(Build.RequestedFor)
+          - task: CmdLine@2
+            enabled: true
+            displayName: Create Git tag for current version
+            inputs:
+              script: |
+                git tag -a $(GitVersion.SemVer) -m "Main version $(GitVersion.SemVer)"
+                git push origin $(GitVersion.SemVer)
+  - stage: build
+    displayName: Build
+    dependsOn: set_version
+    jobs:
+      - job: Build
+        displayName: Build
+        steps:
+          - checkout: self
+            persistCredentials: true
+            fetchDepth: 0
+          - task: gitversion/setup@3
+            enabled: true
+            displayName: "Install GitTools"
+            inputs:
+              versionSpec: "5.x"
+          - task: gitversion/execute@3
+            enabled: true
+            displayName: "Calculate SemVer"
+          - script: echo current version is $(GitVersion.SemVer)
+            displayName: "Display calculated version"
+          - task: UseDotNet@2
+            displayName: "Install .NET Core SDK"
+            inputs:
+              version: 8.x
+              performMultiLevelLookup: true
+              includePreviewVersions: true # Required for preview versions
+          - task: DotNetCoreCLI@2
+            enabled: false
+            displayName: "Restore NuGet packages"
+            inputs:
+              command: "restore"
+              projects: "$(Solution)"
+              feedsToUse: "config"
+          - task: DotNetCoreCLI@2
+            inputs:
+              command: "build"
+              projects: "$(Solution)"
+              arguments: "--configuration $(buildConfiguration)"
+            displayName: "dotnet build $(buildConfiguration)"
+          - task: DotNetCoreCLI@2
+            enabled: false
+            inputs:
+              command: test
+              projects: $(testProject)
+              arguments: "--configuration $(buildConfiguration)"
+            displayName: "dotnet test $(buildConfiguration)"
+          - script: dotnet test $(testProject) --logger trx
+            enabled: false
+          - task: PublishTestResults@2
+            condition: succeededOrFailed()
+            enabled: false
+            inputs:
+              testRunner: VSTest
+              testResultsFiles: "**/*.trx"
+          - script: dotnet test $(testProject) --logger trx --collect "Code coverage"
+            enabled: false
+          - task: PublishTestResults@2
+            enabled: false
+            inputs:
+              testRunner: VSTest
+              testResultsFiles: "**/*.trx"
+              mergeTestResults: true
+          - task: DotNetCoreCLI@2
+            inputs:
+              command: "publish"
+              publishWebProjects: true
+              arguments: "--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory) -p:Version=$(GitVersion.SemVer) -p:FileVersion=$(GitVersion.AssemblySemFileVer) -p:AssemblyVersion=$(GitVersion.AssemblySemVer)"
+              workingDirectory: "$(workingDirectory)"
+          # this code takes all the files in $(Build.ArtifactStagingDirectory) and uploads them as an artifact of your build.
+          - task: PublishPipelineArtifact@1
+            inputs:
+              targetPath: "$(Build.ArtifactStagingDirectory)"
+              artifactName: $(artifactName)
+  - stage: deployInfra
+    displayName: Deploy Infra
+    dependsOn: build
+    condition: and(succeeded(), eq(variables['deployInfra'], true))
+    jobs:
+      - deployment: deploy
+        displayName: Deploy Infra job
+        environment: ${{ parameters.environmentNameInfra }}
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                # azure cli
+                - task: AzureCLI@2
+                  displayName: "Azure CLI Login $(azureSubscription) - deployInfra"
+                  inputs:
+                    azureSubscription: "$(azureSubscription)"
+                    scriptType: "bash"
+                    scriptLocation: "inlineScript"
+                    inlineScript: |
+                      echo "Deploying to Azure"
+                      az group create --name $(resourceGroupName) \
+                          --location $(location)
+
+                      az deployment group create --name $(deploymentName) \
+                          --resource-group $(resourceGroupName) \
+                          --template-file $(templateFile) \
+                          --parameters baseName=$(baseName) \
+                          --parameters imageName=$imageName
+  - stage: Deploy
+    displayName: Deploy App
+    dependsOn: deployInfra
+    jobs:
+      - deployment: Deploy
+        displayName: Deploy App job
+        environment: ${{ parameters.environmentNameApp }}
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                # get app name from azure deployment
+                - script: |
+                    echo "##vso[task.setvariable variable=appName;isOutput=true]$(az deployment group show --name $(deploymentName) --resource-group $(resourceGroupName) --query properties.outputs.appName.value -o tsv)"
+                  name: get_app_name
+                # echo app name
+                - script: echo $(get_app_name.appName)
+                  displayName: "App Name"
+                - task: AzureWebApp@1
+                  inputs:
+                    azureSubscription: "$(azureSubscription)"
+                    appType: "webAppLinux"
+                    appName: "$(appName)"
+                    package: "$(Pipeline.Workspace)/$(artifactName)/$(websitePackageName)"
