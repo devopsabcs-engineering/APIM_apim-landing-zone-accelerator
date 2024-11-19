@@ -226,6 +226,19 @@ stages:
       - job: BuildImage
         displayName: Build and push an image to container registry
         steps:
+          - checkout: self
+            persistCredentials: true
+            fetchDepth: 0
+          - task: gitversion/setup@3
+            enabled: true
+            displayName: "Install GitTools"
+            inputs:
+              versionSpec: "5.x"
+          - task: gitversion/execute@3
+            enabled: true
+            displayName: "Calculate SemVer"
+          - script: echo current version is $(GitVersion.SemVer)
+            displayName: "Display calculated version"
           # get container registry from azure deployment with azure cli
           - task: AzureCLI@2
             displayName: "Azure CLI Login $(azureSubscription) - get_container_registry"
@@ -258,7 +271,11 @@ stages:
                 az acr build --registry $(get_container_registry.containerRegistry) \
                   --image $(imageName):$(Build.BuildId) \
                   --image $(imageName):latest \
-                  --file $(dockerfilePath) $(workingDirectoryDockerContext)
+                  --file $(dockerfilePath) \
+                  --build-arg GitVersion_SemVer=$(GitVersion.SemVer) \
+                  --build-arg GitVersion_AssemblySemFileVer=$(GitVersion.AssemblySemFileVer) \
+                  --build-arg GitVersion_AssemblySemVer=$(GitVersion.AssemblySemVer) \
+                  $(workingDirectoryDockerContext)
   - stage: Deploy
     displayName: Deploy App
     dependsOn: BuildAndPush
