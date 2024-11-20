@@ -11,8 +11,8 @@
 
     public class CustomersController : ODataController
     {
-        private static Random random = new Random();
-        private static List<Customer> customers = new List<Customer>(
+        private static readonly Random random = new();
+        private static readonly List<Customer> customers = new(
             Enumerable.Range(1, 3).Select(idx => new Customer
             {
                 Id = idx,
@@ -33,20 +33,20 @@
             _logger = logger;
             // get version from Executing Assembly
             _version = Assembly.GetExecutingAssembly().GetName().Version;
-            _logger.LogInformation("CustomersController version {version}", _version);
+            _logger.LogInformation("CustomersController version {Version}", _version);
         }
 
         [EnableQuery]
         public ActionResult<IEnumerable<Customer>> Get()
         {
-            _logger.LogInformation($"Getting customers version {_version}");
+            _logger.LogInformation("Getting customers version {Version}", _version);
             return Ok(customers);
         }
 
         [EnableQuery]
         public ActionResult<Customer> Get([FromRoute] int key)
         {
-            _logger.LogInformation($"Getting customer {key} (version {_version})", key);
+            _logger.LogInformation("Getting customer {Key} (version {Version})", key, _version);
             var item = customers.SingleOrDefault(d => d.Id.Equals(key));
 
             if (item == null)

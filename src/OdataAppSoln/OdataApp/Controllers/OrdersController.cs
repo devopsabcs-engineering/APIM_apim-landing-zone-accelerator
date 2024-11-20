@@ -24,19 +24,19 @@ namespace OdataApp.Controllers
         public IActionResult Get()
         {
             // Log the version
-            _logger.LogInformation($"Getting orders version {_version}");
+            _logger.LogInformation("Getting orders version {version}", _version);
             return Ok(_dbContext.Orders);
         }
 
         public IActionResult Get(int key)
         {
-            _logger.LogInformation($"Getting order {key} (version {_version})", key);
+            _logger.LogInformation("Getting order {key} (version {version})", key, _version);
             return Ok(_dbContext.Orders.Find(key));
         }
 
         public async Task<IActionResult> Post([FromBody] Order order)
         {
-            _logger.LogInformation($"Creating order {order.Id} (version {_version})", order.Id);
+            _logger.LogInformation("Creating order {orderId} (version {version})", order.Id, _version);
             _dbContext.Orders.Add(order);
             await _dbContext.SaveChangesAsync();
             return Ok(order);
@@ -44,7 +44,7 @@ namespace OdataApp.Controllers
 
         public async Task<IActionResult> Update(int key, [FromBody] Delta<Order> delta)
         {
-            _logger.LogInformation($"Updating order {key} (version {_version})", key);
+            _logger.LogInformation("Updating order {key} (version {version})", key, _version);
             var order = await _dbContext.Orders.FindAsync(key);
             delta.Patch(order);
             _dbContext.Orders.Update(order);
@@ -54,7 +54,7 @@ namespace OdataApp.Controllers
 
         public async Task<IActionResult> Delete(int key)
         {
-            _logger.LogInformation($"Deleting order {key} (version {_version})", key);
+            _logger.LogInformation("Deleting order {key} (version {version})", key, _version);
             var order = await _dbContext.Orders.FindAsync(key);
             _dbContext.Orders.Remove(order);
             await _dbContext.SaveChangesAsync();
