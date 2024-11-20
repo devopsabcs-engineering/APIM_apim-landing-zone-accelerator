@@ -1,0 +1,6 @@
+@StarWarsApiNet_HostAddress = http://localhost:5088
+
+GET {{StarWarsApiNet_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
