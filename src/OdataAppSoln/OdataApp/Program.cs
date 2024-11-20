@@ -27,7 +27,12 @@ namespace OdataApp
             builder.Services.AddDbContext<AppDbContext>(opt => opt.UseInMemoryDatabase("ODataAuthDemo"));
 
             // add application insights telemetry
-            builder.Services.AddApplicationInsightsTelemetry();
+            //builder.Services.AddApplicationInsightsTelemetry();
+            builder.Services.AddApplicationInsightsTelemetry(options =>
+            {
+                options.ConnectionString = builder.Configuration["ApplicationInsights:ConnectionString"];
+            });
+            builder.Services.AddApplicationInsightsTelemetry(builder.Configuration["ApplicationInsights:InstrumentationKey"]);
 
             var app = builder.Build();
 
