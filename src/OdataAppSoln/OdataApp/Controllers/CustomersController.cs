@@ -7,6 +7,7 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Reflection;
 
     public class CustomersController : ODataController
     {
@@ -25,23 +26,27 @@
             }));
 
         private readonly ILogger<CustomersController> _logger;
+        private readonly Version? _version;
 
         public CustomersController(ILogger<CustomersController> logger)
         {
             _logger = logger;
+            // get version from Executing Assembly
+            _version = Assembly.GetExecutingAssembly().GetName().Version;
+            _logger.LogInformation("CustomersController version {version}", _version);
         }
 
         [EnableQuery]
         public ActionResult<IEnumerable<Customer>> Get()
         {
-            _logger.LogInformation("Getting customers");
+            _logger.LogInformation($"Getting customers version {_version}");
             return Ok(customers);
         }
 
         [EnableQuery]
         public ActionResult<Customer> Get([FromRoute] int key)
         {
-            _logger.LogInformation("Getting customer {key}", key);
+            _logger.LogInformation($"Getting customer {key} (version {_version})", key);
             var item = customers.SingleOrDefault(d => d.Id.Equals(key));
 
             if (item == null)
