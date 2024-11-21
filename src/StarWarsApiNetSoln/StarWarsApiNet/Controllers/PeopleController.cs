@@ -2,9 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StarWarsApiNet.Data;
 using StarWarsApiNet.Models;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace StarWarsApiNet.Controllers
 {
@@ -13,25 +10,30 @@ namespace StarWarsApiNet.Controllers
     public class PeopleController : ControllerBase
     {
         private readonly StarWarsContext _context;
+        private readonly ILogger<PeopleController> _logger;
 
-        public PeopleController(StarWarsContext context)
+        public PeopleController(StarWarsContext context, ILogger<PeopleController> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Person>>> GetPeople()
         {
+            _logger.LogInformation("Getting all people");
             return await _context.People.ToListAsync();
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<Person>> GetPerson(int id)
         {
+            _logger.LogInformation("Getting person with ID {Id}", id);
             var person = await _context.People.FindAsync(id);
 
             if (person == null)
             {
+                _logger.LogWarning("Person with ID {Id} not found", id);
                 return NotFound();
             }
 
@@ -41,9 +43,11 @@ namespace StarWarsApiNet.Controllers
         [HttpPost]
         public async Task<ActionResult<Person>> PostPerson(Person person)
         {
+            _logger.LogInformation("Creating a new person");
             _context.People.Add(person);
             await _context.SaveChangesAsync();
 
+            _logger.LogInformation("Person created with ID {Id}", person.Id);
             return CreatedAtAction(nameof(GetPerson), new { id = person.Id }, person);
         }
 
@@ -52,9 +56,11 @@ namespace StarWarsApiNet.Controllers
         {
             if (id != person.Id)
             {
+                _logger.LogWarning("Person ID mismatch: {Id} != {PersonId}", id, person.Id);
                 return BadRequest();
             }
 
+            _logger.LogInformation("Updating person with ID {Id}", id);
             _context.Entry(person).State = EntityState.Modified;
 
             try
@@ -65,10 +71,12 @@ namespace StarWarsApiNet.Controllers
             {
                 if (!PersonExists(id))
                 {
+                    _logger.LogWarning("Person with ID {Id} not found during update", id);
                     return NotFound();
                 }
                 else
                 {
+                    _logger.LogError("Concurrency exception occurred while updating person with ID {Id}", id);
                     throw;
                 }
             }
@@ -79,15 +87,18 @@ namespace StarWarsApiNet.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletePerson(int id)
         {
+            _logger.LogInformation("Deleting person with ID {Id}", id);
             var person = await _context.People.FindAsync(id);
             if (person == null)
             {
+                _logger.LogWarning("Person with ID {Id} not found", id);
                 return NotFound();
             }
 
             _context.People.Remove(person);
             await _context.SaveChangesAsync();
 
+            _logger.LogInformation("Person with ID {Id} deleted", id);
             return NoContent();
         }
 
