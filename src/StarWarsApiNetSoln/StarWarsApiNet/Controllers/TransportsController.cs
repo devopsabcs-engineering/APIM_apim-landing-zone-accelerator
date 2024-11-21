@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StarWarsApiNet.Data;
 using StarWarsApiNet.Models;
+using System.Reflection;
 
 namespace StarWarsApiNet.Controllers
 {
@@ -16,6 +17,9 @@ namespace StarWarsApiNet.Controllers
         {
             _context = context;
             _logger = logger;
+            // get version from Assembly
+            var version = Assembly.GetExecutingAssembly().GetName().Version;
+            _logger.LogInformation("TransportsController version {Version}", version);
         }
 
         [HttpGet]
