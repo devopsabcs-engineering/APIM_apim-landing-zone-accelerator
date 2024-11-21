@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using StarWarsApiNet.Data;
+using StarWarsApiNet.Dto;
 using StarWarsApiNet.Models;
 using System.Text.Json;
 
@@ -50,7 +51,7 @@ namespace StarWarsApiNet
 
                 // Seed People
                 var peopleJson = File.ReadAllText("resources/fixtures/people.json");
-                var peopleData = JsonSerializer.Deserialize<List<PeopleJsonModel>>(peopleJson);
+                var peopleData = JsonSerializer.Deserialize<List<PersonJsonModel>>(peopleJson);
                 var people = peopleData.Select(p => new Person
                 {
                     Id = p.pk,
@@ -70,7 +71,7 @@ namespace StarWarsApiNet
 
                 // Seed Planets
                 var planetsJson = File.ReadAllText("resources/fixtures/planets.json");
-                var planetsData = JsonSerializer.Deserialize<List<PlanetsJsonModel>>(planetsJson);
+                var planetsData = JsonSerializer.Deserialize<List<PlanetJsonModel>>(planetsJson);
                 var planets = planetsData.Select(p => new Planet
                 {
                     Id = p.pk,
@@ -112,7 +113,7 @@ namespace StarWarsApiNet
 
                 // Seed Starships
                 var starshipsJson = File.ReadAllText("resources/fixtures/starships.json");
-                var starshipsData = JsonSerializer.Deserialize<List<StarshipsJsonModel>>(starshipsJson);
+                var starshipsData = JsonSerializer.Deserialize<List<StarshipJsonModel>>(starshipsJson);
                 var starships = starshipsData.Select(s => new Starship
                 {
                     Id = s.pk,                    
@@ -186,135 +187,13 @@ namespace StarWarsApiNet
         }
     }
 
-    public class PeopleJsonModel
-    {
-        public int pk { get; set; }
-        public PeopleFields fields { get; set; }
-    }
-
-    public class PeopleFields
-    {
-        public DateTime edited { get; set; }
-        public string name { get; set; }
-        public DateTime created { get; set; }
-        public string gender { get; set; }
-        public string skin_color { get; set; }
-        public string hair_color { get; set; }
-        public string height { get; set; }
-        public string eye_color { get; set; }
-        public string mass { get; set; }
-        public int homeworld { get; set; }
-        public string birth_year { get; set; }
-    }
-    public class PlanetsJsonModel
-    {
-        public int pk { get; set; }
-        public PlanetsFields fields { get; set; }
-    }
-
-    public class PlanetsFields
-    {
-        public DateTime edited { get; set; }
-        public string name { get; set; }
-        public DateTime created { get; set; }
-        public string diameter { get; set; }
-        public string rotation_period { get; set; }
-        public string orbital_period { get; set; }
-        public string gravity { get; set; }
-        public string population { get; set; }
-        public string climate { get; set; }
-        public string terrain { get; set; }
-        public string surface_water { get; set; }
-    }
-    public class SpeciesJsonModel
-    {
-        public int pk { get; set; }
-        public SpeciesFields fields { get; set; }
-    }
-
-    public class SpeciesFields
-    {
-        public DateTime edited { get; set; }
-        public string name { get; set; }
-        public DateTime created { get; set; }
-        public string classification { get; set; }
-        public string designation { get; set; }
-        public string average_height { get; set; }
-        public string skin_colors { get; set; }
-        public string hair_colors { get; set; }
-        public string eye_colors { get; set; }
-        public string average_lifespan { get; set; }
-        public string language { get; set; }
-        public int? homeworld { get; set; }
-        public List<int> people { get; set; }
-    }
     
-    public class StarshipsJsonModel
-    {
-        public int pk { get; set; }
-        public StarshipsFields fields { get; set; }
-    }
-
-    public class StarshipsFields
-    {        
-        public string hyperdrive_rating { get; set; }
-        public string MGLT { get; set; }
-        public string starship_class { get; set; }
-        public List<int> pilots { get; set; }
-    }
-    public class FilmJsonModel
-    {
-        public int pk { get; set; }
-        public FilmFields fields { get; set; }
-    }
-
-    public class FilmFields
-    {
-        public string title { get; set; }
-        public int episode_id { get; set; }
-        public string opening_crawl { get; set; }
-        public string director { get; set; }
-        public string producer { get; set; }
-        public DateTime release_date { get; set; }
-        public DateTime created { get; set; }
-        public DateTime edited { get; set; }
-        public List<int> characters { get; set; } // Add this line
-        public List<int> planets { get; set; } // Add this line
-        public List<int> starships { get; set; } // Add this line
-        public List<int> vehicles { get; set; } // Add this line
-        public List<int> species { get; set; } // Add this line
-    }
-    public class TransportJsonModel
-    {
-        public int pk { get; set; }
-        public TransportFields fields { get; set; }
-    }
-
-    public class TransportFields
-    {
-        public string name { get; set; }
-        public string model { get; set; }
-        public string manufacturer { get; set; }
-        public string cost_in_credits { get; set; }
-        public string length { get; set; }
-        public string max_atmosphering_speed { get; set; }
-        public string crew { get; set; }
-        public string passengers { get; set; }
-        public string cargo_capacity { get; set; }
-        public string consumables { get; set; }
-        public DateTime created { get; set; }
-        public DateTime edited { get; set; }
-    }
-    public class VehicleJsonModel
-    {
-        public int pk { get; set; }
-        public VehicleFields fields { get; set; }
-    }
-
-    public class VehicleFields
-    {
-        public string vehicle_class { get; set; }
-        public List<int> pilots { get; set; }
-    }
+    
+    
+    
+    
+    
+    
+    
 }
 
