@@ -21,7 +21,8 @@ trigger:
       - infra/appservice/main.bicep
 
 pool:
-  vmImage: "ubuntu-latest"
+  #vmImage: "ubuntu-latest"
+  name: "DefaultLinuxOnPremPool"
 
 parameters:
   - name: deployInfra
