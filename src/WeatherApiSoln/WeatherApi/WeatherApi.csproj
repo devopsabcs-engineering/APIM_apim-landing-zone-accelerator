@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>da5afb69-c80c-4b60-b3ee-dc3150841887</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
-    <ApplicationInsightsResourceId>/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-weather-appservice/providers/microsoft.insights/components/appi-weather-api-gyt73mi6rca7g</ApplicationInsightsResourceId>
+    <ApplicationInsightsResourceId>/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-weather-appservice-linux-005/providers/microsoft.insights/components/appi-weather-api-wvwg5gngtozli</ApplicationInsightsResourceId>
   </PropertyGroup>
 
   <ItemGroup>
