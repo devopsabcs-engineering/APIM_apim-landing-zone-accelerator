@@ -21,7 +21,16 @@ RUN dotnet build "./StarWarsApiNet.csproj" -c $BUILD_CONFIGURATION -o /app/build
 # This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./StarWarsApiNet.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+
+ARG GitVersion_SemVer
+ENV env_GitVersion_SemVer $GitVersion_SemVer
+ARG GitVersion_AssemblySemFileVer
+ENV env_GitVersion_AssemblySemFileVer $GitVersion_AssemblySemFileVer
+ARG GitVersion_AssemblySemVer
+ENV env_GitVersion_AssemblySemVer $GitVersion_AssemblySemVer
+
+RUN dotnet publish "./StarWarsApiNet.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false /p:Version=$GitVersion_SemVer /p:FileVersion=$GitVersion_AssemblySemFileVer /p:AssemblyVersion=$GitVersion_AssemblySemVer
+#RUN dotnet publish "./StarWarsApiNet.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
 FROM base AS final
