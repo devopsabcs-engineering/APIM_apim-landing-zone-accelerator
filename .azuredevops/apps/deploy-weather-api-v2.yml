@@ -70,9 +70,9 @@ variables:
   - name: dockerfilePath
     value: "$(System.DefaultWorkingDirectory)/src/WeatherApiSoln/WeatherApi/Dockerfile"
   - name: environmentNameInfra
-    value: APIM_StarWars_Api_infra_production_${{ parameters.instanceNumber }}
+    value: APIM_Weather_Api_infra_production_${{ parameters.instanceNumber }}
   - name: environmentNameApp
-    value: APIM_StarWars_Api_app_production_${{ parameters.instanceNumber }}
+    value: APIM_Weather_Api_app_production_${{ parameters.instanceNumber }}
 
 stages:
   - stage: set_version
