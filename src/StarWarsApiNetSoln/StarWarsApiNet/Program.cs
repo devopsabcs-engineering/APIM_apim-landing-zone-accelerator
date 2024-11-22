@@ -21,13 +21,19 @@ namespace StarWarsApiNet
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+            // Add Application Insights telemetry
+            builder.Services.AddApplicationInsightsTelemetry();
+
+            // app insights from connection string
+            builder.Services.AddApplicationInsightsTelemetry(builder.Configuration["ApplicationInsights:ConnectionString"]);
+
             var app = builder.Build();
 
             // Seed the database
             SeedDatabase(app);
 
             // Configure the HTTP request pipeline.
-            if (true)//app.Environment.IsDevelopment())
+            if (true) //app.Environment.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
                 app.UseSwagger();
@@ -116,7 +122,7 @@ namespace StarWarsApiNet
                 var starshipsData = JsonSerializer.Deserialize<List<StarshipJsonModel>>(starshipsJson);
                 var starships = starshipsData.Select(s => new Starship
                 {
-                    Id = s.pk,                    
+                    Id = s.pk,
                     HyperdriveRating = s.fields.hyperdrive_rating,
                     MGLT = s.fields.MGLT,
                     StarshipClass = s.fields.starship_class,
@@ -144,7 +150,6 @@ namespace StarWarsApiNet
                     Edited = t.fields.edited
                 }).ToList();
                 context.Transports.AddRange(transport);
-
 
                 // Seed Films
                 var filmsJson = File.ReadAllText("resources/fixtures/films.json");
@@ -177,23 +182,21 @@ namespace StarWarsApiNet
                     Id = v.pk,
                     VehicleClass = v.fields.vehicle_class,
                     Pilots = v.fields.pilots ?? new List<int>()
-
                 }).ToList();
                 context.Vehicles.AddRange(vehicles);
-
 
                 context.SaveChanges();
             }
         }
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
+
+
 }
 
