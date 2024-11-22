@@ -23,9 +23,18 @@ namespace StarWarsApiNet.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Person>>> GetPeople()
+        public async Task<ActionResult<IEnumerable<Person>>> GetPeople([FromQuery] string search = null)
         {
             _logger.LogInformation("Getting all people");
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                _logger.LogInformation("Searching for people with name containing {Search}", search);
+                return await _context.People
+                    .Where(p => p.Name.Contains(search))
+                    .ToListAsync();
+            }
+
             return await _context.People.ToListAsync();
         }
 
