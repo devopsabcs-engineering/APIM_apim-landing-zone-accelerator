@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.VisualBasic;
+using System.Reflection;
 
 namespace WeatherApi.Controllers
 {
@@ -17,20 +17,25 @@ namespace WeatherApi.Controllers
         public WeatherForecastController(ILogger<WeatherForecastController> logger)
         {
             _logger = logger;
+            // get version from assembly
+            var version = Assembly.GetExecutingAssembly().GetName().Version;
+            _logger.LogInformation($"WeatherForecastController version {version}");
         }
 
         [HttpGet(Name = "GetWeatherForecast")]
         public IEnumerable<WeatherForecast> Get()
         {
-            var iteration = 4;
+            // get version from assembly
+            var version = Assembly.GetExecutingAssembly().GetName().Version;
+            _logger.LogInformation($"WeatherForecastController version {version}");
 
             //add custom trace log for application insights
             _logger.LogInformation("GetWeatherForecast called");
-            _logger.LogDebug($"Debug {iteration}");
-            _logger.LogInformation($"Information {iteration}");
-            _logger.LogWarning($"Warning {iteration}");
-            _logger.LogError($"Error {iteration}");
-            _logger.LogCritical($"Critical {iteration}");
+            _logger.LogDebug($"Debug {version}");
+            _logger.LogInformation($"Information {version}");
+            _logger.LogWarning($"Warning {version}");
+            _logger.LogError($"Error {version}");
+            _logger.LogCritical($"Critical {version}");
 
             return Enumerable.Range(1, 5).Select(index => new WeatherForecast
             {
