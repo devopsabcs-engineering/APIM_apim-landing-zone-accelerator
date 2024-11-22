@@ -16,7 +16,7 @@ trigger:
       - src/WeatherApiSoln/*
       - src/WeatherApiSoln/WeatherApi/Dockerfile
       # include pipeline file
-      - .azuredevops/apps/deploy-weather-api.yml
+      - .azuredevops/apps/deploy-weather-api-v2.yml
       # include infra files
       - infra/appservice/main.bicep
 
