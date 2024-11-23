@@ -48,14 +48,18 @@ variables:
   - name: System.Debug
     value: true
 
+pool:
+  #vmImage: "ubuntu-latest"
+  name: "DefaultLinuxOnPremPool"
+
 stages:
   - stage: create_artifact_from_portal
     displayName: Create artifact from portal
     jobs:
       - job: create_artifact_from_portal
         displayName: Create artifact from portal
-        pool:
-          vmImage: ubuntu-latest
+        #pool:
+        #  vmImage: ubuntu-latest
         steps:
           - task: AzureCLI@2
             displayName: Set extraction variables
@@ -223,8 +227,8 @@ stages:
     jobs:
       - job: create_artifacts_pull_request
         displayName: Create artifacts pull request
-        pool:
-          vmImage: ubuntu-latest
+        #pool:
+        #  vmImage: ubuntu-latest
         steps:
           - task: DownloadPipelineArtifact@2
             displayName: Download pipeline artifact
