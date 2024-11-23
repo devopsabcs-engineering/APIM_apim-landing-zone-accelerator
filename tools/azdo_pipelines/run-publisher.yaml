@@ -34,14 +34,18 @@ variables:
   - name: System.Debug
     value: true
 
+pool:
+  #vmImage: "ubuntu-latest"
+  name: "DefaultLinuxOnPremPool"
+
 stages:
   - stage: push_changes_to_Dev_APIM
     displayName: Push changes to Dev APIM
     jobs:
       - job: push_changes_to_Dev_APIM
         displayName: Push changes to Dev APIM
-        pool:
-          vmImage: ubuntu-latest
+        #pool:
+        #  vmImage: ubuntu-latest
         steps:
           - template: run-publisher-with-env.yaml
             parameters:
@@ -58,8 +62,8 @@ stages:
         variables:
           #setting the testSecretValue to the prod resource group name as an example
           testSecretValue: $(RESOURCE_GROUP_NAME_Prod)
-        pool:
-          vmImage: ubuntu-latest
+        #pool:
+        #  vmImage: ubuntu-latest
         # creates an environment if it doesn't exist
         environment: "APIM_rg-apim-vnet-external-prod-005-eu2_apiops-stable" # CHANGE THIS TO YOUR ENVIRONMENT NAME for Production APIM
         strategy:
