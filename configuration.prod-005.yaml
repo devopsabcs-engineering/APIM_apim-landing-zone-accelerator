@@ -168,6 +168,20 @@ subscriptions:
       scope: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.ApiManagement/service/apim-prod-005-cs4jyj6wprtye/products/soapproduct"
       ownerId: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.ApiManagement/service/apim-prod-005-cs4jyj6wprtye/users/66fc3b8c72366d0d74e9a983" # user id for Apim User in PROD
       state: active
+  - name: 673e00eafdfb1416c8cfabf1
+    properties:
+      displayName: "Odata Sub (PROD)"
+      allowTracing: false
+      scope: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.ApiManagement/service/apim-prod-005-cs4jyj6wprtye/products/odataproduct"
+      ownerId: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.ApiManagement/service/apim-prod-005-cs4jyj6wprtye/users/66fc3b8c72366d0d74e9a983" # user id for Apim User in PROD
+      state: active
+  - name: 673ffb8ffdfb1416c8cfac5f
+    properties:
+      displayName: "StarWars Sub (PROD)"
+      allowTracing: false
+      scope: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.ApiManagement/service/apim-prod-005-cs4jyj6wprtye/products/star-wars"
+      ownerId: "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.ApiManagement/service/apim-prod-005-cs4jyj6wprtye/users/66fc3b8c72366d0d74e9a983" # user id for Apim User in PROD
+      state: active
 products:
   - name: starter
     properties:
@@ -224,6 +238,24 @@ products:
       state: "published"
       subscriptionRequired: true
       terms: "PROD: Read the legal fine print Weather-Terms!"
+  - name: odataproduct
+    properties:
+      name: odataproduct
+      displayName: Odata Product (PROD)
+      description: Odata product (PROD)
+      approvalRequired: false
+      state: "published"
+      subscriptionRequired: true
+      terms: "PROD: Read the legal fine print Odata-Terms!"
+  - name: star-wars
+    properties:
+      name: star-wars
+      displayName: Star Wars Product (PROD)
+      description: Star Wars product (PROD)
+      approvalRequired: false
+      state: "published"
+      subscriptionRequired: true
+      terms: "PROD: Read the legal fine print Star-Wars-Terms!"
 policyFragments:
   - name: SampleEmptyPolicyFragment
     properties:
