@@ -10,19 +10,19 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Autofac" Version="8.1.0" />
+    <PackageReference Include="Autofac" Version="8.1.1" />
     <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="10.0.0" />
-    <PackageReference Include="GraphQL" Version="8.1.0" />
-    <PackageReference Include="GraphQL.DataLoader" Version="8.1.0" />
-    <PackageReference Include="GraphQL.Server.Transports.AspNetCore" Version="8.0.2" />
-    <PackageReference Include="GraphQL.Server.Ui.Altair" Version="8.0.2" />
-    <PackageReference Include="GraphQL.SystemTextJson" Version="8.1.0" />
+    <PackageReference Include="GraphQL" Version="8.2.1" />
+    <PackageReference Include="GraphQL.DataLoader" Version="8.2.1" />
+    <PackageReference Include="GraphQL.Server.Transports.AspNetCore" Version="8.1.0" />
+    <PackageReference Include="GraphQL.Server.Ui.Altair" Version="8.1.0" />
+    <PackageReference Include="GraphQL.SystemTextJson" Version="8.2.1" />
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.8" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.8" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.8" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.7.3" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="7.0.0" />
   </ItemGroup>
 
 </Project>

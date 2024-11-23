@@ -13,20 +13,24 @@ namespace MovieReviews.Repository
         {
             _logger = logger;
             _context = context;
+            // get version from assembly
+            var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+            _logger.LogInformation($"MovieRepository version {version}");
             _context.Database.EnsureCreated();
         }
 
         public async Task<List<Movie>> GetMoviesAsync()
-        {            
-            var iteration = 1;
+        {
+            // get version from assembly
+            var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
 
             //add custom trace log for application insights
             _logger.LogInformation("Getting movies");
-            _logger.LogDebug($"Debug {iteration}");
-            _logger.LogInformation($"Information {iteration}");
-            _logger.LogWarning($"Warning {iteration}");
-            _logger.LogError($"Error {iteration}");
-            _logger.LogCritical($"Critical {iteration}");
+            _logger.LogDebug($"Debug {version}");
+            _logger.LogInformation($"Information {version}");
+            _logger.LogWarning($"Warning {version}");
+            _logger.LogError($"Error {version}");
+            _logger.LogCritical($"Critical {version}");
             
             return await _context.Movies.AsNoTracking().ToListAsync();
         }
