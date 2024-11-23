@@ -34,7 +34,7 @@ parameters:
 
 variables:
   - name: solution
-    value: "$(System.DefaultWorkingDirectory)/src/MovieReviewsSoln/MovieReviewsSoln.sln"
+    value: "$(System.DefaultWorkingDirectory)/src/MovieReviewsSoln/MovieReviews.sln"
   - name: buildPlatform
     value: "Any CPU"
   - name: buildConfiguration
