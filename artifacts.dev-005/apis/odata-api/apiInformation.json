@@ -1,19 +1,19 @@
 {
   "properties": {
-    "path": "echo",
+    "path": "odataapi",
     "apiRevision": "1",
     "authenticationSettings": {},
-    "description": "fix linting (testing api team 001 PIPES)",
     "isCurrent": true,
-    "displayName": "Echo API",
+    "displayName": "OData Api",
     "protocols": [
+      "http",
       "https"
     ],
-    "serviceUrl": "http://echoapi.cloudapp.net/api",
     "subscriptionKeyParameterNames": {
       "header": "Ocp-Apim-Subscription-Key",
       "query": "subscription-key"
     },
-    "subscriptionRequired": true
+    "subscriptionRequired": false,
+    "type": "odata"
   }
 }

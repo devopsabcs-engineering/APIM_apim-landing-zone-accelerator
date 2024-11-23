@@ -1,15 +1,14 @@
 {
   "properties": {
-    "path": "echo",
+    "path": "sw",
     "apiRevision": "1",
     "authenticationSettings": {},
-    "description": "fix linting (testing api team 001 PIPES)",
     "isCurrent": true,
-    "displayName": "Echo API",
+    "displayName": "StarWarsApiNet",
     "protocols": [
       "https"
     ],
-    "serviceUrl": "http://echoapi.cloudapp.net/api",
+    "serviceUrl": "https://app-star-wars-api-o3swnbq56q5wi.azurewebsites.net/",
     "subscriptionKeyParameterNames": {
       "header": "Ocp-Apim-Subscription-Key",
       "query": "subscription-key"

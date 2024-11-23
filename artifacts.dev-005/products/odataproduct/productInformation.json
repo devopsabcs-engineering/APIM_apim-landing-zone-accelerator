@@ -1,0 +1,10 @@
+{
+  "properties": {
+    "displayName": "OdataProduct (DEV)",
+    "description": "OdataProduct (DEV) description",
+    "approvalRequired": false,
+    "state": "published",
+    "subscriptionRequired": true,
+    "terms": "legal terms for OdataProduct (DEV)"
+  }
+}

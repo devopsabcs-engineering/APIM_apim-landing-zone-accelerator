@@ -13,6 +13,7 @@
 		<cors allow-credentials="true">
 			<allowed-origins>
 				<origin>{{developerPortalUrl}}</origin>
+				<origin>https://make.powerapps.com</origin>
 			</allowed-origins>
 			<allowed-methods preflight-result-max-age="300">
 				<method>*</method>
