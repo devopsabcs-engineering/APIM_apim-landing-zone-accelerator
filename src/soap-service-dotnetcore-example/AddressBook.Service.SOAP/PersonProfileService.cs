@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Reflection;
 using AddressBook.Service.SOAP.Domain;
 using AddressBook.Service.SOAP.Repositories;
 using Microsoft.Extensions.Logging;
@@ -14,8 +15,11 @@ namespace AddressBook.Service.SOAP
         {
             _repository = repository;
             _logger = logger;
+            // get version from assembly
+            var version = Assembly.GetExecutingAssembly().GetName().Version;
+            _logger.LogInformation("PersonProfileService version {version}", version);
         }
-        
+
         public IEnumerable<PersonProfile> GetAllProfiles()
         {
             _logger.LogInformation("Fetching all profiles.");

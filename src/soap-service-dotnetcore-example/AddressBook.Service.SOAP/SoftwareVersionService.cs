@@ -15,6 +15,10 @@ namespace AddressBook.Service.SOAP
         {
             _repository = repository;
             _logger = logger;
+
+            // get version from assembly
+            var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+            _logger.LogInformation("SoftwareVersionService version {version}", version);
         }
 
         public IEnumerable<SoftwareVersion> GetAllSoftwareVersions()
