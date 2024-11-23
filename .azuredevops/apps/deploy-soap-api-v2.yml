@@ -1,11 +1,3 @@
-# ASP.NET Core (.NET Framework)
-# Build and test ASP.NET Core projects targeting the full .NET Framework.
-# Add steps that publish symbols, save build artifacts, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/languages/dotnet-core
-
-# trigger:
-#   - none
-
 trigger:
   batch: true
   branches:
@@ -17,22 +9,26 @@ trigger:
     exclude:
       - README.md
     include:
-      - src/soap-service-dotnetcore-example/*
       - src/soap-service-dotnetcore-example/AddressBook.Service.SOAP/*
-      - src/soap-service-dotnetcore-example/AddressBook.Service.SOAP/AddressBook.Service.SOAP.csproj
+      - src/soap-service-dotnetcore-example/*
       - src/soap-service-dotnetcore-example/AddressBook.Service.SOAP/Dockerfile
+      - src/soap-service-dotnetcore-example/AddressBook.Service.SOAP/AddressBook.Service.SOAP.csproj
       # include pipeline file
       - .azuredevops/apps/deploy-soap-api-v2.yml
       # include infra files
-      - infra/webapp/main.bicep
+      - infra/appservice/main.bicep
 
 pool:
-  vmImage: "ubuntu-latest"
+  #vmImage: "ubuntu-latest"
+  name: "DefaultLinuxOnPremPool"
 
 parameters:
   - name: deployInfra
     type: boolean
     default: true
+  - name: instanceNumber
+    type: string
+    default: 007
 
 variables:
   - name: solution
@@ -49,20 +45,30 @@ variables:
     value: APIM_MicrosoftAzureExternal_multitenant
   - name: websitePackageName
     value: AddressBook.Service.SOAP.zip
-  - name: appName
-    value: app-soap-api-l6isc4zatv5ny
   - name: resourceGroupName
-    value: rg-soap-appservice-linux-002
+    value: rg-soap-appservice-linux-${{ parameters.instanceNumber }}
   - name: location
     value: eastus2
   - name: deploymentName
     value: infra-deployment
   - name: templateFile
-    value: $(System.DefaultWorkingDirectory)/infra/webapp/main.bicep
+    value: $(System.DefaultWorkingDirectory)/infra/appservice/main.bicep
   - name: baseName
     value: soap-api
+  - name: imageName
+    value: AddressBook.Service.SOAP
   - name: deployInfra
     value: ${{ parameters.deployInfra }}
+  - name: workingDirectory
+    value: "$(System.DefaultWorkingDirectory)/src/soap-service-dotnetcore-example/AddressBook.Service.SOAP"
+  - name: workingDirectoryDockerContext
+    value: "$(System.DefaultWorkingDirectory)/src/soap-service-dotnetcore-example"
+  - name: dockerfilePath
+    value: "$(System.DefaultWorkingDirectory)/src/soap-service-dotnetcore-example/AddressBook.Service.SOAP/Dockerfile"
+  - name: environmentNameInfra
+    value: APIM_Soap_Api_infra_production_${{ parameters.instanceNumber }}
+  - name: environmentNameApp
+    value: APIM_Soap_Api_app_production_${{ parameters.instanceNumber }}
 
 stages:
   - stage: set_version
@@ -165,7 +171,7 @@ stages:
               command: "publish"
               publishWebProjects: true
               arguments: "--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory) -p:Version=$(GitVersion.SemVer) -p:FileVersion=$(GitVersion.AssemblySemFileVer) -p:AssemblyVersion=$(GitVersion.AssemblySemVer)"
-              workingDirectory: "$(System.DefaultWorkingDirectory)/src/soap-service-dotnetcore-example"
+              workingDirectory: "$(workingDirectory)"
           # this code takes all the files in $(Build.ArtifactStagingDirectory) and uploads them as an artifact of your build.
           - task: PublishPipelineArtifact@1
             inputs:
@@ -178,7 +184,7 @@ stages:
     jobs:
       - deployment: deploy
         displayName: Deploy Infra job
-        environment: "APIM_Soap_Api_Infra_production"
+        environment: ${{ variables.environmentNameInfra }}
         strategy:
           runOnce:
             deploy:
@@ -199,21 +205,100 @@ stages:
                       az deployment group create --name $(deploymentName) \
                           --resource-group $(resourceGroupName) \
                           --template-file $(templateFile) \
-                          --parameters baseName=$(baseName)
+                          --parameters baseName=$(baseName) \
+                          --parameters imageName=$(imageName)
+  - stage: BuildAndPush
+    displayName: Build and push stage
+    dependsOn: deployInfra
+    jobs:
+      - job: BuildImage
+        displayName: Build and push an image to container registry
+        steps:
+          - checkout: self
+            persistCredentials: true
+            fetchDepth: 0
+          - task: gitversion/setup@3
+            enabled: true
+            displayName: "Install GitTools"
+            inputs:
+              versionSpec: "5.x"
+          - task: gitversion/execute@3
+            enabled: true
+            displayName: "Calculate SemVer"
+          - script: echo current version is $(GitVersion.SemVer)
+            displayName: "Display calculated version"
+          # get container registry from azure deployment with azure cli
+          - task: AzureCLI@2
+            displayName: "Azure CLI Login $(azureSubscription) - get_container_registry"
+            name: get_container_registry
+            inputs:
+              azureSubscription: "$(azureSubscription)"
+              scriptType: "bash"
+              scriptLocation: "inlineScript"
+              inlineScript: |
+                echo "Getting container registry"
+                containerRegistryName=$(az deployment group show --name $(deploymentName) \
+                  --resource-group $(resourceGroupName) \
+                  --query properties.outputs.containerRegistryName.value \
+                  -o tsv)
+                echo "Container Registry: $containerRegistryName"
+                echo "##vso[task.setvariable variable=containerRegistry;isOutput=true]$containerRegistryName"
+              workingDirectory: "$(workingDirectory)"
+          # echo container registry
+          - script: echo $(get_container_registry.containerRegistry)
+            displayName: "Container Registry"
+          # build and push image to container registry via azure cli
+          - task: AzureCLI@2
+            displayName: "Azure CLI Login $(azureSubscription) - Build and push image"
+            inputs:
+              azureSubscription: "$(azureSubscription)"
+              scriptType: "bash"
+              scriptLocation: "inlineScript"
+              inlineScript: |
+                echo "Building and pushing image to container registry"                
+                az acr build --registry $(get_container_registry.containerRegistry) \
+                  --image $(imageName):$(Build.BuildId) \
+                  --image $(imageName):latest \
+                  --file $(dockerfilePath) \
+                  --build-arg GitVersion_SemVer=$(GitVersion.SemVer) \
+                  --build-arg GitVersion_AssemblySemFileVer=$(GitVersion.AssemblySemFileVer) \
+                  --build-arg GitVersion_AssemblySemVer=$(GitVersion.AssemblySemVer) \
+                  $(workingDirectoryDockerContext)
   - stage: Deploy
     displayName: Deploy App
-    dependsOn: deployInfra
+    dependsOn: BuildAndPush
     jobs:
       - deployment: Deploy
         displayName: Deploy App job
-        environment: "APIM_Soap_Api_production"
+        environment: ${{ variables.environmentNameApp }}
         strategy:
           runOnce:
             deploy:
               steps:
+                # get app name from azure deployment with azure cli
+                - task: AzureCLI@2
+                  displayName: "Azure CLI Login $(azureSubscription) - get_app_name"
+                  name: get_app_name
+                  inputs:
+                    azureSubscription: "$(azureSubscription)"
+                    scriptType: "bash"
+                    scriptLocation: "inlineScript"
+                    inlineScript: |
+                      echo "Getting app name"
+                      appName=$(az deployment group show --name $(deploymentName) \
+                        --resource-group $(resourceGroupName) \
+                        --query properties.outputs.appName.value \
+                        -o tsv)
+                      echo "App Name: $appName"
+                      echo "##vso[task.setvariable variable=appName;isOutput=true]$appName"
+                # echo app name
+                - script: echo $(get_app_name.appName)
+                  displayName: "App Name"
                 - task: AzureWebApp@1
+                  displayName: "Azure Web App Deploy"
+                  enabled: false
                   inputs:
                     azureSubscription: "$(azureSubscription)"
                     appType: "webAppLinux"
-                    appName: "$(appName)"
+                    appName: "$(get_app_name.appName)"
                     package: "$(Pipeline.Workspace)/$(artifactName)/$(websitePackageName)"
