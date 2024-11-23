@@ -56,7 +56,7 @@ variables:
   - name: baseName
     value: soap-api
   - name: imageName
-    value: AddressBook.Service.SOAP
+    value: soapapi
   - name: deployInfra
     value: ${{ parameters.deployInfra }}
   - name: workingDirectory
