@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Graph.ExternalConnectors;
 using Microsoft.Identity.Web;
 
 namespace Sandbox.Api.OboConnectorCore
@@ -10,8 +11,16 @@ namespace Sandbox.Api.OboConnectorCore
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
+            //builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            //    .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
+            .AddMicrosoftIdentityWebApi(builder.Configuration, "AzureAd")
+            .EnableTokenAcquisitionToCallDownstreamApi()
+            .AddMicrosoftGraph(builder.Configuration.GetSection("MicrosoftGraph"))
+            .AddDownstreamWebApi(
+                "DownstreamDataverseApi",
+                builder.Configuration.GetSection("DownstreamDataverseApi")
+            ).AddInMemoryTokenCaches();
 
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
