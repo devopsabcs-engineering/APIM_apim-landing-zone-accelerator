@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35431.28
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sandbox.Api.OboConnectorCore", "Sandbox.Api.OboConnectorCore\Sandbox.Api.OboConnectorCore.csproj", "{4A74E3F3-E992-44F8-9071-1E60D31663FD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4A74E3F3-E992-44F8-9071-1E60D31663FD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4A74E3F3-E992-44F8-9071-1E60D31663FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4A74E3F3-E992-44F8-9071-1E60D31663FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4A74E3F3-E992-44F8-9071-1E60D31663FD}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0181F1F1-0361-45E1-962B-32443E676D66}
+	EndGlobalSection
+EndGlobal
