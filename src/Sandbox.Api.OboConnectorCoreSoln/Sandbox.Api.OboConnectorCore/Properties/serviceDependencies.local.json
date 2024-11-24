@@ -1,9 +1,10 @@
 {
   "dependencies": {
     "identityapp1": {
-      "connectionInfo": "App registration: OBO-Connector-Core-API-Service-VS2022, Tenant: Contoso (MngEnvMCAP675646.onmicrosoft.com - Microsoft Entra ID)",
+      "connectionInfo": "App registration: OBO-Connector-Core-API-Service, Tenant: Contoso (MngEnvMCAP675646.onmicrosoft.com - Microsoft Entra ID)",
       "secretStore": "LocalSecretsFile",
-      "type": "identityapp.secretStore",
+      "resourceId": null,
+      "type": "identityapp.default",
       "connectionId": "AzureAD:ClientSecret"
     }
   }

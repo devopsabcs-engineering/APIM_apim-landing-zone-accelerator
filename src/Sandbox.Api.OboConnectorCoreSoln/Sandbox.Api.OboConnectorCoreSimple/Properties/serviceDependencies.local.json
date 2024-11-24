@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "identityapp1": {
+      "connectionInfo": "App registration: OBO-Connector-Core-API-BackendOnly-VS2022-Simple, Tenant: Contoso (MngEnvMCAP675646.onmicrosoft.com - Microsoft Entra ID)",
+      "type": "identityapp.default"
+    }
+  }
+}
