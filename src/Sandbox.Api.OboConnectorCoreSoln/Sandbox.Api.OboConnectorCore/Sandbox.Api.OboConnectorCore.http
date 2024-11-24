@@ -1,0 +1,6 @@
+@Sandbox.Api.OboConnectorCore_HostAddress = http://localhost:5170
+
+GET {{Sandbox.Api.OboConnectorCore_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
