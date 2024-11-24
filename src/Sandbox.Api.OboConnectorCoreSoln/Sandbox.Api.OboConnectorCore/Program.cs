@@ -39,7 +39,7 @@ namespace Sandbox.Api.OboConnectorCore
                         Url = new Uri("https://taerimhan.com")
                     }
                 });
-                setupAction.EnableAnnotations();
+                //setupAction.EnableAnnotations();
                 setupAction.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme
                 {
                     Type = SecuritySchemeType.OAuth2,

@@ -1,0 +1,45 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<CustomConnector>
+	<Metadata>
+		<Name>Sandbox.Api.OboConnectorCore</Name>
+		<Description>Custom Connector for OAuth 2.0 On-Behalf-Of Flow</Description>
+		<Version>1.0.0</Version>
+	</Metadata>
+	<Authentication>
+		<OAuth2>
+			<IdentityProvider>Azure Active Directory</IdentityProvider>
+			<ClientId>YOUR_CLIENT_ID</ClientId>
+			<ClientSecret>YOUR_CLIENT_SECRET</ClientSecret>
+			<AuthorizationUrl>https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize</AuthorizationUrl>
+			<TokenUrl>https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token</TokenUrl>
+			<RefreshUrl>https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token</RefreshUrl>
+			<Scopes>
+				<Scope>https://graph.microsoft.com/.default</Scope>
+				<Scope>https://YOUR_CUSTOM_API/.default</Scope>
+			</Scopes>
+		</OAuth2>
+	</Authentication>
+	<Actions>
+		<Action>
+			<Name>GetData</Name>
+			<Description>Retrieve data from the custom API</Description>
+			<HttpMethod>GET</HttpMethod>
+			<Url>https://YOUR_CUSTOM_API_ENDPOINT/api/data</Url>
+			<Headers>
+				<Header>
+					<Name>Authorization</Name>
+					<Value>Bearer {accessToken}</Value>
+				</Header>
+			</Headers>
+			<Response>
+				<StatusCode>200</StatusCode>
+				<Body>
+					<Schema>
+						<!-- Define your response schema here -->
+					</Schema>
+				</Body>
+			</Response>
+		</Action>
+	</Actions>
+</CustomConnector>
+
