@@ -8,7 +8,7 @@ using Swashbuckle.AspNetCore.Annotations;
 
 namespace Sandbox.Api.OboConnectorCore.Controllers
 {
-    [Authorize]
+    //[Authorize]
     [ApiController]
     [Produces("application/json")]
     [Route("api/[controller]")]

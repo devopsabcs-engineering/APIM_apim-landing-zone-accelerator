@@ -9,7 +9,7 @@ using System.Text.Json;
 
 namespace Sandbox.Api.OboConnectorCore.Controllers
 {
-    [Authorize]
+    //[Authorize]
     [ApiController]
     [Produces("application/json")]
     [Route("api/[controller]")]
