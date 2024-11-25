@@ -14,11 +14,13 @@ namespace PowerApps.Samples
     {
         static void Main()
         {
-            RunAuthentication(true); // Public client - Interactive authentication
-            RunAuthentication(false); // Confidential client - Client credentials - No user interaction
+            bool pauseAfterFetchingFullUserName = true;
+
+            RunAuthentication(true, pauseAfterFetchingFullUserName); // Public client - Interactive authentication
+            RunAuthentication(false, pauseAfterFetchingFullUserName); // Confidential client - Client credentials - No user interaction
         }
 
-        static void RunAuthentication(bool isPublicClient)
+        static void RunAuthentication(bool isPublicClient, bool pauseAfterFetchingFullUserName)
         {
             string apiVersion = "v9.2"; // Set to the version of the Web API you are using
             string dataVerseEnvironmentName = "org50078be4"; // Set to the environment name of your Dataverse environment
@@ -134,7 +136,7 @@ namespace PowerApps.Samples
 
             // now get name of the user
             Console.WriteLine("Getting user name for user ID {0}", userId);
-            response = client.GetAsync("systemusers?$select=fullname&$filter=systemuserid eq "+ userId + "')").Result;
+            response = client.GetAsync($"systemusers?$select=fullname&$filter=systemuserid eq {userId}").Result;
             if (response.IsSuccessStatusCode)
             {
                 JObject body = JObject.Parse(
@@ -142,6 +144,11 @@ namespace PowerApps.Samples
                 Console.WriteLine(body.ToString());
                 string userName = (string)body["value"][0]["fullname"];
                 Console.WriteLine("Your user name is {0}", userName);
+                if (pauseAfterFetchingFullUserName)
+                {
+                    Console.WriteLine("Press any key to continue...");
+                    Console.ReadKey();
+                }
             }
             else
             {
@@ -149,7 +156,6 @@ namespace PowerApps.Samples
                 Console.WriteLine("Reason: " + response.ReasonPhrase);
             }
         }
-
 
         private static AuthenticationResult GetAuthTokenConfidentialClientApp(
             string resource,
