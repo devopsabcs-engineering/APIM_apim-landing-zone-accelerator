@@ -1,6 +1,8 @@
 ﻿using Microsoft.Identity.Client;
 using Newtonsoft.Json.Linq;
 using System;
+using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 
@@ -10,8 +12,10 @@ namespace PowerApps.Samples
     {
         static void Main()
         {
+            string dataVerseEnvironmentName = "org50078be4";// "crmue";
+
             // TODO Specify the Dataverse environment name to connect with.
-            string resource = "https://crmue.crm.dynamics.com";
+            string resource = $"https://{dataVerseEnvironmentName}.crm.dynamics.com";
 
             // Azure Active Directory app registration shared by all Power App samples.
             // For your custom apps, you will need to register them with Azure AD yourself.
@@ -30,6 +34,27 @@ namespace PowerApps.Samples
 
             AuthenticationResult token = 
                 authBuilder.AcquireTokenInteractive(scopes).ExecuteAsync().Result;
+            Console.WriteLine(token.AccessToken);
+
+            //decode the token
+            var handler = new JwtSecurityTokenHandler();
+            var jsonToken = handler.ReadToken(token.AccessToken) as JwtSecurityToken;
+            Console.WriteLine(jsonToken.Claims.First(claim => claim.Type == "name").Value);
+
+            // give full output as with https://jwt.ms or https://jwt.io
+            // decode all claims
+            foreach (var claim in jsonToken.Claims)
+            {
+                Console.WriteLine($"{claim.Type}: {claim.Value}");
+            }
+            // give audiences
+            Console.WriteLine("Audiences: " + string.Join(", ", jsonToken.Audiences));
+            // give valid from and to
+            Console.WriteLine("Valid from: " + jsonToken.ValidFrom);
+            Console.WriteLine("Valid to: " + jsonToken.ValidTo);
+
+
+
             #endregion Authentication
 
             #region Client configuration
@@ -63,6 +88,8 @@ namespace PowerApps.Samples
                 // Parse the JSON formatted service response to obtain the user ID.  
                 JObject body = JObject.Parse(
                     response.Content.ReadAsStringAsync().Result);
+                // write out nicely formatted JSON
+                Console.WriteLine(body.ToString());
                 Guid userId = (Guid)body["UserId"];
 
                 Console.WriteLine("Your user ID is {0}", userId);
@@ -75,6 +102,7 @@ namespace PowerApps.Samples
             #endregion Web API call
 
             // Pause program execution by waiting for a key press.
+            Console.WriteLine("Press any key to exit.");
             Console.ReadKey();
         }
     }
