@@ -14,6 +14,10 @@ namespace EnhancedQuickStart
                 //Get configuration data from App.config connectionStrings
                 string connectionString = ConfigurationManager.ConnectionStrings["Connect"].ConnectionString;
 
+                // replace the connection string with the one you want to use
+                // getting from the environment variable
+                connectionString = Environment.GetEnvironmentVariable("Connect");
+
                 using (HttpClient client = SampleHelpers.GetHttpClient(connectionString, SampleHelpers.clientId, SampleHelpers.redirectUrl))
                 {
                     // Use the WhoAmI function
