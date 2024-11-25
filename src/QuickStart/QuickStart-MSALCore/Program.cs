@@ -8,7 +8,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 
-namespace PowerApps.Samples
+namespace QuickStartMSAL
 {
     class Program
     {
@@ -40,7 +40,7 @@ namespace PowerApps.Samples
                 var clientId = "c4b08b47-feca-48ef-878c-59a05228cb83";
                 var redirectUri = "http://localhost";
                 var scope = resource + "/user_impersonation";
-                token = GetAuthTokenPublicClientApp(resource, clientId, redirectUri, scope);
+                token = GetAuthTokenPublicClientApp(clientId, redirectUri, scope);
             }
             else
             {
@@ -51,7 +51,7 @@ namespace PowerApps.Samples
                 var clientSecret = configuration["AzureAd:ClientSecret"];
                 var tenantId = "aa93b9d9-037d-4f08-a26d-783cff0e2369";
                 token = GetAuthTokenConfidentialClientApp(
-                    resource, clientId, clientSecret, redirectUri, scope,
+                    clientId, clientSecret, redirectUri, scope,
                     tenantId);
             }
 
@@ -158,7 +158,7 @@ namespace PowerApps.Samples
         }
 
         private static AuthenticationResult GetAuthTokenConfidentialClientApp(
-            string resource,
+            //string resource,
             string clientId,
             string clientSecret,
             string redirectUri,
@@ -171,7 +171,7 @@ namespace PowerApps.Samples
                              .WithRedirectUri(redirectUri)
                              .Build();
 
-            string[] scopes = { scope };
+            string[] scopes = [scope];
 
             AuthenticationResult token = authBuilder.AcquireTokenForClient(scopes)
                 .ExecuteAsync().Result;
@@ -180,7 +180,7 @@ namespace PowerApps.Samples
         }
 
         private static AuthenticationResult GetAuthTokenPublicClientApp(
-            string resource,
+            //string resource,
             string clientId,
             string redirectUri,
             string scope)
@@ -191,7 +191,7 @@ namespace PowerApps.Samples
                 .WithRedirectUri(redirectUri)
                 .Build();
 
-            string[] scopes = { scope };
+            string[] scopes = [scope];
 
             AuthenticationResult token = authBuilder.AcquireTokenInteractive(scopes)
                                 .WithUseEmbeddedWebView(false)
