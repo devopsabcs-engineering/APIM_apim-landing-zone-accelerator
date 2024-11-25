@@ -14,14 +14,17 @@ namespace PowerApps.Samples
     {
         static void Main()
         {
+            // TODO: Set isPublicClient to false for confidential client
+            bool isPublicClient = true; // Set to false for confidential client
+            string apiVersion = "v9.2"; // Set to the version of the Web API you are using
+            string dataVerseEnvironmentName = "org50078be4"; // Set to the environment name of your Dataverse environment
+            
+            string resource = $"https://{dataVerseEnvironmentName}.crm.dynamics.com";
+
             var configuration = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
                 .Build();
-
-            bool isPublicClient = false; // Set to false for confidential client
-            string dataVerseEnvironmentName = "org50078be4";
-            string resource = $"https://{dataVerseEnvironmentName}.crm.dynamics.com";
 
             AuthenticationResult token = null;
 
@@ -76,7 +79,7 @@ namespace PowerApps.Samples
 
             var client = new HttpClient
             {
-                BaseAddress = new Uri(resource + "/api/data/v9.2/"),
+                BaseAddress = new Uri(resource + $"/api/data/{apiVersion}/"),
                 Timeout = new TimeSpan(0, 2, 0)
             };
 
@@ -121,7 +124,8 @@ namespace PowerApps.Samples
 
             string[] scopes = { scope };
 
-            AuthenticationResult token = authBuilder.AcquireTokenForClient(scopes).ExecuteAsync().Result;
+            AuthenticationResult token = authBuilder.AcquireTokenForClient(scopes)
+                .ExecuteAsync().Result;
 
             return token;
         }
