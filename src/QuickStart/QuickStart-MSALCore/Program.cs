@@ -95,13 +95,14 @@ namespace PowerApps.Samples
                 new MediaTypeWithQualityHeaderValue("application/json"));
 
             var response = client.GetAsync("WhoAmI").Result;
+            Guid userId = Guid.Empty;
 
             if (response.IsSuccessStatusCode)
             {
                 JObject body = JObject.Parse(
                     response.Content.ReadAsStringAsync().Result);
                 Console.WriteLine(body.ToString());
-                Guid userId = (Guid)body["UserId"];
+                userId = (Guid)body["UserId"];
 
                 Console.WriteLine("Your user ID is {0}", userId);
             }
@@ -110,7 +111,45 @@ namespace PowerApps.Samples
                 Console.WriteLine("Web API call failed");
                 Console.WriteLine("Reason: " + response.ReasonPhrase);
             }
+
+            // get all users
+            Console.WriteLine("Getting all users");
+            response = client.GetAsync("systemusers?$select=fullname").Result;
+            if (response.IsSuccessStatusCode)
+            {
+                // loop through the results and print the full name of each user
+                JObject body = JObject.Parse(
+                    response.Content.ReadAsStringAsync().Result);
+                Console.WriteLine(body.ToString());
+                foreach (var user in body["value"])
+                {
+                    Console.WriteLine("User: {0}", user["fullname"]);
+                }
+            }
+            else
+            {
+                Console.WriteLine("Web API call failed");
+                Console.WriteLine("Reason: " + response.ReasonPhrase);
+            }
+
+            // now get name of the user
+            Console.WriteLine("Getting user name for user ID {0}", userId);
+            response = client.GetAsync("systemusers?$select=fullname&$filter=systemuserid eq "+ userId + "')").Result;
+            if (response.IsSuccessStatusCode)
+            {
+                JObject body = JObject.Parse(
+                    response.Content.ReadAsStringAsync().Result);
+                Console.WriteLine(body.ToString());
+                string userName = (string)body["value"][0]["fullname"];
+                Console.WriteLine("Your user name is {0}", userName);
+            }
+            else
+            {
+                Console.WriteLine("Web API call failed");
+                Console.WriteLine("Reason: " + response.ReasonPhrase);
+            }
         }
+
 
         private static AuthenticationResult GetAuthTokenConfidentialClientApp(
             string resource,
