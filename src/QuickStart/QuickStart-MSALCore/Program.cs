@@ -14,11 +14,15 @@ namespace PowerApps.Samples
     {
         static void Main()
         {
-            // TODO: Set isPublicClient to false for confidential client
-            bool isPublicClient = true; // Set to false for confidential client
+            RunAuthentication(true); // Public client - Interactive authentication
+            RunAuthentication(false); // Confidential client - Client credentials - No user interaction
+        }
+
+        static void RunAuthentication(bool isPublicClient)
+        {
             string apiVersion = "v9.2"; // Set to the version of the Web API you are using
             string dataVerseEnvironmentName = "org50078be4"; // Set to the environment name of your Dataverse environment
-            
+
             string resource = $"https://{dataVerseEnvironmentName}.crm.dynamics.com";
 
             var configuration = new ConfigurationBuilder()
@@ -30,7 +34,7 @@ namespace PowerApps.Samples
 
             if (isPublicClient)
             {
-                Console.WriteLine("Public client");
+                Console.WriteLine("Public client -- Logging in with user interaction");
                 var clientId = "c4b08b47-feca-48ef-878c-59a05228cb83";
                 var redirectUri = "http://localhost";
                 var scope = resource + "/user_impersonation";
@@ -38,7 +42,7 @@ namespace PowerApps.Samples
             }
             else
             {
-                Console.WriteLine("Confidential client");
+                Console.WriteLine("Confidential client -- No user interaction");
                 var clientId = "7f302f1f-081d-4a3b-bd84-3bbcee7a0a12";
                 var redirectUri = "http://localhost";
                 var scope = resource + "/.default";
