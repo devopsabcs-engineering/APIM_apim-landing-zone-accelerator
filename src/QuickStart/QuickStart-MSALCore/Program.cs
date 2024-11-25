@@ -14,6 +14,8 @@ namespace PowerApps.Samples
         {
             //https://learn.microsoft.com/en-us/entra/msal/dotnet/acquiring-tokens/using-web-browsers#how-to-use-the-default-system-browser
 
+            bool isPublicClient = true;
+
             // avoid error
             // System.AggregateException
             //            HResult = 0x80131500
@@ -41,7 +43,6 @@ namespace PowerApps.Samples
             // See https://learn.microsoft.com/powerapps/developer/data-platform/walkthrough-register-app-azure-active-directory
             //var clientId = "51f81489-12ee-4a9e-aaae-a2591f45987d";
             //var redirectUri = "app://58145B91-0C36-4500-8554-080854F2AC97";
-
 
             // also avoid error
             // System.AggregateException
@@ -90,9 +91,6 @@ namespace PowerApps.Samples
             //Inner Exception 1:
             //MsalServiceException: AADSTS50194: Application 'c4b08b47-feca-48ef-878c-59a05228cb83'(powerapps-public-client-app) is not configured as a multi-tenant application.Usage of the /common endpoint is not supported for such applications created after '10/15/2018'. Use a tenant-specific endpoint or configure the application to be multi-tenant.Trace ID: cc18875c-5a70-4928-b3f3-8474c56c6400 Correlation ID: 24728d6e-d604-47be-82be-b20ac24a1993 Timestamp: 2024-11-25 19:38:25Z
 
-
-
-
             #region Authentication
 
             //var clientSecret = "your client secret";
@@ -108,33 +106,73 @@ namespace PowerApps.Samples
             //                 .WithRedirectUri(redirectUri)
             //                 .Build();
 
-            var clientId = "c4b08b47-feca-48ef-878c-59a05228cb83";
-            var redirectUri = "http://localhost";
-            var scope = resource + "/user_impersonation";
-            AuthenticationResult token = GetAuthTokenPublicClientApp(resource, clientId, redirectUri, scope);
+            
+
+            AuthenticationResult token = null;
+
+            if (isPublicClient)
+            {
+                Console.WriteLine("Public client");
+                var clientId = "c4b08b47-feca-48ef-878c-59a05228cb83";
+                var redirectUri = "http://localhost";
+                var scope = resource + "/user_impersonation";
+                token = GetAuthTokenPublicClientApp(resource, clientId, redirectUri, scope);
+            }
+            else
+            {
+                Console.WriteLine("Confidential client");
+                var clientId = "7f302f1f-081d-4a3b-bd84-3bbcee7a0a12";
+                var redirectUri = "http://localhost";
+                var scope = resource + "/.default";
+                var clientSecret = "lSg8Q~Qq4uT.YrZ~dp6GHl9Jf68EneCqHp4Bscan";
+                var tenantId = "aa93b9d9-037d-4f08-a26d-783cff0e2369";
+                token = GetAuthTokenConfidentialClientApp(
+                    resource, clientId, clientSecret, redirectUri, scope,
+                    tenantId);
+            }
+
+            //var clientId = "c4b08b47-feca-48ef-878c-59a05228cb83";
+            //var redirectUri = "http://localhost";
+            //var scope = resource + "/user_impersonation";
+            //AuthenticationResult token = GetAuthTokenPublicClientApp(resource, clientId, redirectUri, scope);
+
+
 
             //AuthenticationResult token =
             //    authBuilder.AcquireTokenInteractive(scopes).ExecuteAsync().Result;
+            Console.WriteLine("------------- Token -------------------");
             Console.WriteLine(token.AccessToken);
+            Console.WriteLine("------------- Token -------------------");
 
             //decode the token
             var handler = new JwtSecurityTokenHandler();
             var jsonToken = handler.ReadToken(token.AccessToken) as JwtSecurityToken;
-            Console.WriteLine(jsonToken.Claims.First(claim => claim.Type == "name").Value);
+            Console.WriteLine("---------------Name or App Id-----------------");
+            if (isPublicClient)
+            {
+                Console.WriteLine(jsonToken.Claims.First(claim => claim.Type == "name").Value);
+            }
+            else
+            {
+                Console.WriteLine(jsonToken.Claims.First(claim => claim.Type == "appid").Value);
+            }
 
             // give full output as with https://jwt.ms or https://jwt.io
             // decode all claims
+            Console.WriteLine("-------------- Claims --------------------");
             foreach (var claim in jsonToken.Claims)
             {
                 Console.WriteLine($"{claim.Type}: {claim.Value}");
             }
             // give audiences
+            Console.WriteLine("-------------- Audiences --------------------");
             Console.WriteLine("Audiences: " + string.Join(", ", jsonToken.Audiences));
+            Console.WriteLine("-------------- Valid from and to --------------------");
             // give valid from and to
             Console.WriteLine("Valid from: " + jsonToken.ValidFrom);
             Console.WriteLine("Valid to: " + jsonToken.ValidTo);
 
-
+            Console.WriteLine("--------------------------------");
 
             #endregion Authentication
 
@@ -187,8 +225,49 @@ namespace PowerApps.Samples
             //Console.ReadKey();
         }
 
+        private static AuthenticationResult GetAuthTokenConfidentialClientApp(
+            string resource,
+            string clientId,
+            string clientSecret,
+            string redirectUri,
+            string scope,
+            string tenantId)
+        {
+            // System.AggregateException
+            //            HResult = 0x80131500
+            //  Message = One or more errors occurred. (AADSTS700016: Application with identifier '7f302f1f-081d-4a3b-bd84-3bbcee7a0a12' was not found in the directory 'Microsoft Services'.This can happen if the application has not been installed by the administrator of the tenant or consented to by any user in the tenant. You may have sent your authentication request to the wrong tenant.Trace ID: 10258212 - 6607 - 4f75 - 9f34 - 1a56fce53500 Correlation ID: 0b3fc435 - dd3a - 4eee - 8305 - c0ec421aeb86 Timestamp: 2024 - 11 - 25 20:51:33Z)
+            //  Source = System.Private.CoreLib
+            //  StackTrace:
+            //            at System.Threading.Tasks.Task.ThrowIfExceptional(Boolean includeTaskCanceledExceptions)
+            //   at System.Threading.Tasks.Task`1.GetResultCore(Boolean waitCompletionNotification)
+            //   at PowerApps.Samples.Program.GetAuthTokenConfidentialClientApp(String resource, String clientId, String clientSecret, String redirectUri, String scope) in C:\src\devopsabcs\OneProject\APIM_apim - landing - zone - accelerator\src\QuickStart\QuickStart - MSALCore\Program.cs:line 203
+            //   at PowerApps.Samples.Program.Main() in C:\src\devopsabcs\OneProject\APIM_apim - landing - zone - accelerator\src\QuickStart\QuickStart - MSALCore\Program.cs:line 116
+
+            //  This exception was originally thrown at this call stack:
+            //    [External Code]
+
+            //            Inner Exception 1:
+            //MsalServiceException: AADSTS700016: Application with identifier '7f302f1f-081d-4a3b-bd84-3bbcee7a0a12' was not found in the directory 'Microsoft Services'.This can happen if the application has not been installed by the administrator of the tenant or consented to by any user in the tenant. You may have sent your authentication request to the wrong tenant.Trace ID: 10258212 - 6607 - 4f75 - 9f34 - 1a56fce53500 Correlation ID: 0b3fc435 - dd3a - 4eee - 8305 - c0ec421aeb86 Timestamp: 2024 - 11 - 25 20:51:33Z
+
+            var authBuilder = ConfidentialClientApplicationBuilder.Create(clientId)
+                             .WithTenantId(tenantId)
+                             .WithClientSecret(clientSecret)
+                             //.WithAuthority(AadAuthorityAudience.AzureAdMultipleOrgs)
+                             .WithRedirectUri(redirectUri)
+                             .Build();
+
+            string[] scopes = { scope };
+
+            AuthenticationResult token = authBuilder.AcquireTokenForClient(scopes).ExecuteAsync().Result;
+
+            return token;
+        }
+
         private static AuthenticationResult GetAuthTokenPublicClientApp(
-            string resource, string clientId, string redirectUri, string scope)
+            string resource,
+            string clientId,
+            string redirectUri,
+            string scope)
         {
             var authBuilder = PublicClientApplicationBuilder
                 .Create(clientId)
@@ -196,7 +275,7 @@ namespace PowerApps.Samples
                 // or use a known port if you wish "http://localhost:1234"
                 .WithRedirectUri(redirectUri)
                 .Build();
-            
+
             string[] scopes = { scope };
 
             AuthenticationResult token = authBuilder.AcquireTokenInteractive(scopes)
