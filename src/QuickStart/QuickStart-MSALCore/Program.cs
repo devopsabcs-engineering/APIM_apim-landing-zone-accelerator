@@ -19,7 +19,7 @@ namespace PowerApps.Samples
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
                 .Build();
 
-            bool isPublicClient = true;
+            bool isPublicClient = false; // Set to false for confidential client
             string dataVerseEnvironmentName = "org50078be4";
             string resource = $"https://{dataVerseEnvironmentName}.crm.dynamics.com";
 
