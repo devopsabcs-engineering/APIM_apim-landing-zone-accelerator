@@ -367,3 +367,4 @@ appsettings.json
 tools/code/.env.publisher
 tools/code/.env.extractor
 /src/Sandbox.Api.OboConnectorCoreSoln/Sandbox.Api.OboConnectorCore/appsettings.Development.json
+/src/QuickStart/QuickStart-MSALCore/appsettings.json
