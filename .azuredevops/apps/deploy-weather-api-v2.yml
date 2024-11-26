@@ -46,7 +46,7 @@ variables:
   - name: azureSubscription
     value: APIM_MicrosoftAzureExternal_multitenant
   - name: websitePackageName
-    value: WeatherApi.zip
+    value: WeatherApi
   #- name: appName
   #  value: app-soap-api-l6isc4zatv5ny
   - name: resourceGroupName
@@ -175,12 +175,12 @@ stages:
             inputs:
               command: "publish"
               publishWebProjects: false
-              arguments: "--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory) -p:Version=$(GitVersion.SemVer) -p:FileVersion=$(GitVersion.AssemblySemFileVer) -p:AssemblyVersion=$(GitVersion.AssemblySemVer)"
+              arguments: "--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)/$(websitePackageName)_$(Build.BuildId) -p:Version=$(GitVersion.SemVer) -p:FileVersion=$(GitVersion.AssemblySemFileVer) -p:AssemblyVersion=$(GitVersion.AssemblySemVer)"
               workingDirectory: "$(workingDirectory)"
           # this code takes all the files in $(Build.ArtifactStagingDirectory) and uploads them as an artifact of your build.
           - task: PublishPipelineArtifact@1
             inputs:
-              targetPath: "$(Build.ArtifactStagingDirectory)"
+              targetPath: "$(Build.ArtifactStagingDirectory)/$(websitePackageName)_$(Build.BuildId)"
               artifactName: $(artifactName)
   - stage: deployInfra
     displayName: Deploy Infra
@@ -299,6 +299,14 @@ stages:
                 # echo app name
                 - script: echo $(get_app_name.appName)
                   displayName: "App Name"
+                # extract website package in temp folder and show content recursively
+                - task: ExtractFiles@1
+                  displayName: "Extract $(artifactName)"
+                  inputs:
+                    archiveFilePatterns: "$(Pipeline.Workspace)/$(artifactName)/$(websitePackageName)_$(Build.BuildId).zip"
+                    destinationFolder: "$(Pipeline.Workspace)/$(artifactName)/$(websitePackageName)_$(Build.BuildId)"
+                - script: ls -R $(Pipeline.Workspace)/$(artifactName)/$(websitePackageName)_$(Build.BuildId)
+                  displayName: "List files in $(Pipeline.Workspace)/$(artifactName)/$(websitePackageName)_$(Build.BuildId)"
                 - task: AzureWebApp@1
                   displayName: "Azure Web App Deploy"
                   enabled: false
@@ -306,4 +314,4 @@ stages:
                     azureSubscription: "$(azureSubscription)"
                     appType: "webAppLinux"
                     appName: "$(get_app_name.appName)"
-                    package: "$(Pipeline.Workspace)/$(artifactName)/$(websitePackageName)"
+                    package: "$(Pipeline.Workspace)/$(artifactName)/$(websitePackageName)_$(Build.BuildId).zip"
