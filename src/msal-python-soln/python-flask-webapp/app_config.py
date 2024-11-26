@@ -34,7 +34,7 @@ REDIRECT_PATH = "/getAToken"  # Used for forming an absolute URL to your redirec
 
 # You can find more Microsoft Graph API endpoints from Graph Explorer
 # https://developer.microsoft.com/en-us/graph/graph-explorer
-ENDPOINT = 'https://app-weather-api-gyt73mi6rca7g.azurewebsites.net/weatherforecast' #'https://graph.microsoft.com/v1.0/me'  # This resource requires no admin consent
+ENDPOINT = 'https://app-weather-api-wvwg5gngtozli.azurewebsites.net/weatherforecast' #'https://graph.microsoft.com/v1.0/me'  # This resource requires no admin consent
 
 # You can find the proper permission names from this document
 # https://docs.microsoft.com/en-us/graph/permissions-reference
