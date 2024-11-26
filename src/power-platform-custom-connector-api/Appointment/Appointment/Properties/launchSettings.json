@@ -2,8 +2,14 @@
   "profiles": {
     "Appointment": {
       "commandName": "Project",
-      "commandLineArgs": "--port 7245",
-      "launchBrowser": false
+      "commandLineArgs": "--port 7245"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker",
+      "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}",
+      "containerRunArguments": "--init",
+      "httpPort": 32444,
+      "useSSL": false
     }
   }
 }
