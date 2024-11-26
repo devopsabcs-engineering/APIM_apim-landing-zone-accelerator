@@ -41,6 +41,28 @@ var hostingPlanName = 'asp-appt-${instanceNumber}-${uniqueString(resourceGroup()
 var applicationInsightsName = 'appi-appt-${instanceNumber}-${uniqueString(resourceGroup().id)}'
 var storageAccountName = 'stappt${instanceNumber}${uniqueString(resourceGroup().id)}'
 var containerRegistryName = 'crappt${instanceNumber}${uniqueString(resourceGroup().id)}'
+var logAnalyticsName = 'log-appt-${instanceNumber}-${uniqueString(resourceGroup().id)}'
+
+resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+  name: logAnalyticsName
+  location: location
+  properties: {
+    sku: {
+      name: 'PerGB2018'
+    }
+    retentionInDays: 30
+    features: {
+      legacy: 0 // 0 means disable
+      searchVersion: 1
+      enableLogAccessUsingOnlyResourcePermissions: true
+    }
+    workspaceCapping: {
+      dailyQuotaGb: -1
+    }
+    publicNetworkAccessForIngestion: 'Enabled'
+    publicNetworkAccessForQuery: 'Enabled'
+  }
+}
 
 resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-11-01-preview' = {
   name: containerRegistryName
@@ -103,6 +125,7 @@ resource applicationInsight 'Microsoft.Insights/components@2020-02-02' = {
   }
   properties: {
     Application_Type: 'web'
+    WorkspaceResourceId: logAnalytics.id
   }
   kind: 'web'
 }
@@ -121,8 +144,80 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
       linuxFxVersion: linuxFxVersion
       appSettings: [
         {
+          name: 'APPINSIGHTS_INSTRUMENTATIONKEY'
+          value: applicationInsight.properties.InstrumentationKey
+        }
+        {
+          name: 'Logging__LogLevel__Default'
+          value: 'Information'
+        }
+        {
+          name: 'Logging__LogLevel__Microsoft.AspNetCore'
+          value: 'Warning'
+        }
+        {
+          name: 'Logging__ApplicationInsights__LogLevel__Default'
+          value: 'Debug'
+        }
+        {
+          name: 'Logging__ApplicationInsights__LogLevel__Microsoft'
+          value: 'Error'
+        }
+        {
+          name: 'AllowedHosts'
+          value: '*'
+        }
+        {
+          name: 'ApplicationInsights__InstrumentationKey'
+          value: applicationInsight.properties.InstrumentationKey
+        }
+        {
+          name: 'APPLICATIONINSIGHTS_INSTRUMENTATIONKEY'
+          value: applicationInsight.properties.InstrumentationKey
+        }
+        {
           name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
           value: applicationInsight.properties.ConnectionString
+        }
+        {
+          name: 'APPINSIGHTS_PROFILERFEATURE_VERSION'
+          value: '1.0.0'
+        }
+        {
+          name: 'APPINSIGHTS_SNAPSHOTFEATURE_VERSION'
+          value: '1.0.0'
+        }
+        {
+          name: 'ApplicationInsightsAgent_EXTENSION_VERSION'
+          value: '~3'
+        }
+        {
+          name: 'DiagnosticServices_EXTENSION_VERSION'
+          value: '~3'
+        }
+        {
+          name: 'InstrumentationEngine_EXTENSION_VERSION'
+          value: 'disabled'
+        }
+        {
+          name: 'SnapshotDebugger_EXTENSION_VERSION'
+          value: 'disabled'
+        }
+        {
+          name: 'XDT_MicrosoftApplicationInsights_BaseExtensions'
+          value: 'disabled'
+        }
+        {
+          name: 'XDT_MicrosoftApplicationInsights_Mode'
+          value: 'recommended'
+        }
+        {
+          name: 'XDT_MicrosoftApplicationInsights_PreemptSdk'
+          value: 'disabled'
+        }
+        {
+          name: 'APPLICATIONINSIGHTS_CONFIGURATION_CONTENT'
+          value: ''
         }
         {
           name: 'AzureWebJobsStorage'
