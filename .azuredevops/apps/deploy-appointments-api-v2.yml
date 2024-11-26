@@ -293,7 +293,7 @@ stages:
                       echo "Getting app name"
                       appName=$(az deployment group show --name $(deploymentName) \
                         --resource-group $(resourceGroupName) \
-                        --query properties.outputs.appName.value \
+                        --query properties.outputs.functionAppName.value \
                         -o tsv)
                       echo "App Name: $appName"
                       echo "##vso[task.setvariable variable=appName;isOutput=true]$appName"
