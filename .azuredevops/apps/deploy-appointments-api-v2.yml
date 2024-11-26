@@ -173,9 +173,10 @@ stages:
               testResultsFiles: "**/*.trx"
               mergeTestResults: true
           - task: DotNetCoreCLI@2
+            displayName: "Publish Artifact (dotnet publish)"
             inputs:
               command: "publish"
-              publishWebProjects: true
+              publishWebProjects: false
               arguments: "--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory) -p:Version=$(GitVersion.SemVer) -p:FileVersion=$(GitVersion.AssemblySemFileVer) -p:AssemblyVersion=$(GitVersion.AssemblySemVer)"
               workingDirectory: "$(workingDirectory)"
           # this code takes all the files in $(Build.ArtifactStagingDirectory) and uploads them as an artifact of your build.
