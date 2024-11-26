@@ -1,0 +1,180 @@
+@description('The name of the Azure Function app.')
+param functionAppName string = 'func-appt-${instanceNumber}-${uniqueString(resourceGroup().id)}'
+
+@description('The instance number of the Azure Function app.')
+param instanceNumber string = '002'
+
+@description('The name of the table to create in the storage account.')
+param appointmentTableName string = 'Appointments'
+
+@description('Storage Account type')
+@allowed([
+  'Standard_LRS'
+  'Standard_GRS'
+  'Standard_RAGRS'
+])
+param storageAccountType string = 'Standard_LRS'
+
+@description('Location for all resources.')
+param location string = resourceGroup().location
+
+@description('Location for Application Insights')
+param appInsightsLocation string = resourceGroup().location
+
+@description('The language worker runtime to load in the function app.')
+@allowed([
+  'dotnet'
+  'dotnet-isolated'
+  'node'
+  'python'
+  'java'
+])
+param functionWorkerRuntime string = 'dotnet-isolated'
+
+@description('Required for Linux app to represent runtime stack in the format of \'runtime|runtimeVersion\'. For example: \'python|3.9\'')
+param linuxFxVersion string = 'dotnet-isolated|8.0'
+
+//@description('The zip content url.')
+//param packageUri string
+
+var hostingPlanName = 'asp-appt-${instanceNumber}-${uniqueString(resourceGroup().id)}'
+var applicationInsightsName = 'appi-appt-${instanceNumber}-${uniqueString(resourceGroup().id)}'
+var storageAccountName = 'stappt${instanceNumber}${uniqueString(resourceGroup().id)}'
+var containerRegistryName = 'crappt${instanceNumber}${uniqueString(resourceGroup().id)}'
+
+resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-11-01-preview' = {
+  name: containerRegistryName
+  location: location
+  sku: {
+    name: 'Basic'
+  }
+  properties: {
+    adminUserEnabled: true
+  }
+}
+
+resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
+  name: storageAccountName
+  location: location
+  sku: {
+    name: storageAccountType
+  }
+  kind: 'StorageV2'
+  // allow storage account to be accessed from the function app
+  properties: {
+    networkAcls: {
+      defaultAction: 'Allow'
+      // allow access from the function app
+      bypass: 'AzureServices'
+      virtualNetworkRules: []
+      ipRules: []
+    }
+    allowSharedKeyAccess: true // should use managed identity instead
+  }
+
+  // add table services
+  resource tableService 'tableServices@2023-05-01' = {
+    name: 'default'
+    resource table 'tables@2023-05-01' = {
+      name: appointmentTableName
+    }
+  }
+}
+
+resource hostingPlan 'Microsoft.Web/serverfarms@2024-04-01' = {
+  name: hostingPlanName
+  location: location
+  sku: {
+    name: 'Y1'
+    tier: 'Dynamic'
+    size: 'Y1'
+    family: 'Y'
+  }
+  properties: {
+    reserved: true
+  }
+}
+
+resource applicationInsight 'Microsoft.Insights/components@2020-02-02' = {
+  name: applicationInsightsName
+  location: appInsightsLocation
+  tags: {
+    'hidden-link:${resourceId('Microsoft.Web/sites', functionAppName)}': 'Resource'
+  }
+  properties: {
+    Application_Type: 'web'
+  }
+  kind: 'web'
+}
+
+resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
+  name: functionAppName
+  location: location
+  kind: 'functionapp,linux'
+  identity: {
+    type: 'SystemAssigned'
+  }
+  properties: {
+    reserved: true
+    serverFarmId: hostingPlan.id
+    siteConfig: {
+      linuxFxVersion: linuxFxVersion
+      appSettings: [
+        {
+          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+          value: applicationInsight.properties.ConnectionString
+        }
+        {
+          name: 'AzureWebJobsStorage'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccountName};EndpointSuffix=${environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}'
+        }
+        // {
+        //   name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'
+        //   value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccountName};EndpointSuffix=${environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}'
+        // }
+        // {
+        //   name: 'WEBSITE_CONTENTSHARE'
+        //   value: toLower(functionAppName)
+        // }
+        {
+          name: 'FUNCTIONS_EXTENSION_VERSION'
+          value: '~4'
+        }
+        {
+          name: 'FUNCTIONS_WORKER_RUNTIME'
+          value: functionWorkerRuntime
+        }
+        {
+          name: 'SCM_DO_BUILD_DURING_DEPLOYMENT'
+          value: '0'
+        }
+        {
+          name: 'StorageAccountAppointmentsTable'
+          value: appointmentTableName
+        }
+        {
+          name: 'StorageConnectionString'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccountName};EndpointSuffix=${environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}'
+        }
+        {
+          name: 'WEBSITE_USE_PLACEHOLDER_DOTNETISOLATED'
+          value: '1'
+        }
+      ]
+    }
+  }
+
+  resource scm 'basicPublishingCredentialsPolicies@2024-04-01' = {
+    name: 'scm'
+    properties: {
+      //enable basic auth for the app
+      allow: true
+    }
+  }
+}
+
+output functionAppName string = functionApp.name
+output storageAccountName string = storageAccount.name
+output containerRegistryName string = containerRegistry.name
+output hostingPlanName string = hostingPlan.name
+output applicationInsightsName string = applicationInsight.name
