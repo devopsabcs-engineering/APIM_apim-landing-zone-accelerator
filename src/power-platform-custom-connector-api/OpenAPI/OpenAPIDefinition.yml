@@ -1,0 +1,214 @@
+swagger: '2.0'
+info:
+  description: This is a simple API to create Appointments for the customers.
+  version: 1.0.0
+  title: Customer Appointments
+  contact:
+    url: https://github.com/ramarao9
+    name: Contact Developer
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+host: FUNCTION_APP_NAME.azurewebsites.net
+basePath: /api
+tags:
+  - name: Appointment
+    description: Appointments for the customer
+    externalDocs:
+      description: Find out more
+      url: http://swagger.io
+schemes:
+  - https
+
+paths:
+  /Appointment:
+    post:
+      tags:
+        - Appointment
+      summary: Add a new appointment for customer
+      description: ''
+      operationId: addAppointment
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          description: Appointment object that needs to be added to the store
+          required: true
+          schema:
+            $ref: '#/definitions/Appointment'
+      responses:
+        '201':
+          description: Appointment created
+        '400':
+          description: Invalid input
+        '500':
+          description: Internal server error
+    put:
+      tags:
+        - Appointment
+      summary: Update an existing appointment
+      description: ''
+      operationId: updateAppointment
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          description: Appointment that needs to be created for the customer
+          required: true
+          schema:
+            $ref: '#/definitions/Appointment'
+      responses:
+        '204':
+          description: No content
+        '400':
+          description: Bad Request
+        '404':
+          description: Appointment not found
+        '500':
+          description: Internal server error
+  /Appointment/{customerId}:
+    get:
+      tags:
+        - Appointments
+      summary: Find Appointments by Customer ID
+      description: Returns all the appointments for the customer.
+      operationId: getAppointmentsById
+      produces:
+        - application/json
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of the customer
+          required: true
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Successful operation
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Appointment'
+        '400':
+          description: Invalid Customer ID supplied
+        '404':
+          description: Appointment not found
+        '500':
+          description: Internal server error
+  /Appointment/{customerId}/{appointmentId}:
+    get:
+      tags:
+        - Appointment
+      summary: Find Appointment by Customer ID and Appointment ID
+      description: Returns a appoinment for the customer.
+      operationId: getAppointmentById
+      produces:
+        - application/json
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of the customer
+          required: true
+          type: string
+          format: uuid
+        - name: appointmentId
+          in: path
+          description: ID of the appointment
+          required: true
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Successful operation
+          schema:
+            $ref: '#/definitions/Appointment'
+        '400':
+          description: Invalid Appointment ID or Customer ID supplied
+        '404':
+          description: Appointment not found
+        '500':
+          description: Internal server error
+    delete:
+      tags:
+        - Appointment
+      summary: Deletes an appointment
+      description: ''
+      operationId: deleteAppointment
+      produces:
+        - application/json
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of the customer
+          required: true
+          type: string
+          format: uuid
+        - name: appointmentId
+          in: path
+          description: ID of the appointment
+          required: true
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Successful operation
+        '400':
+          description: Invalid ID supplied
+        '404':
+          description: Appointment not found
+        '500':
+          description: Internal server error
+
+
+definitions:
+  Appointment:
+    type: object
+    required:
+      - CustomerId
+      - Id
+    properties:
+      CustomerId:
+        type: string
+        format: uuid
+      Id:
+        type: string
+        format: uuid
+      StartTime:
+        type: string
+        format: date-time
+      EndTime:
+        type: string
+        format: date-time
+      Description:
+        type: string
+      Location:
+        type: string
+      Subject:
+        type: string
+
+
+securityDefinitions:
+  oauth2-auth:
+    type: oauth2
+    flow: accessCode
+    tokenUrl: https://login.windows.net/common/oauth2/authorize
+    scopes:
+      CLIENT_ID/.default: CLIENT_ID/.default
+    authorizationUrl: https://login.microsoftonline.com/common/oauth2/authorize
+  oAuthClientCredentials:
+    type: oauth2
+    flow: application
+    tokenUrl: https://login.windows.net/common/oauth2/authorize
+    scopes:
+      CLIENT_ID/.default: CLIENT_ID/.default
+security:
+  - oauth2-auth:
+      - CLIENT_ID/.default
+  - oAuthClientCredentials:
+      - CLIENT_ID/.default

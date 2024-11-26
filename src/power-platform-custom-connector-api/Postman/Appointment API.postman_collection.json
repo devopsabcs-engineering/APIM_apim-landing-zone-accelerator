@@ -1,0 +1,315 @@
+{
+	"info": {
+		"_postman_id": "d60ee4fe-2237-4208-a6cb-3e0114f7be92",
+		"name": "Appointment API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "3320643"
+	},
+	"item": [
+		{
+			"name": "Local",
+			"item": [
+				{
+					"name": "CreateAppointment",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"CustomerId\": \"6df14e23-9f45-4f3b-b47c-1a6f3d92a7d6\",\r\n  \"Id\": \"a1b2c3d4-5678-9abc-def0-1234567890ab\",\r\n  \"StartTime\": \"2024-08-26T14:30:00Z\",\r\n  \"EndTime\": \"2024-08-26T15:00:00Z\",\r\n  \"Description\": \"Follow-up call to discuss account billing issue.\",\r\n  \"Location\": \"Customer Service Center\",\r\n  \"Subject\": \"Billing Issue Follow-up\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:7245/api/Appointment",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "7245",
+							"path": [
+								"api",
+								"Appointment"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetAppointment",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:7245/api/Appointment/6df14e23-9f45-4f3b-b47c-1a6f3d92a7d6/a1b2c3d4-5678-9abc-def0-1234567890ab",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "7245",
+							"path": [
+								"api",
+								"Appointment",
+								"6df14e23-9f45-4f3b-b47c-1a6f3d92a7d6",
+								"a1b2c3d4-5678-9abc-def0-1234567890ab"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetAppointments",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:7245/api/Appointment/6df14e23-9f45-4f3b-b47c-1a6f3d92a7d6",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "7245",
+							"path": [
+								"api",
+								"Appointment",
+								"6df14e23-9f45-4f3b-b47c-1a6f3d92a7d6"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "UpdateAppointment",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"CustomerId\": \"6df14e23-9f45-4f3b-b47c-1a6f3d92a7d6\",\r\n    \"StartTime\": \"2024-08-26T14:30:00Z\",\r\n    \"EndTime\": \"2024-08-26T15:00:00Z\",\r\n    \"Description\": \"Follow-up call to discuss account billing issue.\",\r\n    \"Id\": \"a1b2c3d4-5678-9abc-def0-1234567890ab\",\r\n    \"Location\": \"Customer Service Center\",\r\n    \"Subject\": \"Billing Issue Follow-up\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:7245/api/Appointment",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "7245",
+							"path": [
+								"api",
+								"Appointment"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "DeleteAppointment",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:7245/api/Appointment/6df14e23-9f45-4f3b-b47c-1a6f3d92a7d6/f7e8d9c0-b1a2-3c4d-5e6f-7a8b9c0d1e2f",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "7245",
+							"path": [
+								"api",
+								"Appointment",
+								"6df14e23-9f45-4f3b-b47c-1a6f3d92a7d6",
+								"f7e8d9c0-b1a2-3c4d-5e6f-7a8b9c0d1e2f"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Azure",
+			"item": [
+				{
+					"name": "CreateAppointment",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"CustomerId\": \"6df14e23-9f45-4f3b-b47c-1a6f3d92a7d6\",\r\n  \"Id\": \"a1b2c3d4-5678-9abc-def0-1234567890ab\",\r\n  \"StartTime\": \"2024-08-26T14:30:00Z\",\r\n  \"EndTime\": \"2024-08-26T15:00:00Z\",\r\n  \"Description\": \"Follow-up call to discuss account billing issue.\",\r\n  \"Location\": \"Customer Service Center\",\r\n  \"Subject\": \"Billing Issue Follow-up\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{APIBaseURL}}/api/Appointment{",
+							"host": [
+								"{{APIBaseURL}}"
+							],
+							"path": [
+								"api",
+								"Appointment{"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetAppointment",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{APIBaseURL}}/api/Appointment/6df14e23-9f45-4f3b-b47c-1a6f3d92a7d6/a1b2c3d4-5678-9abc-def0-1234567890ab",
+							"host": [
+								"{{APIBaseURL}}"
+							],
+							"path": [
+								"api",
+								"Appointment",
+								"6df14e23-9f45-4f3b-b47c-1a6f3d92a7d6",
+								"a1b2c3d4-5678-9abc-def0-1234567890ab"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetAppointments",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{APIBaseURL}}/api/Appointment/6df14e23-9f45-4f3b-b47c-1a6f3d92a7d6",
+							"host": [
+								"{{APIBaseURL}}"
+							],
+							"path": [
+								"api",
+								"Appointment",
+								"6df14e23-9f45-4f3b-b47c-1a6f3d92a7d6"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "UpdateAppointment",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"CustomerId\": \"6df14e23-9f45-4f3b-b47c-1a6f3d92a7d6\",\r\n    \"StartTime\": \"2024-08-26T14:30:00Z\",\r\n    \"EndTime\": \"2024-08-26T15:00:00Z\",\r\n    \"Description\": \"Follow-up call to discuss account billing issue.\",\r\n    \"Id\": \"a1b2c3d4-5678-9abc-def0-1234567890ab\",\r\n    \"Location\": \"Customer Service Center\",\r\n    \"Subject\": \"Billing Issue Follow-up\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:7245/api/Appointment",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "7245",
+							"path": [
+								"api",
+								"Appointment"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "DeleteAppointment",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:7245/api/Appointment/6df14e23-9f45-4f3b-b47c-1a6f3d92a7d6/f7e8d9c0-b1a2-3c4d-5e6f-7a8b9c0d1e2f",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "7245",
+							"path": [
+								"api",
+								"Appointment",
+								"6df14e23-9f45-4f3b-b47c-1a6f3d92a7d6",
+								"f7e8d9c0-b1a2-3c4d-5e6f-7a8b9c0d1e2f"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"var accessToken=jsonData.access_token;",
+									"",
+									"pm.environment.set(\"accessToken\", accessToken);",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "grant_type",
+									"value": "client_credentials",
+									"type": "text"
+								},
+								{
+									"key": "client_id",
+									"value": "{{ClientId}}",
+									"type": "text"
+								},
+								{
+									"key": "client_secret",
+									"value": "{{ClientSecret}}",
+									"type": "text"
+								},
+								{
+									"key": "scope",
+									"value": "{{ClientId}}/.default",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{TokenEndpoint}}",
+							"host": [
+								"{{TokenEndpoint}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
