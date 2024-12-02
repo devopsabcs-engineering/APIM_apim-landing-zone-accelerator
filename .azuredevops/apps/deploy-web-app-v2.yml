@@ -34,7 +34,7 @@ parameters:
 
 variables:
   - name: solution
-    value: "$(System.DefaultWorkingDirectory)/src/WebAppSoln/WebApp-OpenIDConnect-DotNet.sln"
+    value: "$(System.DefaultWorkingDirectory)/src/WebAppSoln/WebApp-OpenIDConnect-DotNet/WebApp-OpenIDConnect-DotNet.csproj"
   - name: buildPlatform
     value: "Any CPU"
   - name: buildConfiguration
@@ -143,7 +143,7 @@ stages:
             inputs:
               command: "build"
               projects: "$(Solution)"
-              arguments: "--configuration $(buildConfiguration)"
+              arguments: "--framework net8.0 --configuration $(buildConfiguration)"
             displayName: "dotnet build $(buildConfiguration)"
           - task: DotNetCoreCLI@2
             enabled: false
@@ -173,7 +173,7 @@ stages:
             inputs:
               command: "publish"
               publishWebProjects: false
-              arguments: "--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)/$(websitePackageName)_$(Build.BuildId) -p:Version=$(GitVersion.SemVer) -p:FileVersion=$(GitVersion.AssemblySemFileVer) -p:AssemblyVersion=$(GitVersion.AssemblySemVer)"
+              arguments: "--framework net8.0 --configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)/$(websitePackageName)_$(Build.BuildId) -p:Version=$(GitVersion.SemVer) -p:FileVersion=$(GitVersion.AssemblySemFileVer) -p:AssemblyVersion=$(GitVersion.AssemblySemVer)"
               workingDirectory: "$(workingDirectory)"
           # this code takes all the files in $(Build.ArtifactStagingDirectory) and uploads them as an artifact of your build.
           - task: PublishPipelineArtifact@1
