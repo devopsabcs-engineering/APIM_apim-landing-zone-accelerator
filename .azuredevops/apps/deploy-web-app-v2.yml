@@ -143,7 +143,7 @@ stages:
             inputs:
               command: "build"
               projects: "$(Solution)"
-              arguments: "--framework net8.0 --configuration $(buildConfiguration)"
+              arguments: "--configuration $(buildConfiguration)"
             displayName: "dotnet build $(buildConfiguration)"
           - task: DotNetCoreCLI@2
             enabled: false
@@ -173,7 +173,7 @@ stages:
             inputs:
               command: "publish"
               publishWebProjects: false
-              arguments: "--framework net8.0 --configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)/$(websitePackageName)_$(Build.BuildId) -p:Version=$(GitVersion.SemVer) -p:FileVersion=$(GitVersion.AssemblySemFileVer) -p:AssemblyVersion=$(GitVersion.AssemblySemVer)"
+              arguments: "--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)/$(websitePackageName)_$(Build.BuildId) -p:Version=$(GitVersion.SemVer) -p:FileVersion=$(GitVersion.AssemblySemFileVer) -p:AssemblyVersion=$(GitVersion.AssemblySemVer)"
               workingDirectory: "$(workingDirectory)"
           # this code takes all the files in $(Build.ArtifactStagingDirectory) and uploads them as an artifact of your build.
           - task: PublishPipelineArtifact@1
