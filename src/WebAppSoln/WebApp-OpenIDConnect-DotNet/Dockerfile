@@ -29,9 +29,9 @@ ENV env_GitVersion_AssemblySemFileVer $GitVersion_AssemblySemFileVer
 ARG GitVersion_AssemblySemVer
 ENV env_GitVersion_AssemblySemVer $GitVersion_AssemblySemVer
 
-RUN dotnet publish "./WebApp-OpenIDConnect-DotNet.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false /p:Version=$GitVersion_SemVer /p:FileVersion=$GitVersion_AssemblySemFileVer /p:AssemblyVersion=$GitVersion_AssemblySemVer
-#RUN dotnet publish "./WebApp-OpenIDConnect-DotNet.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false /p:Version=1.0.0 /p:FileVersion=1.0.0.0 /p:AssemblyVersion=1.0.0.0
-#RUN dotnet publish "./WebApp-OpenIDConnect-DotNet.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./WebApp-OpenIDConnect-DotNet.csproj" --framework net8.0 -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false /p:Version=$GitVersion_SemVer /p:FileVersion=$GitVersion_AssemblySemFileVer /p:AssemblyVersion=$GitVersion_AssemblySemVer
+#RUN dotnet publish "./WebApp-OpenIDConnect-DotNet.csproj" --framework net8.0 -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false /p:Version=1.0.0 /p:FileVersion=1.0.0.0 /p:AssemblyVersion=1.0.0.0
+#RUN dotnet publish "./WebApp-OpenIDConnect-DotNet.csproj" --framework net8.0 -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
 FROM base AS final
