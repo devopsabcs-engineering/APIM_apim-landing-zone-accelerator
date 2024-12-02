@@ -133,7 +133,7 @@ stages:
               performMultiLevelLookup: true
               includePreviewVersions: true # Required for preview versions
           - task: DotNetCoreCLI@2
-            enabled: false
+            enabled: true
             displayName: "Restore NuGet packages"
             inputs:
               command: "restore"
