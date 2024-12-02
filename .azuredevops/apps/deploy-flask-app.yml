@@ -50,8 +50,8 @@ variables:
     value: $(System.DefaultWorkingDirectory)/src/msal-python-soln/python-flask-webapp/app_config.py
 
 pool:
-  #vmImage: "ubuntu-latest"
-  name: "DefaultLinuxOnPremPool"
+  vmImage: "ubuntu-latest"
+  #name: "DefaultLinuxOnPremPool"
 
 stages:
   - stage: set_version
