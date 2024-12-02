@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>	  
+	<TargetFrameworks>net8.0</TargetFrameworks>
+	<UserSecretsId>aspnet-WebApp_OpenIDConnect_DotNet-81EA87AD-E64D-4755-A1CC-5EA47F49B5D8</UserSecretsId>
+    <WebProject_DirectoryAccessLevelKey>0</WebProject_DirectoryAccessLevelKey>
+    <ApplicationInsightsResourceId>/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-msal-dotnet-storage-soln/providers/microsoft.insights/components/appi-WebApp-OpenIDConnect-DotNet-001</ApplicationInsightsResourceId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="AppCreationScripts\**" />
+    <Compile Remove="ReadmeFiles\**" />
+    <Content Remove="AppCreationScripts\**" />
+    <Content Remove="ReadmeFiles\**" />
+    <EmbeddedResource Remove="AppCreationScripts\**" />
+    <EmbeddedResource Remove="ReadmeFiles\**" />
+    <None Remove="AppCreationScripts\**" />
+    <None Remove="ReadmeFiles\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.Identity" Version="1.13.1" />
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.23.0" />
+    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0" />
+    <PackageReference Include="Microsoft.Identity.Web.UI" Version="3.4.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+</Project>
