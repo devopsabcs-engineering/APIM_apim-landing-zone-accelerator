@@ -87,6 +87,14 @@ var azureAdAppSettings = [
     name: 'GraphApiUrl'
     value: 'https://graph.microsoft.com'
   }
+  {
+    name: 'AzureStorage__BaseUrl'
+    value: 'https://${storageAccount.name}.blob.${environment().suffixes.storage}'
+  }
+  {
+    name: 'AzureStorage__ContainerName'
+    value: containerName
+  }
 ]
 
 var baseAppSettings = [
