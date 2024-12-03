@@ -13,7 +13,7 @@ param containerRegistryName string = substring(
 param logAnalyticsName string = 'log-${baseName}-${uniqueString(resourceGroup().id)}'
 param imageName string = 'weatherapi'
 param addStorageAccount bool = false
-param storageAccountName string = 'st${baseName}${uniqueString(resourceGroup().id)}'
+param storageAccountName string = replace('st${baseName}${uniqueString(resourceGroup().id)}', '-', '')
 param containerName string = 'somecontainer'
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = if (addStorageAccount) {
