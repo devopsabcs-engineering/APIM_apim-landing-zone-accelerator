@@ -60,6 +60,7 @@ namespace WebApp_OpenIDConnect_DotNet.Controllers
             try
             {
                 var accessToken = await tokenAcquisition.GetAccessTokenForUserAsync(new[] { WebApp_OpenIDConnect_DotNet.Infrastructure.Constants.ScopeUserRead });
+                logger.LogInformation($"Access token: {accessToken}");
                 var me = await graphApiOperations.GetUserInformation(accessToken);
                 var photo = await graphApiOperations.GetPhotoAsBase64Async(accessToken);
 
@@ -84,6 +85,7 @@ namespace WebApp_OpenIDConnect_DotNet.Controllers
             try
             {
                 var accessToken = await tokenAcquisition.GetAccessTokenForUserAsync(new[] { $"{ArmApiOperationService.ArmResource}user_impersonation" });
+                logger.LogInformation($"Access token: {accessToken}");
                 var tenantIds = await armOperations.EnumerateTenantsIdsAccessibleByUser(accessToken);
 
                 ViewData["tenants"] = tenantIds;
@@ -131,7 +133,8 @@ namespace WebApp_OpenIDConnect_DotNet.Controllers
             Uri blobUri = new Uri($"{baseUrl}/{containerName}/Blob_{blobFileSuffixDateTime}.txt");
             BlobClient blobClient = new BlobClient(blobUri, new TokenAcquisitionTokenCredential(tokenAcquisition));
 
-            string blobContents = "Blob created by Azure AD authenticated user.";
+            // add the user information to the blob
+            string blobContents = $"User: {User.Identity.Name} created this blob at {DateTime.Now}";
             byte[] byteArray = Encoding.ASCII.GetBytes(blobContents);
             using (MemoryStream stream = new MemoryStream(byteArray))
             {
