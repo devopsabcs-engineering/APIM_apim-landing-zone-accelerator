@@ -50,6 +50,7 @@ namespace WebApp_OpenIDConnect_DotNet.Controllers
         public IActionResult Index()
         {
             logger.LogInformation($"Index action called by {User.Identity.Name}. Version: {_version}");
+            ViewData["Version"] = _version;
             return View();
         }
 
@@ -57,6 +58,7 @@ namespace WebApp_OpenIDConnect_DotNet.Controllers
         public async Task<IActionResult> Profile()
         {
             logger.LogInformation($"Profile action called by {User.Identity.Name}. Version: {_version}");
+            ViewData["Version"] = _version;
             try
             {
                 var accessToken = await tokenAcquisition.GetAccessTokenForUserAsync(new[] { WebApp_OpenIDConnect_DotNet.Infrastructure.Constants.ScopeUserRead });
@@ -82,6 +84,7 @@ namespace WebApp_OpenIDConnect_DotNet.Controllers
         public async Task<IActionResult> Tenants()
         {
             logger.LogInformation($"Tenants action called by {User.Identity.Name}. Version: {_version}");
+            ViewData["Version"] = _version;
             try
             {
                 var accessToken = await tokenAcquisition.GetAccessTokenForUserAsync(new[] { $"{ArmApiOperationService.ArmResource}user_impersonation" });
@@ -105,6 +108,7 @@ namespace WebApp_OpenIDConnect_DotNet.Controllers
         public async Task<IActionResult> TenantsWithImplicitAuth()
         {
             logger.LogInformation($"TenantsWithImplicitAuth action called by {User.Identity.Name}. Version: {_version}");
+            ViewData["Version"] = _version;
             try
             {
                 var tenantIds = await armOperationsWithImplicitAuth.EnumerateTenantsIds();
@@ -126,6 +130,7 @@ namespace WebApp_OpenIDConnect_DotNet.Controllers
         public async Task<IActionResult> Blob()
         {
             logger.LogInformation($"Blob action called by {User.Identity.Name}. Version: {_version}");
+            ViewData["Version"] = _version;
             string message = "Blob failed to create";
             var blobFileSuffixDateTime = DateTime.Now.ToString("yyyyMMddHHmmss");
             string baseUrl = configuration["AzureStorage:BaseUrl"];
@@ -178,6 +183,7 @@ namespace WebApp_OpenIDConnect_DotNet.Controllers
         public IActionResult Error()
         {
             logger.LogError($"Error action called. Version: {_version}");
+            ViewData["Version"] = _version;
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
     }
