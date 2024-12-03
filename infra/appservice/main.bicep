@@ -57,6 +57,10 @@ var azureAdAppSettings = [
     name: 'AzureAd__ClientSecret'
     value: '~5p8Q~MTSdp~lcZ0nbdKq1F-O1JfdcJeNV9SYbeS'
   }
+  {
+    name: 'GraphApiUrl'
+    value: 'https://graph.microsoft.com'
+  }
 ]
 
 var baseAppSettings = [
