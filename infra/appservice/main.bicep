@@ -30,9 +30,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = if (add
     // add a container to the storage account
     resource container 'containers@2023-05-01' = {
       name: containerName
-      properties: {
-        publicAccess: 'Container'
-      }
+      properties: {}
     }
   }
 }
