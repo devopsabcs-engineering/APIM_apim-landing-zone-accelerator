@@ -57,7 +57,7 @@ param azureAdClientSecret string = ''
 var azureAdAppSettings = [
   {
     name: 'AzureAd__Instance'
-    value: 'https://${environment().authentication.loginEndpoint}/'
+    value: environment().authentication.loginEndpoint
   }
   {
     name: 'AzureAd__Domain'
