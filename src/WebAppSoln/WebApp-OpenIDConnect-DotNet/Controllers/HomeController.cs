@@ -136,7 +136,13 @@ namespace WebApp_OpenIDConnect_DotNet.Controllers
             string baseUrl = configuration["AzureStorage:BaseUrl"];
             string containerName = configuration["AzureStorage:ContainerName"];
             Uri blobUri = new Uri($"{baseUrl}/{containerName}/Blob_{blobFileSuffixDateTime}.txt");
-            BlobClient blobClient = new BlobClient(blobUri, new TokenAcquisitionTokenCredential(tokenAcquisition));
+            var tokenAcquisitionTokenCredential = new TokenAcquisitionTokenCredential(tokenAcquisition);
+            BlobClient blobClient = new BlobClient(blobUri, tokenAcquisitionTokenCredential);
+
+            // get token from token acquisition
+            var token = await tokenAcquisition.GetAccessTokenForUserAsync(new[] { "https://storage.azure.com/user_impersonation" });
+            // log the token
+            logger.LogInformation($"Access token for Azure Storage: {token}");
 
             // add the user information to the blob
             string blobContents = $"User: {User.Identity.Name} created this blob at {DateTime.Now}";
