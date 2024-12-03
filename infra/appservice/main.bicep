@@ -26,6 +26,138 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2023-12-01' = {
   kind: 'linux'
 }
 
+param addAzureAdAppSettings bool = true
+
+var azureAdAppSettings = [
+  {
+    name: 'AzureAd__Instance'
+    value: 'https://${environment().authentication.loginEndpoint}/'
+  }
+  {
+    name: 'AzureAd__Domain'
+    value: 'MngEnvMCAP675646.onmicrosoft.com'
+  }
+  {
+    name: 'AzureAd__TenantId'
+    value: tenant().tenantId
+  }
+  {
+    name: 'AzureAd__ClientId'
+    value: 'b72949d1-b1f4-41cc-a370-5fa5f4e40d10'
+  }
+  {
+    name: 'AzureAd__CallbackPath'
+    value: '/signin-oidc'
+  }
+  {
+    name: 'AzureAd__SignedOutCallbackPath'
+    value: '/signout-callback-oidc'
+  }
+  {
+    name: 'AzureAd__ClientSecret'
+    value: '~5p8Q~MTSdp~lcZ0nbdKq1F-O1JfdcJeNV9SYbeS'
+  }
+]
+
+var baseAppSettings = [
+  {
+    name: 'APPINSIGHTS_INSTRUMENTATIONKEY'
+    value: appInsights.properties.InstrumentationKey
+  }
+  {
+    name: 'Logging__LogLevel__Default'
+    value: 'Information'
+  }
+  {
+    name: 'Logging__LogLevel__Microsoft.AspNetCore'
+    value: 'Warning'
+  }
+  {
+    name: 'Logging__ApplicationInsights__LogLevel__Default'
+    value: 'Debug'
+  }
+  {
+    name: 'Logging__ApplicationInsights__LogLevel__Microsoft'
+    value: 'Error'
+  }
+  {
+    name: 'AllowedHosts'
+    value: '*'
+  }
+  {
+    name: 'ApplicationInsights__InstrumentationKey'
+    value: appInsights.properties.InstrumentationKey
+  }
+  {
+    name: 'ApplicationInsights__ConnectionString'
+    value: appInsights.properties.ConnectionString
+  }
+  {
+    name: 'DOCKER_ENABLE_CI'
+    value: 'true'
+  }
+  {
+    name: 'DOCKER_REGISTRY_SERVER_URL'
+    value: containerRegistry.properties.loginServer
+  }
+  {
+    name: 'DOCKER_REGISTRY_SERVER_USERNAME'
+    value: containerRegistry.listCredentials().username
+  }
+  {
+    name: 'DOCKER_REGISTRY_SERVER_PASSWORD'
+    value: containerRegistry.listCredentials().passwords[0].value
+  }
+  {
+    name: 'APPINSIGHTS_PROFILERFEATURE_VERSION'
+    value: '1.0.0'
+  }
+  {
+    name: 'APPINSIGHTS_SNAPSHOTFEATURE_VERSION'
+    value: '1.0.0'
+  }
+  {
+    name: 'ApplicationInsightsAgent_EXTENSION_VERSION'
+    value: '~3'
+  }
+  {
+    name: 'DiagnosticServices_EXTENSION_VERSION'
+    value: '~3'
+  }
+  {
+    name: 'InstrumentationEngine_EXTENSION_VERSION'
+    value: 'disabled'
+  }
+  {
+    name: 'SnapshotDebugger_EXTENSION_VERSION'
+    value: 'disabled'
+  }
+  {
+    name: 'XDT_MicrosoftApplicationInsights_BaseExtensions'
+    value: 'disabled'
+  }
+  {
+    name: 'XDT_MicrosoftApplicationInsights_Mode'
+    value: 'recommended'
+  }
+  {
+    name: 'XDT_MicrosoftApplicationInsights_PreemptSdk'
+    value: 'disabled'
+  }
+  {
+    name: 'APPLICATIONINSIGHTS_CONFIGURATION_CONTENT'
+    value: ''
+  }
+  {
+    name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+    value: appInsights.properties.ConnectionString
+  }
+]
+
+// if addAzureAdAppSettings is true, add azure ad app settings to the base app settings
+// otherwise, use only the base app settings
+var appSettings = addAzureAdAppSettings ? union(baseAppSettings, azureAdAppSettings) : baseAppSettings
+
 resource appService 'Microsoft.Web/sites@2023-12-01' = {
   name: appName
   location: location
@@ -33,100 +165,7 @@ resource appService 'Microsoft.Web/sites@2023-12-01' = {
     serverFarmId: appServicePlan.id
     siteConfig: {
       linuxFxVersion: 'DOCKER|${containerRegistry.name}.azurecr.io/${imageName}:latest'
-      appSettings: [
-        {
-          name: 'APPINSIGHTS_INSTRUMENTATIONKEY'
-          value: appInsights.properties.InstrumentationKey
-        }
-        {
-          name: 'Logging__LogLevel__Default'
-          value: 'Information'
-        }
-        {
-          name: 'Logging__LogLevel__Microsoft.AspNetCore'
-          value: 'Warning'
-        }
-        {
-          name: 'Logging__ApplicationInsights__LogLevel__Default'
-          value: 'Debug'
-        }
-        {
-          name: 'Logging__ApplicationInsights__LogLevel__Microsoft'
-          value: 'Error'
-        }
-        {
-          name: 'AllowedHosts'
-          value: '*'
-        }
-        {
-          name: 'ApplicationInsights__InstrumentationKey'
-          value: appInsights.properties.InstrumentationKey
-        }
-        {
-          name: 'ApplicationInsights__ConnectionString'
-          value: appInsights.properties.ConnectionString
-        }
-        {
-          name: 'DOCKER_ENABLE_CI'
-          value: 'true'
-        }
-        {
-          name: 'DOCKER_REGISTRY_SERVER_URL'
-          value: containerRegistry.properties.loginServer
-        }
-        {
-          name: 'DOCKER_REGISTRY_SERVER_USERNAME'
-          value: containerRegistry.listCredentials().username
-        }
-        {
-          name: 'DOCKER_REGISTRY_SERVER_PASSWORD'
-          value: containerRegistry.listCredentials().passwords[0].value
-        }
-        {
-          name: 'APPINSIGHTS_PROFILERFEATURE_VERSION'
-          value: '1.0.0'
-        }
-        {
-          name: 'APPINSIGHTS_SNAPSHOTFEATURE_VERSION'
-          value: '1.0.0'
-        }
-        {
-          name: 'ApplicationInsightsAgent_EXTENSION_VERSION'
-          value: '~3'
-        }
-        {
-          name: 'DiagnosticServices_EXTENSION_VERSION'
-          value: '~3'
-        }
-        {
-          name: 'InstrumentationEngine_EXTENSION_VERSION'
-          value: 'disabled'
-        }
-        {
-          name: 'SnapshotDebugger_EXTENSION_VERSION'
-          value: 'disabled'
-        }
-        {
-          name: 'XDT_MicrosoftApplicationInsights_BaseExtensions'
-          value: 'disabled'
-        }
-        {
-          name: 'XDT_MicrosoftApplicationInsights_Mode'
-          value: 'recommended'
-        }
-        {
-          name: 'XDT_MicrosoftApplicationInsights_PreemptSdk'
-          value: 'disabled'
-        }
-        {
-          name: 'APPLICATIONINSIGHTS_CONFIGURATION_CONTENT'
-          value: ''
-        }
-        {
-          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-          value: appInsights.properties.ConnectionString
-        }
-      ]
+      appSettings: appSettings
     }
     httpsOnly: true
   }
