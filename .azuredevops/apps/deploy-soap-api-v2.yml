@@ -69,6 +69,8 @@ variables:
     value: APIM_Soap_Api_infra_production_${{ parameters.instanceNumber }}
   - name: environmentNameApp
     value: APIM_Soap_Api_app_production_${{ parameters.instanceNumber }}
+  - name: addAzureAdAppSettings
+    value: false
 
 stages:
   - stage: set_version
@@ -207,7 +209,8 @@ stages:
                           --resource-group $(resourceGroupName) \
                           --template-file $(templateFile) \
                           --parameters baseName=$(baseName) \
-                          --parameters imageName=$(imageName)
+                          --parameters imageName=$(imageName) \
+                          --parameters addAzureAdAppSettings=$(addAzureAdAppSettings)
   - stage: BuildAndPush
     displayName: Build and push stage
     dependsOn: deployInfra

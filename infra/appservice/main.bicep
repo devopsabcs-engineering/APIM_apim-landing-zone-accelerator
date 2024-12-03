@@ -26,7 +26,7 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2023-12-01' = {
   kind: 'linux'
 }
 
-param addAzureAdAppSettings bool = true
+param addAzureAdAppSettings bool = false
 
 var azureAdAppSettings = [
   {

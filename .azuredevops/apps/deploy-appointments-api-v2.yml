@@ -75,6 +75,8 @@ variables:
     value: APIM_Appointments_Api_infra_production_${{ parameters.instanceNumber }}
   - name: environmentNameApp
     value: APIM_Appointments_Api_app_production_${{ parameters.instanceNumber }}
+  - name: addAzureAdAppSettings
+    value: false
 
 stages:
   - stage: set_version
@@ -212,7 +214,8 @@ stages:
                       az deployment group create --name $(deploymentName) \
                           --resource-group $(resourceGroupName) \
                           --template-file $(templateFile) \
-                          --parameters instanceNumber=$(instanceNumber)
+                          --parameters instanceNumber=$(instanceNumber) \
+                          --parameters addAzureAdAppSettings=$(addAzureAdAppSettings)
   - stage: BuildAndPush
     displayName: Build and push stage
     dependsOn: deployInfra
