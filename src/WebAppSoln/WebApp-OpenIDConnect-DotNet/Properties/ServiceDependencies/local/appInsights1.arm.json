@@ -4,7 +4,7 @@
   "parameters": {
     "resourceGroupName": {
       "type": "string",
-      "defaultValue": "rg-msal-dotnet-storage-soln",
+      "defaultValue": "rg-web-appservice-linux-005",
       "metadata": {
         "_parameterType": "resourceGroup",
         "description": "Name of the resource group for the resource. It is recommended to put resources under same resource group for better tracking."
@@ -12,7 +12,7 @@
     },
     "resourceGroupLocation": {
       "type": "string",
-      "defaultValue": "canadacentral",
+      "defaultValue": "eastus2",
       "metadata": {
         "_parameterType": "location",
         "description": "Location of the resource group. Resource groups could have different location than resources."
@@ -36,7 +36,7 @@
     },
     {
       "type": "Microsoft.Resources/deployments",
-      "name": "[concat(parameters('resourceGroupName'), 'Deployment', uniqueString(concat('appi-WebApp-OpenIDConnect-DotNet-001', subscription().subscriptionId)))]",
+      "name": "[concat(parameters('resourceGroupName'), 'Deployment', uniqueString(concat('appi-web-app-jqlzyrm7hw4ou', subscription().subscriptionId)))]",
       "resourceGroup": "[parameters('resourceGroupName')]",
       "apiVersion": "2019-10-01",
       "dependsOn": [
@@ -50,7 +50,7 @@
           "resources": [
             {
               "kind": "web",
-              "name": "appi-WebApp-OpenIDConnect-DotNet-001",
+              "name": "appi-web-app-jqlzyrm7hw4ou",
               "type": "microsoft.insights/components",
               "location": "[parameters('resourceLocation')]",
               "properties": {},

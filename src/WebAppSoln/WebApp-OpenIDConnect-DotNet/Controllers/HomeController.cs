@@ -1,12 +1,14 @@
 ﻿using Azure.Storage.Blobs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Identity.Client;
 using Microsoft.Identity.Web;
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using WebApp_OpenIDConnect_DotNet.Models;
@@ -23,30 +25,38 @@ namespace WebApp_OpenIDConnect_DotNet.Controllers
         private readonly IArmOperations armOperations;
         private readonly IArmOperationsWithImplicitAuth armOperationsWithImplicitAuth;
         private readonly ILogger<HomeController> logger;
+        private readonly IConfiguration configuration;
+        private readonly string _version;
 
         public HomeController(ITokenAcquisition tokenAcquisition,
                               IGraphApiOperations graphApiOperations,
                               IArmOperations armOperations,
                               IArmOperationsWithImplicitAuth armOperationsWithImplicitAuth,
-                              ILogger<HomeController> logger)
+                              ILogger<HomeController> logger,
+                              IConfiguration configuration)
         {
             this.tokenAcquisition = tokenAcquisition;
             this.graphApiOperations = graphApiOperations;
             this.armOperations = armOperations;
             this.armOperationsWithImplicitAuth = armOperationsWithImplicitAuth;
             this.logger = logger;
+            this.configuration = configuration;
+            // get version from the assembly
+            _version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+            // log the version
+            logger.LogInformation($"Version: {_version}");
         }
 
         public IActionResult Index()
         {
-            logger.LogInformation("Index action called.");
+            logger.LogInformation($"Index action called. Version: {_version}");
             return View();
         }
 
         [AuthorizeForScopes(Scopes = new[] { WebApp_OpenIDConnect_DotNet.Infrastructure.Constants.ScopeUserRead })]
         public async Task<IActionResult> Profile()
         {
-            logger.LogInformation("Profile action called.");
+            logger.LogInformation($"Profile action called. Version: {_version}");
             try
             {
                 var accessToken = await tokenAcquisition.GetAccessTokenForUserAsync(new[] { WebApp_OpenIDConnect_DotNet.Infrastructure.Constants.ScopeUserRead });
@@ -56,11 +66,11 @@ namespace WebApp_OpenIDConnect_DotNet.Controllers
                 ViewData["Me"] = me;
                 ViewData["Photo"] = photo;
 
-                logger.LogInformation("Profile data retrieved successfully.");
+                logger.LogInformation($"Profile data retrieved successfully. Version: {_version}");
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error retrieving profile data.");
+                logger.LogError(ex, $"Error retrieving profile data. Version: {_version}");
                 throw;
             }
 
@@ -70,7 +80,7 @@ namespace WebApp_OpenIDConnect_DotNet.Controllers
         [AuthorizeForScopes(Scopes = new[] { "https://management.core.windows.net/user_impersonation", "user.read", "directory.read.all" })]
         public async Task<IActionResult> Tenants()
         {
-            logger.LogInformation("Tenants action called.");
+            logger.LogInformation($"Tenants action called. Version: {_version}");
             try
             {
                 var accessToken = await tokenAcquisition.GetAccessTokenForUserAsync(new[] { $"{ArmApiOperationService.ArmResource}user_impersonation" });
@@ -78,11 +88,11 @@ namespace WebApp_OpenIDConnect_DotNet.Controllers
 
                 ViewData["tenants"] = tenantIds;
 
-                logger.LogInformation("Tenant IDs retrieved successfully.");
+                logger.LogInformation($"Tenant IDs retrieved successfully. Version: {_version}");
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error retrieving tenant IDs.");
+                logger.LogError(ex, $"Error retrieving tenant IDs. Version: {_version}");
                 throw;
             }
 
@@ -92,18 +102,18 @@ namespace WebApp_OpenIDConnect_DotNet.Controllers
         [AuthorizeForScopes(Scopes = new[] { "https://management.core.windows.net/user_impersonation" })]
         public async Task<IActionResult> TenantsWithImplicitAuth()
         {
-            logger.LogInformation("TenantsWithImplicitAuth action called.");
+            logger.LogInformation($"TenantsWithImplicitAuth action called. Version: {_version}");
             try
             {
                 var tenantIds = await armOperationsWithImplicitAuth.EnumerateTenantsIds();
 
                 ViewData["tenants"] = tenantIds;
 
-                logger.LogInformation("Tenant IDs with implicit auth retrieved successfully.");
+                logger.LogInformation($"Tenant IDs with implicit auth retrieved successfully. Version: {_version}");
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error retrieving tenant IDs with implicit auth.");
+                logger.LogError(ex, $"Error retrieving tenant IDs with implicit auth. Version: {_version}");
                 throw;
             }
 
@@ -113,10 +123,12 @@ namespace WebApp_OpenIDConnect_DotNet.Controllers
         [AuthorizeForScopes(Scopes = new[] { "https://storage.azure.com/user_impersonation" })]
         public async Task<IActionResult> Blob()
         {
-            logger.LogInformation("Blob action called.");
+            logger.LogInformation($"Blob action called. Version: {_version}");
             string message = "Blob failed to create";
             var blobFileSuffixDateTime = DateTime.Now.ToString("yyyyMMddHHmmss");
-            Uri blobUri = new Uri($"https://stekmsalpower001.blob.core.windows.net/sysadmincontainer/Blob_{blobFileSuffixDateTime}.txt");
+            string baseUrl = configuration["AzureStorage:BaseUrl"];
+            string containerName = configuration["AzureStorage:ContainerName"];
+            Uri blobUri = new Uri($"{baseUrl}/{containerName}/Blob_{blobFileSuffixDateTime}.txt");
             BlobClient blobClient = new BlobClient(blobUri, new TokenAcquisitionTokenCredential(tokenAcquisition));
 
             string blobContents = "Blob created by Azure AD authenticated user.";
@@ -127,16 +139,16 @@ namespace WebApp_OpenIDConnect_DotNet.Controllers
                 {
                     await blobClient.UploadAsync(stream);
                     message = "Blob successfully created";
-                    logger.LogInformation("Blob created successfully.");
+                    logger.LogInformation($"Blob created successfully. Version: {_version}");
                 }
                 catch (MicrosoftIdentityWebChallengeUserException ex)
                 {
-                    logger.LogError(ex, "MicrosoftIdentityWebChallengeUserException occurred while creating blob.");
+                    logger.LogError(ex, $"MicrosoftIdentityWebChallengeUserException occurred while creating blob. Version: {_version}");
                     throw;
                 }
                 catch (MsalUiRequiredException ex)
                 {
-                    logger.LogError(ex, "MsalUiRequiredException occurred while creating blob.");
+                    logger.LogError(ex, $"MsalUiRequiredException occurred while creating blob. Version: {_version}");
                     throw;
                 }
                 catch (Exception ex)
@@ -144,12 +156,12 @@ namespace WebApp_OpenIDConnect_DotNet.Controllers
                     try
                     {
                         message += $". Reason - {((Azure.RequestFailedException)ex).ErrorCode}";
-                        logger.LogError(ex, "RequestFailedException occurred while creating blob.");
+                        logger.LogError(ex, $"RequestFailedException occurred while creating blob. Version: {_version}");
                     }
                     catch (Exception innerEx)
                     {
                         message += $". Reason - {ex.Message}";
-                        logger.LogError(innerEx, "Exception occurred while creating blob.");
+                        logger.LogError(innerEx, $"Exception occurred while creating blob. Version: {_version}");
                     }
                 }
             }
@@ -162,7 +174,7 @@ namespace WebApp_OpenIDConnect_DotNet.Controllers
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {
-            logger.LogError("Error action called.");
+            logger.LogError($"Error action called. Version: {_version}");
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
     }
