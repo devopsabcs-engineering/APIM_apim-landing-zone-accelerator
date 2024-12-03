@@ -1,19 +1,20 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Identity.Web;
+using Microsoft.Identity.Web.UI;
 using WebApp_OpenIDConnect_DotNet.Services.Arm;
 using WebApp_OpenIDConnect_DotNet.Services.GraphOperations;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Identity.Web.UI;
-using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 
 namespace WebApp_OpenIDConnect_DotNet
 {
@@ -38,6 +39,17 @@ namespace WebApp_OpenIDConnect_DotNet
                 options.HandleSameSiteCookieCompatibility();
             });
 
+            services.Configure<ForwardedHeadersOptions>(options =>
+            {
+                options.ForwardedHeaders = ForwardedHeaders.XForwardedFor |
+                              ForwardedHeaders.XForwardedProto;
+                // Only loopback proxies are allowed by default.
+                // Clear that restriction because forwarders are enabled by explicit
+                // configuration.
+                options.KnownNetworks.Clear();
+                options.KnownProxies.Clear();
+            });
+
             services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
                .AddMicrosoftIdentityWebApp(Configuration.GetSection("AzureAd"))
                .EnableTokenAcquisitionToCallDownstreamApi()
@@ -48,7 +60,7 @@ namespace WebApp_OpenIDConnect_DotNet
             services.AddHttpClient<IArmOperations, ArmApiOperationService>();
             services.AddHttpClient<IArmOperationsWithImplicitAuth, ArmApiOperationServiceWithImplicitAuth>()
                 .AddMicrosoftIdentityUserAuthenticationHandler(
-                    "arm", 
+                    "arm",
                     options => options.Scopes = $"{ArmApiOperationService.ArmResource}user_impersonation");
 
             services.AddControllersWithViews(options =>
@@ -79,6 +91,7 @@ namespace WebApp_OpenIDConnect_DotNet
             }
 
             app.UseHttpsRedirection();
+            app.UseForwardedHeaders();
             app.UseStaticFiles();
             app.UseCookiePolicy();
 

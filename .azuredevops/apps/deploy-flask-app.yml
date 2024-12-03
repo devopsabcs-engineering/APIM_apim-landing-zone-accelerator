@@ -48,8 +48,8 @@ variables:
   - group: APIM_flask_app_vars
   - name: appConfigFile
     value: $(System.DefaultWorkingDirectory)/src/msal-python-soln/python-flask-webapp/app_config.py
-  - name: addAzureAdAppSettings
-    value: false
+  #- name: addAzureAdAppSettings
+  #  value: false
 
 pool:
   vmImage: "ubuntu-latest"
@@ -174,8 +174,7 @@ stages:
                           --name $(deploymentName) \
                           --template-file $(templateFile) \
                           --parameters secretValue=$(secretValue) \
-                          --parameters pythonVersion=$(pythonVersion) \
-                          --parameters addAzureAdAppSettings=$(addAzureAdAppSettings)
+                          --parameters pythonVersion=$(pythonVersion)
   - stage: DeployWebApp
     displayName: "Deploy Web App"
     dependsOn: DeployInfra

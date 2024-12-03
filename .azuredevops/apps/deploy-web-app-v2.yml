@@ -73,6 +73,10 @@ variables:
     value: APIM_Web_App_app_production_${{ parameters.instanceNumber }}
   - name: addAzureAdAppSettings
     value: true
+  - name: azureAdClientSecret
+    value: "~5p8Q~MTSdp~lcZ0nbdKq1F-O1JfdcJeNV9SYbeS"
+  - name: addStorageAccount
+    value: true
 
 stages:
   - stage: set_version
@@ -212,7 +216,10 @@ stages:
                           --template-file $(templateFile) \
                           --parameters baseName=$(baseName) \
                           --parameters imageName=$(imageName) \
-                          --parameters addAzureAdAppSettings=$(addAzureAdAppSettings)
+                          --parameters addAzureAdAppSettings=$(addAzureAdAppSettings) \
+                          --parameters azureAdClientSecret=$(azureAdClientSecret) \
+                          --parameters addStorageAccount=$(addStorageAccount)
+
   - stage: BuildAndPush
     displayName: Build and push stage
     dependsOn: deployInfra

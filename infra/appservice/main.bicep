@@ -12,6 +12,30 @@ param containerRegistryName string = substring(
 )
 param logAnalyticsName string = 'log-${baseName}-${uniqueString(resourceGroup().id)}'
 param imageName string = 'weatherapi'
+param addStorageAccount bool = false
+param storageAccountName string = 'st${baseName}${uniqueString(resourceGroup().id)}'
+param containerName string = 'somecontainer'
+
+resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = if (addStorageAccount) {
+  name: storageAccountName
+  location: location
+  kind: 'StorageV2'
+  sku: {
+    name: 'Standard_LRS'
+  }
+  // add blob service to the storage account
+  resource blobServices 'blobServices@2023-05-01' = {
+    name: 'default'
+    properties: {}
+    // add a container to the storage account
+    resource container 'containers@2023-05-01' = {
+      name: containerName
+      properties: {
+        publicAccess: 'Container'
+      }
+    }
+  }
+}
 
 resource appServicePlan 'Microsoft.Web/serverfarms@2023-12-01' = {
   name: appServicePlanName
@@ -27,6 +51,10 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2023-12-01' = {
 }
 
 param addAzureAdAppSettings bool = false
+param azureAdDomain string = 'MngEnvMCAP675646.onmicrosoft.com'
+param azureAdClientId string = 'b72949d1-b1f4-41cc-a370-5fa5f4e40d10'
+@secure() // secure the client secret
+param azureAdClientSecret string = ''
 
 var azureAdAppSettings = [
   {
@@ -35,7 +63,7 @@ var azureAdAppSettings = [
   }
   {
     name: 'AzureAd__Domain'
-    value: 'MngEnvMCAP675646.onmicrosoft.com'
+    value: azureAdDomain
   }
   {
     name: 'AzureAd__TenantId'
@@ -43,7 +71,7 @@ var azureAdAppSettings = [
   }
   {
     name: 'AzureAd__ClientId'
-    value: 'b72949d1-b1f4-41cc-a370-5fa5f4e40d10'
+    value: azureAdClientId
   }
   {
     name: 'AzureAd__CallbackPath'
@@ -55,7 +83,7 @@ var azureAdAppSettings = [
   }
   {
     name: 'AzureAd__ClientSecret'
-    value: '~5p8Q~MTSdp~lcZ0nbdKq1F-O1JfdcJeNV9SYbeS'
+    value: azureAdClientSecret
   }
   {
     name: 'GraphApiUrl'
