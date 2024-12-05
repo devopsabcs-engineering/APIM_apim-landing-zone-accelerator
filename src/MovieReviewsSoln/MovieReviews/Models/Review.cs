@@ -6,5 +6,6 @@
         public Guid MovieId { get; set; }
         public string Reviewer { get; set; }
         public int Stars { get; set; }
+        public string Version { get; set; }
     }
 }

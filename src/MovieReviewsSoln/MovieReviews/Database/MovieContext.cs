@@ -1,12 +1,17 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MovieReviews.Models;
+using System.Reflection;
 
 namespace MovieReviews.Database
 {
     public class MovieContext : DbContext
     {
+        private readonly string _version;
+
         public MovieContext(DbContextOptions<MovieContext> options) : base(options)
         {
+            // set assembly version
+            _version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
         }
 
         public DbSet<Movie> Movies { get; set; }
@@ -19,87 +24,100 @@ namespace MovieReviews.Database
                     Id = 1,
                     Reviewer = "A",
                     Stars = 4,
-                    MovieId = new Guid("72d95bfd-1dac-4bc2-adc1-f28fd43777fd")
+                    MovieId = new Guid("72d95bfd-1dac-4bc2-adc1-f28fd43777fd"),
+                    Version = _version
                 },
                 new Review
                 {
                     Id = 2,
                     Reviewer = "B",
                     Stars = 5,
-                    MovieId = new Guid("72d95bfd-1dac-4bc2-adc1-f28fd43777fd")
+                    MovieId = new Guid("72d95bfd-1dac-4bc2-adc1-f28fd43777fd"),
+                    Version = _version
                 },
                 new Review
                 {
                     Id = 3,
                     Reviewer = "A",
                     Stars = 4,
-                    MovieId = new Guid("c32cc263-a7af-4fbd-99a0-aceb57c91f6b")
+                    MovieId = new Guid("c32cc263-a7af-4fbd-99a0-aceb57c91f6b"),
+                    Version = _version
                 },
                 new Review
                 {
                     Id = 4,
                     Reviewer = "D",
                     Stars = 5,
-                    MovieId = new Guid("c32cc263-a7af-4fbd-99a0-aceb57c91f6b")
+                    MovieId = new Guid("c32cc263-a7af-4fbd-99a0-aceb57c91f6b"),
+                    Version = _version
                 },
                 new Review
                 {
                     Id = 5,
                     Reviewer = "E",
                     Stars = 3,
-                    MovieId = new Guid("c32cc263-a7af-4fbd-99a0-aceb57c91f6b")
+                    MovieId = new Guid("c32cc263-a7af-4fbd-99a0-aceb57c91f6b"),
+                    Version = _version
                 },
                 new Review
                 {
                     Id = 6,
                     Reviewer = "F",
                     Stars = 5,
-                    MovieId = new Guid("c32cc263-a7af-4fbd-99a0-aceb57c91f6b")
+                    MovieId = new Guid("c32cc263-a7af-4fbd-99a0-aceb57c91f6b"),
+                    Version = _version
                 },
                 new Review
                 {
                     Id = 7,
                     Reviewer = "A",
                     Stars = 2,
-                    MovieId = new Guid("7b6bf2e3-5d91-4e75-b62f-7357079acc51")
+                    MovieId = new Guid("7b6bf2e3-5d91-4e75-b62f-7357079acc51"),
+                    Version = _version
                 },
                 new Review
                 {
                     Id = 8,
                     Reviewer = "B",
                     Stars = 1,
-                    MovieId = new Guid("7b6bf2e3-5d91-4e75-b62f-7357079acc51")
+                    MovieId = new Guid("7b6bf2e3-5d91-4e75-b62f-7357079acc51"),
+                    Version = _version
                 },
                 new Review
                 {
                     Id = 9,
                     Reviewer = "G",
                     Stars = 3,
-                    MovieId = new Guid("7b6bf2e3-5d91-4e75-b62f-7357079acc51")
+                    MovieId = new Guid("7b6bf2e3-5d91-4e75-b62f-7357079acc51"),
+                    Version = _version
                 },
                 new Review
                 {
                     Id = 10,
                     Reviewer = "H",
                     Stars = 4,
-                    MovieId = new Guid("7b6bf2e3-5d91-4e75-b62f-7357079acc51")
+                    MovieId = new Guid("7b6bf2e3-5d91-4e75-b62f-7357079acc51"),
+                    Version = _version
                 }
             );
             modelBuilder.Entity<Movie>().HasData(
                 new Movie
                 {
                     Id = new Guid("72d95bfd-1dac-4bc2-adc1-f28fd43777fd"),
-                    Name = "Superman and Lois"
+                    Name = "Superman and Lois",
+                    Version = _version
                 },
                 new Movie
                 {
                     Id = new Guid("c32cc263-a7af-4fbd-99a0-aceb57c91f6b"),
-                    Name = "Game of Thrones"
+                    Name = "Game of Thrones",
+                    Version = _version
                 },
                 new Movie
                 {
                     Id = new Guid("7b6bf2e3-5d91-4e75-b62f-7357079acc51"),
-                    Name = "Avengers: Endgame"
+                    Name = "Avengers: Endgame",
+                    Version = _version
                 }
             );
         }

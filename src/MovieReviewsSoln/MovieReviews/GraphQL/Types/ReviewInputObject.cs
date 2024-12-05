@@ -12,6 +12,7 @@ namespace MovieReviews.GraphQL.Types
 
             Field(r => r.Reviewer).Description("Name of the reviewer");
             Field(r => r.Stars).Description("Star rating out of five");
+            Field(r => r.Version).Description("Version of the review");
         }
     }
 }

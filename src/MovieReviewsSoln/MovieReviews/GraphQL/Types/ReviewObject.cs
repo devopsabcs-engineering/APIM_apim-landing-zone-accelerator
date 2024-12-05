@@ -14,6 +14,7 @@ namespace MovieReviews.GraphQL.Types
             Field(r => r.MovieId, type: typeof(GuidGraphType)).Description("Guid Id of the movie");
             Field(r => r.Reviewer).Description("Name of the reviewer");
             Field(r => r.Stars).Description("Star rating out of five");
+            Field(r => r.Version).Description("Version of the review");
         }
     }
 }
