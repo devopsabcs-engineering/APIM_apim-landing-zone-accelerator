@@ -13,35 +13,36 @@ namespace WeatherApi.Controllers
         };
 
         private readonly ILogger<WeatherForecastController> _logger;
+        private readonly string _version;
 
         public WeatherForecastController(ILogger<WeatherForecastController> logger)
         {
             _logger = logger;
             // get version from assembly
-            var version = Assembly.GetExecutingAssembly().GetName().Version;
-            _logger.LogInformation($"WeatherForecastController version {version}");
+            _version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+            _logger.LogInformation($"WeatherForecastController version {_version}");
         }
 
         [HttpGet(Name = "GetWeatherForecast")]
         public IEnumerable<WeatherForecast> Get()
         {
             // get version from assembly
-            var version = Assembly.GetExecutingAssembly().GetName().Version;
-            _logger.LogInformation($"WeatherForecastController version {version}");
+            _logger.LogInformation($"WeatherForecastController version {_version}");
 
             //add custom trace log for application insights
             _logger.LogInformation("GetWeatherForecast called");
-            _logger.LogDebug($"Debug {version}");
-            _logger.LogInformation($"Information {version}");
-            _logger.LogWarning($"Warning {version}");
-            _logger.LogError($"Error {version}");
-            _logger.LogCritical($"Critical {version}");
+            _logger.LogDebug($"Debug {_version}");
+            _logger.LogInformation($"Information {_version}");
+            _logger.LogWarning($"Warning {_version}");
+            _logger.LogError($"Error {_version}");
+            _logger.LogCritical($"Critical {_version}");
 
             return Enumerable.Range(1, 5).Select(index => new WeatherForecast
             {
                 Date = DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
                 TemperatureC = Random.Shared.Next(-20, 55),
-                Summary = Summaries[Random.Shared.Next(Summaries.Length)]
+                Summary = Summaries[Random.Shared.Next(Summaries.Length)],
+                Version = _version
             })
             .ToArray();
         }
