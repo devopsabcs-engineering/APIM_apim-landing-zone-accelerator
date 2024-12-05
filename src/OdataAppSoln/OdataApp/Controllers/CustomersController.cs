@@ -17,6 +17,7 @@
             {
                 Id = idx,
                 Name = $"Customer {idx}",
+                Version = Assembly.GetExecutingAssembly().GetName().Version.ToString(),
                 Orders = new List<Order>(
                     Enumerable.Range(1, 2).Select(dx => new Order
                     {
