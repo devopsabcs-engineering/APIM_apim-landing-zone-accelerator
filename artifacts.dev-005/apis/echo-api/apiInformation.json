@@ -3,7 +3,7 @@
     "path": "echo",
     "apiRevision": "1",
     "authenticationSettings": {},
-    "description": "fix linting (testing api team 001 PIPES)",
+    "description": "fix linting (testing api team 001 PIPES) -- TC",
     "isCurrent": true,
     "displayName": "Echo API",
     "protocols": [

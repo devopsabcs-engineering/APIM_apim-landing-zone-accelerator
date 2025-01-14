@@ -10,6 +10,7 @@ paths:
       tags:
         - WeatherForecast
       summary: GetWeatherForecast
+      description: GetWeatherForecast
       operationId: GetWeatherForecast
       responses:
         '200':
@@ -20,9 +21,7 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/WeatherForecast'
-              examples:
-                default:
-                  value: 
+              example: ''
             application/json:
               schema:
                 type: array
@@ -50,6 +49,7 @@ paths:
       tags:
         - WeatherForecast
       summary: /WeatherForecast/environment - GET
+      description: /WeatherForecast/environment - GET
       operationId: get-weatherforecast-environment
       responses:
         '200':
@@ -58,9 +58,7 @@ paths:
             text/plain:
               schema:
                 type: string
-              examples:
-                default:
-                  value: 
+              example: ''
             application/json:
               schema:
                 type: string
@@ -74,6 +72,7 @@ paths:
       tags:
         - WeatherForecast
       summary: /WeatherForecast/version - GET
+      description: /WeatherForecast/version - GET
       operationId: get-weatherforecast-version
       responses:
         '200':
@@ -82,9 +81,7 @@ paths:
             text/plain:
               schema:
                 type: string
-              examples:
-                default:
-                  value: 
+              example: ''
             application/json:
               schema:
                 type: string

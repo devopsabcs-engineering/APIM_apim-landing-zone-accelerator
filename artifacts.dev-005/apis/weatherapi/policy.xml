@@ -3,7 +3,7 @@
 		<base />
 		<set-backend-service id="apim-generated-policy" backend-id="backend-weather-api" />
 		<!-- some comment -->
-		<validate-jwt header-name="Authorization" failed-validation-httpcode="401" failed-validation-error-message="DEMO: Manny says Unauthorized {{sqlDatabaseConnectionString}}. Access token is missing or invalid.">
+		<validate-jwt header-name="Authorization" failed-validation-httpcode="401" failed-validation-error-message="DEMO: Manny and MS says Unauthorized {{sqlDatabaseConnectionString}}. Access token is missing or invalid.">
 			<openid-config url="https://login.microsoftonline.com/aa93b9d9-037d-4f08-a26d-783cff0e2369/v2.0/.well-known/openid-configuration" />
 			<audiences>
 				<audience>{{weatherApiAudience}}</audience>
