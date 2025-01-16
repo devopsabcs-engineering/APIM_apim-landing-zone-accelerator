@@ -1,3 +1,4 @@
+# CHANGE THESE 2 VARIABLES
 $networkSecurityGroupName = "apimnsgozhql6hx7euqiapim-prd-cc-hol-tcek-01" # "apimnsguwybobeka36eqapim-dev-cc-hol-tcek-01" # "nsg-apim-prod-005-cs4jyj6wprtye" # "nsg-apim-dev-005-3snpbfdd5kffc"
 $resourceGroupName = "rg-apim-prd-cc-hol-tcek-01" # "rg-apim-dev-cc-hol-tcek-01" # "rg-apim-vnet-external-prod-005-eu2"  #"rg-apim-vnet-external-dev-005-eu2"
 
