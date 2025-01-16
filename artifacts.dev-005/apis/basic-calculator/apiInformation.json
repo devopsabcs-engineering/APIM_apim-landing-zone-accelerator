@@ -1,19 +1,20 @@
 {
   "properties": {
-    "path": "echo",
+    "path": "calc",
     "apiRevision": "1",
     "authenticationSettings": {},
-    "description": "fix linting (testing api team 001 PIPES) -- TC",
+    "description": "Arithmetics is just a call away!",
     "isCurrent": true,
-    "displayName": "Echo API",
+    "displayName": "Basic Calculator",
     "protocols": [
+      "http",
       "https"
     ],
-    "serviceUrl": "http://echoapi.cloudapp.net/api",
+    "serviceUrl": "http://calcapi.cloudapp.net/api",
     "subscriptionKeyParameterNames": {
       "header": "Ocp-Apim-Subscription-Key",
       "query": "subscription-key"
     },
-    "subscriptionRequired": false
+    "subscriptionRequired": true
   }
 }

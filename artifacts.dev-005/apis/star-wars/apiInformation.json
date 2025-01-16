@@ -1,19 +1,19 @@
 {
   "properties": {
-    "path": "echo",
+    "path": "swdev",
     "apiRevision": "1",
     "authenticationSettings": {},
-    "description": "fix linting (testing api team 001 PIPES) -- TC",
+    "description": "",
     "isCurrent": true,
-    "displayName": "Echo API",
+    "displayName": "Star Wars",
     "protocols": [
       "https"
     ],
-    "serviceUrl": "http://echoapi.cloudapp.net/api",
+    "serviceUrl": "https://swapi.dev/api",
     "subscriptionKeyParameterNames": {
       "header": "Ocp-Apim-Subscription-Key",
       "query": "subscription-key"
     },
-    "subscriptionRequired": false
+    "subscriptionRequired": true
   }
 }
