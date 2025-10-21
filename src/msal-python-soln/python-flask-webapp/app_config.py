@@ -1,6 +1,14 @@
 import os
 
 
+def _coalesce_env(*keys: str, default: str) -> str:
+    for key in keys:
+        value = os.getenv(key)
+        if value:
+            return value
+    return default
+
+
 if (os.getenv('B2C_TENANT_NAME')
     and os.getenv('SIGNUPSIGNIN_USER_FLOW') and os.getenv('EDITPROFILE_USER_FLOW')):
     # This branch is for B2C. You can delete this branch if you are not using B2C.
@@ -53,6 +61,17 @@ APPLICATIONINSIGHTS_CLOUD_ROLE_INSTANCE = os.getenv(
 )
 ENABLE_OPENTELEMETRY = os.getenv("ENABLE_OPENTELEMETRY", "true").lower() not in {"0", "false", "no"}
 ENABLE_LIVE_METRICS = os.getenv("ENABLE_LIVE_METRICS", "true").lower() not in {"0", "false", "no"}
+
+LOGGING_LEVEL_DEFAULT = _coalesce_env(
+    "Logging:LogLevel:Default",
+    "LOGGING__LOGLEVEL__DEFAULT",
+    default="Information",
+).upper()
+LOGGING_APPLICATIONINSIGHTS_LEVEL = _coalesce_env(
+    "Logging:ApplicationInsights:LogLevel:Default",
+    "LOGGING__APPLICATIONINSIGHTS__LOGLEVEL__DEFAULT",
+    default=LOGGING_LEVEL_DEFAULT,
+).upper()
 
 VERSION = "__VERSION__"  # The version of this sample, for troubleshooting purpose
 # In production, your setup may use multiple web servers behind a load balancer,

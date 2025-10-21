@@ -1,6 +1,7 @@
 import logging
 import time
 from platform import python_version
+from typing import Optional
 
 import requests
 from azure.monitor.opentelemetry import configure_azure_monitor
@@ -30,11 +31,28 @@ Session(app)
 telemetry_logger = logging.getLogger("msal_python_soln.telemetry")
 
 
+def _resolve_log_level(level_name: Optional[str], fallback: int = logging.INFO) -> int:
+    if not level_name:
+        return fallback
+    candidate = getattr(logging, str(level_name).upper(), None)
+    if isinstance(candidate, int):
+        return candidate
+    try:
+        numeric_level = int(level_name)
+        if numeric_level >= 0:
+            return numeric_level
+    except (TypeError, ValueError):
+        return fallback
+    return fallback
+
+
 def _configure_observability() -> None:
     if app.config.get("_OTEL_INSTRUMENTED"):
         return
 
-    logging.basicConfig(level=logging.INFO)
+    default_log_level = _resolve_log_level(app.config.get("LOGGING_LEVEL_DEFAULT"), logging.INFO)
+    logging.basicConfig(level=default_log_level)
+    telemetry_logger.setLevel(default_log_level)
 
     if not app.config.get("ENABLE_OPENTELEMETRY", True):
         telemetry_logger.info("OpenTelemetry explicitly disabled via configuration")
@@ -69,8 +87,13 @@ def _configure_observability() -> None:
             "Application Insights connection string missing; telemetry exporters not configured"
         )
 
+    app_insights_log_level = _resolve_log_level(
+        app.config.get("LOGGING_APPLICATIONINSIGHTS_LEVEL"),
+        default_log_level,
+    )
+
     if not any(isinstance(handler, LoggingHandler) for handler in telemetry_logger.handlers):
-        telemetry_logger.addHandler(LoggingHandler(level=logging.INFO))
+        telemetry_logger.addHandler(LoggingHandler(level=app_insights_log_level))
 
     FlaskInstrumentor().instrument_app(app)
     RequestsInstrumentor().instrument()

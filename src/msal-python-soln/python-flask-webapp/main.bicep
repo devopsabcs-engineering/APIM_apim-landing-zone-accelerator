@@ -79,6 +79,14 @@ resource webApp 'Microsoft.Web/sites@2024-11-01' = {
           name: 'ENABLE_LIVE_METRICS'
           value: 'true'
         }
+        {
+          name: 'Logging:LogLevel:Default'
+          value: 'Information'
+        }
+        {
+          name: 'Logging:ApplicationInsights:LogLevel:Default'
+          value: 'Information'
+        }
       ]
     }
     serverFarmId: hostingPlan.id
