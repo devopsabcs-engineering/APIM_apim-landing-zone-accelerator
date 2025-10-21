@@ -147,13 +147,15 @@ class MsalAuth:
         cache = self._load_cache()
         app = self._build_app(cache=cache)
         user = self.get_user()
-        account = None
+        accounts = app.get_accounts()
+        account: Optional[Dict[str, Any]] = None
         if user and user.get("home_account_id"):
-            accounts = app.get_accounts(home_account_id=user["home_account_id"])
-            account = accounts[0] if accounts else None
-        if not account:
-            accounts = app.get_accounts()
-            account = accounts[0] if accounts else None
+            for candidate in accounts:
+                if candidate.get("home_account_id") == user["home_account_id"]:
+                    account = candidate
+                    break
+        if not account and accounts:
+            account = accounts[0]
         if not account:
             return {"error": "no_account", "error_description": "User session not found in token cache."}
 
