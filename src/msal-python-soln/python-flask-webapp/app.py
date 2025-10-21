@@ -2,7 +2,6 @@ import logging
 import time
 from platform import python_version
 
-import identity.web
 import requests
 from azure.monitor.opentelemetry import configure_azure_monitor
 from flask import Flask, redirect, render_template, request, session, url_for
@@ -16,6 +15,7 @@ from opentelemetry.trace import Status, StatusCode
 from requests import RequestException
 
 import app_config
+from msal_auth import MsalAuth
 
 #__version__ = "1.2.3"  # The version of this sample, for troubleshooting purpose
 
@@ -108,8 +108,8 @@ downstream_api_latency = meter.create_histogram(
 from werkzeug.middleware.proxy_fix import ProxyFix
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-app.jinja_env.globals.update(Auth=identity.web.Auth)  # Useful in template for B2C
-auth = identity.web.Auth(
+app.jinja_env.globals.update(Auth=MsalAuth)  # Useful in template for B2C
+auth = MsalAuth(
     session=session,
     authority=app.config["AUTHORITY"],
     client_id=app.config["CLIENT_ID"],
