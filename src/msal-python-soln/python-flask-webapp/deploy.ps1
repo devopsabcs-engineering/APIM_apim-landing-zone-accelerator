@@ -39,7 +39,7 @@ $webappName = az deployment group show --resource-group "rg-msal-python-soln" `
 # deploy webapp
 $deployWebApp = $false
 if ($deployWebApp) {
-    az webapp up --runtime PYTHON:3.9 `
+    az webapp up --runtime PYTHON:3.13 `
         --name $webappName --logs `
         --resource-group $ResourceGroupName `
         --location $Location `

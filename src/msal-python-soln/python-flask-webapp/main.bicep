@@ -7,7 +7,10 @@ param location string = resourceGroup().location
 @description('Name of key vault. It has to be unique.Type a name followed by your resource group name. (<name>-<resourceGroupName>)')
 param keyVaultName string = 'kv-${uniqueString(resourceGroup().id)}'
 
-@description('Python version to use for the app. Valid values are: 3.9, 3.10, 3.11, 3.12')
+@description('Application Insights resource name. It has to be unique.Type a name followed by your resource group name. (<name>-<resourceGroupName>)')
+param appInsightsName string = 'appi-${uniqueString(resourceGroup().id)}'
+
+@description('Python version to use for the app. Valid values are: 3.9, 3.10, 3.11, 3.12, 3.13')
 @allowed([
   //'3.6'
   //'3.7'
@@ -16,9 +19,9 @@ param keyVaultName string = 'kv-${uniqueString(resourceGroup().id)}'
   '3.10'
   '3.11'
   '3.12'
-  //'3.13'
+  '3.13'
 ])
-param pythonVersion string = '3.9'
+param pythonVersion string = '3.13'
 
 var alwaysOn = false
 var sku = 'Basic' // 'Free'
@@ -27,6 +30,17 @@ var workerSizeId = 0
 var numberOfWorkers = 1
 var linuxFxVersion = 'PYTHON|${pythonVersion}'
 var hostingPlanName = 'asp-${resourceGroup().name}'
+
+resource appInsights 'Microsoft.Insights/components@2020-02-02-preview' = {
+  name: appInsightsName
+  location: location
+  kind: 'web'
+  properties: {
+    Application_Type: 'web'
+    Flow_Type: 'Bluefield'
+    Request_Source: 'rest'
+  }
+}
 
 resource webApp 'Microsoft.Web/sites@2023-12-01' = {
   name: webAppName
@@ -56,6 +70,10 @@ resource webApp 'Microsoft.Web/sites@2023-12-01' = {
         {
           name: 'AUTHORITY'
           value: '${environment().authentication.loginEndpoint}${tenant().tenantId}'
+        }
+        {
+          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+          value: appInsights.properties.ConnectionString
         }
       ]
     }
@@ -168,3 +186,4 @@ resource kvRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' =
 output webAppId string = webApp.id
 output hostingPlanId string = hostingPlan.id
 output webAppName string = webApp.name
+output appInsightsConnectionString string = appInsights.properties.ConnectionString

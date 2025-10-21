@@ -43,6 +43,16 @@ SCOPE = ["api://c2847e0f-04c0-4ee4-9349-72c7fceb0161/.default"] #["User.Read"]
 # Tells the Flask-session extension to store sessions in the filesystem
 SESSION_TYPE = "filesystem"
 
+SERVICE_NAME = os.getenv("SERVICE_NAME", "msal-python-soln")
+DEPLOYMENT_ENVIRONMENT = os.getenv("DEPLOYMENT_ENVIRONMENT", "local")
+APPLICATIONINSIGHTS_CONNECTION_STRING = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")
+APPLICATIONINSIGHTS_CLOUD_ROLE = os.getenv("APPLICATIONINSIGHTS_CLOUD_ROLE")
+APPLICATIONINSIGHTS_CLOUD_ROLE_INSTANCE = os.getenv(
+    "APPLICATIONINSIGHTS_CLOUD_ROLE_INSTANCE",
+    os.getenv("WEBSITE_INSTANCE_ID"),
+)
+ENABLE_OPENTELEMETRY = os.getenv("ENABLE_OPENTELEMETRY", "true").lower() not in {"0", "false", "no"}
+
 VERSION = "__VERSION__"  # The version of this sample, for troubleshooting purpose
 # In production, your setup may use multiple web servers behind a load balancer,
 # and the subsequent requests may not be routed to the same web server.

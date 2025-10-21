@@ -1,11 +1,21 @@
+import logging
+import time
+from platform import python_version
+
 import identity.web
 import requests
+from azure.monitor.opentelemetry import configure_azure_monitor
 from flask import Flask, redirect, render_template, request, session, url_for
 from flask_session import Session
+from opentelemetry import metrics, trace
+from opentelemetry.instrumentation.flask import FlaskInstrumentor
+from opentelemetry.instrumentation.requests import RequestsInstrumentor
+from opentelemetry.sdk._logs import LoggingHandler
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.trace import Status, StatusCode
+from requests import RequestException
 
 import app_config
-
-from platform import python_version
 
 #__version__ = "1.2.3"  # The version of this sample, for troubleshooting purpose
 
@@ -16,6 +26,79 @@ assert app.config["REDIRECT_PATH"] != "/", "REDIRECT_PATH must not be /"
 __version__ = app.config.get("VERSION", "1.2.3")
 __python_version__ = python_version()
 Session(app)
+
+telemetry_logger = logging.getLogger("msal_python_soln.telemetry")
+
+
+def _configure_observability() -> None:
+    if app.config.get("_OTEL_INSTRUMENTED"):
+        return
+
+    logging.basicConfig(level=logging.INFO)
+
+    if not app.config.get("ENABLE_OPENTELEMETRY", True):
+        telemetry_logger.info("OpenTelemetry explicitly disabled via configuration")
+        app.config["_OTEL_INSTRUMENTED"] = False
+        return
+
+    resource_attributes = {
+        "service.name": app.config.get("SERVICE_NAME", "msal-python-soln"),
+        "service.version": __version__,
+        "deployment.environment": app.config.get("DEPLOYMENT_ENVIRONMENT", "local"),
+    }
+
+    if app.config.get("APPLICATIONINSIGHTS_CLOUD_ROLE"):
+        resource_attributes["service.cloud_role"] = app.config["APPLICATIONINSIGHTS_CLOUD_ROLE"]
+    if app.config.get("APPLICATIONINSIGHTS_CLOUD_ROLE_INSTANCE"):
+        resource_attributes["service.cloud_role_instance"] = app.config[
+            "APPLICATIONINSIGHTS_CLOUD_ROLE_INSTANCE"
+        ]
+
+    resource = Resource.create(resource_attributes)
+    connection_string = app.config.get("APPLICATIONINSIGHTS_CONNECTION_STRING")
+
+    try:
+        configure_azure_monitor(
+            connection_string=connection_string,
+            resource=resource,
+        )
+        telemetry_logger.info("Azure Monitor exporter configured")
+    except ValueError:
+        telemetry_logger.warning(
+            "Application Insights connection string missing; telemetry exporters not configured"
+        )
+
+    if not any(isinstance(handler, LoggingHandler) for handler in telemetry_logger.handlers):
+        telemetry_logger.addHandler(LoggingHandler(level=logging.INFO))
+
+    FlaskInstrumentor().instrument_app(app)
+    RequestsInstrumentor().instrument()
+
+    app.config["_OTEL_INSTRUMENTED"] = True
+
+
+_configure_observability()
+
+tracer = trace.get_tracer("msal_python_soln.web")
+meter = metrics.get_meter("msal_python_soln.web")
+
+login_attempt_counter = meter.create_counter(
+    "auth_login_attempts", description="Number of interactive login attempts", unit="1"
+)
+login_failure_counter = meter.create_counter(
+    "auth_login_failures", description="Number of failed login attempts", unit="1"
+)
+downstream_api_counter = meter.create_counter(
+    "downstream_api_requests", description="Downstream API requests", unit="1"
+)
+downstream_api_failure_counter = meter.create_counter(
+    "downstream_api_failures", description="Failed downstream API requests", unit="1"
+)
+downstream_api_latency = meter.create_histogram(
+    "downstream_api_latency_ms",
+    description="Latency of downstream API calls",
+    unit="ms",
+)
 
 # This section is needed for url_for("foo", _external=True) to automatically
 # generate http scheme when this sample is running on localhost,
@@ -35,6 +118,8 @@ auth = identity.web.Auth(
 
 @app.route("/login")
 def login():
+    login_attempt_counter.add(1, {"auth.flow": "interactive"})
+    telemetry_logger.info("Rendering login prompt")
     return render_template("login.html", version=__version__, **auth.log_in(
         scopes=app_config.SCOPE, # Have user consent to scopes during log-in
         redirect_uri=url_for("auth_response", _external=True), # Optional. If present, this absolute URL must match your app's redirect_uri registered in Azure Portal
@@ -44,14 +129,24 @@ def login():
 
 @app.route(app_config.REDIRECT_PATH)
 def auth_response():
-    result = auth.complete_log_in(request.args)
-    if "error" in result:
-        return render_template("auth_error.html", result=result)
-    return redirect(url_for("index"))
+    with tracer.start_as_current_span("auth_response") as span:
+        span.set_attribute("auth.flow", "interactive")
+        result = auth.complete_log_in(request.args)
+        if "error" in result:
+            login_failure_counter.add(1, {"auth.flow": "interactive"})
+            span.record_exception(Exception(result.get("error_description", "login_error")))
+            span.set_status(Status(StatusCode.ERROR, result.get("error", "login_error")))
+            telemetry_logger.warning("Login failed: %s", result.get("error"))
+            return render_template("auth_error.html", result=result)
+
+        span.set_status(Status(StatusCode.OK))
+        telemetry_logger.info("Login completed")
+        return redirect(url_for("index"))
 
 
 @app.route("/logout")
 def logout():
+    telemetry_logger.info("User initiated logout")
     return redirect(auth.log_out(url_for("index", _external=True)))
 
 
@@ -60,24 +155,63 @@ def index():
     if not (app.config["CLIENT_ID"] and app.config["CLIENT_SECRET"]):
         # This check is not strictly necessary.
         # You can remove this check from your production code.
+        telemetry_logger.error("Configuration missing client credentials")
         return render_template('config_error.html')
     if not auth.get_user():
+        telemetry_logger.info("Anonymous user redirect to login")
         return redirect(url_for("login"))
+    telemetry_logger.info("Rendering index for authenticated user", extra={"user.authenticated": True})
     return render_template('index.html', user=auth.get_user(), version=__version__, pythonVersion=__python_version__)
 
 
 @app.route("/call_downstream_api")
 def call_downstream_api():
-    token = auth.get_token_for_user(app_config.SCOPE)
-    if "error" in token:
-        return redirect(url_for("login"))
-    # Use access token to call downstream api
-    api_result = requests.get(
-        app_config.ENDPOINT,
-        headers={'Authorization': 'Bearer ' + token['access_token']},
-        timeout=30,
-    ).json()
-    return render_template('display.html', result=api_result, bearerToken=token['access_token'], scopes=app_config.SCOPE, endpoint=app_config.ENDPOINT)
+    with tracer.start_as_current_span("call_downstream_api") as span:
+        span.set_attribute("downstream.scope_count", len(app_config.SCOPE))
+        span.set_attribute("downstream.endpoint", app_config.ENDPOINT)
+        request_attributes = {"downstream.endpoint": app_config.ENDPOINT}
+
+        token = auth.get_token_for_user(app_config.SCOPE)
+        if "error" in token:
+            span.set_status(Status(StatusCode.ERROR, token.get("error", "token_error")))
+            login_failure_counter.add(1, {"auth.flow": "acquire_token"})
+            downstream_api_failure_counter.add(1, {**request_attributes, "failure.stage": "token"})
+            telemetry_logger.warning("Failed to acquire token: %s", token.get("error"))
+            return redirect(url_for("login"))
+
+        bearer = token.get('access_token', '')
+        headers = {'Authorization': 'Bearer ' + bearer}
+
+        start_time = time.perf_counter()
+        try:
+            response = requests.get(
+                app_config.ENDPOINT,
+                headers=headers,
+                timeout=30,
+            )
+            response.raise_for_status()
+            elapsed_ms = (time.perf_counter() - start_time) * 1000
+            downstream_api_counter.add(1, request_attributes)
+            downstream_api_latency.record(elapsed_ms, request_attributes)
+            api_result = response.json()
+            span.set_status(Status(StatusCode.OK))
+            telemetry_logger.info(
+                "Downstream API call succeeded", extra={"endpoint": app_config.ENDPOINT, "latency_ms": round(elapsed_ms, 2)}
+            )
+        except RequestException as exc:
+            downstream_api_failure_counter.add(1, {**request_attributes, "failure.stage": "request"})
+            span.record_exception(exc)
+            span.set_status(Status(StatusCode.ERROR, "downstream_request_failed"))
+            telemetry_logger.exception("Downstream API call failed")
+            api_result = {"error": "Failed to call downstream API", "detail": str(exc)}
+        except ValueError as exc:
+            downstream_api_failure_counter.add(1, {**request_attributes, "failure.stage": "payload"})
+            span.record_exception(exc)
+            span.set_status(Status(StatusCode.ERROR, "downstream_payload_error"))
+            telemetry_logger.exception("Failed to parse downstream API response")
+            api_result = {"error": "Invalid JSON payload from downstream API", "detail": str(exc)}
+
+        return render_template('display.html', result=api_result, bearerToken=bearer, scopes=app_config.SCOPE, endpoint=app_config.ENDPOINT)
 
 
 if __name__ == "__main__":

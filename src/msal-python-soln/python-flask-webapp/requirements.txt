@@ -1,8 +1,14 @@
-# Our how-to docs will use --debug parameter which is only available in Flask 2.2+
-Flask
+# Targeting Python 3.13 runtime and modern telemetry stack
+# Flask 3.x requires Werkzeug 3.x and supports Python 3.13
+Flask>=3.0.3
 # If Flask-Session is not maintained in future, Flask-Session2 should work as well
-Flask-Session
-werkzeug
-requests
+Flask-Session>=0.5.0
+Werkzeug>=3.0.2
+requests>=2.32.3
 identity
-python-dotenv
+python-dotenv>=1.0.1
+
+# OpenTelemetry + Azure Monitor integration
+azure-monitor-opentelemetry>=1.5.0
+opentelemetry-instrumentation-flask>=0.46b0
+opentelemetry-instrumentation-requests>=0.46b0
