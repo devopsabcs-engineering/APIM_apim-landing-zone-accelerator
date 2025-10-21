@@ -31,7 +31,7 @@ var numberOfWorkers = 1
 var linuxFxVersion = 'PYTHON|${pythonVersion}'
 var hostingPlanName = 'asp-${resourceGroup().name}'
 
-resource appInsights 'Microsoft.Insights/components@2020-02-02-preview' = {
+resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   name: appInsightsName
   location: location
   kind: 'web'
@@ -42,7 +42,7 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02-preview' = {
   }
 }
 
-resource webApp 'Microsoft.Web/sites@2023-12-01' = {
+resource webApp 'Microsoft.Web/sites@2024-11-01' = {
   name: webAppName
   location: location
   properties: {
@@ -91,7 +91,7 @@ resource webApp 'Microsoft.Web/sites@2023-12-01' = {
     type: 'SystemAssigned'
   }
 
-  resource scm 'basicPublishingCredentialsPolicies@2023-12-01' = {
+  resource scm 'basicPublishingCredentialsPolicies@2024-11-01' = {
     name: 'scm'
     properties: {
       //enable basic auth for the app
@@ -100,7 +100,7 @@ resource webApp 'Microsoft.Web/sites@2023-12-01' = {
   }
 }
 
-resource hostingPlan 'Microsoft.Web/serverfarms@2023-12-01' = {
+resource hostingPlan 'Microsoft.Web/serverfarms@2024-11-01' = {
   name: hostingPlanName
   location: location
   kind: 'linux'
@@ -116,7 +116,7 @@ resource hostingPlan 'Microsoft.Web/serverfarms@2023-12-01' = {
 }
 
 // add key vault
-resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
+resource keyVault 'Microsoft.KeyVault/vaults@2025-05-01' = {
   name: keyVaultName
   location: location
   properties: {
@@ -169,7 +169,7 @@ param secretName string = 'ClientSecret'
 @secure()
 param secretValue string
 
-resource secret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+resource secret 'Microsoft.KeyVault/vaults/secrets@2025-05-01' = {
   parent: keyVault
   name: secretName
   properties: {
