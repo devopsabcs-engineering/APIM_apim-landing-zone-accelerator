@@ -75,6 +75,10 @@ resource webApp 'Microsoft.Web/sites@2023-12-01' = {
           name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
           value: appInsights.properties.ConnectionString
         }
+        {
+          name: 'ENABLE_LIVE_METRICS'
+          value: 'true'
+        }
       ]
     }
     serverFarmId: hostingPlan.id

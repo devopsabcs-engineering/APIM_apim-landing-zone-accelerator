@@ -49,10 +49,12 @@ Here we will describe how to deploy it to
 
 The application auto-configures OpenTelemetry when the environment variable `APPLICATIONINSIGHTS_CONNECTION_STRING` is present. You can override defaults with:
 
-- `SERVICE_NAME`  logical service identifier emitted in telemetry (`msal-python-soln` by default).
-- `DEPLOYMENT_ENVIRONMENT`  environment name (for example `dev`, `test`, `prod`).
-- `APPLICATIONINSIGHTS_CLOUD_ROLE` / `APPLICATIONINSIGHTS_CLOUD_ROLE_INSTANCE`  optional overrides for Azure Monitor cloud role metadata.
-- `ENABLE_OPENTELEMETRY=false`  disables all instrumentation when you need an opt-out.
+- `SERVICE_NAME` - logical service identifier emitted in telemetry (`msal-python-soln` by default).
+- `DEPLOYMENT_ENVIRONMENT` - environment name (for example `dev`, `test`, `prod`).
+- `ENABLE_LIVE_METRICS` - set to `true` to stream Live Metrics via Application Insights (defaults to `true`).
+- `APPLICATIONINSIGHTS_CLOUD_ROLE` / `APPLICATIONINSIGHTS_CLOUD_ROLE_INSTANCE` - optional overrides for Azure Monitor cloud role metadata.
+- `ENABLE_OPENTELEMETRY=false` - disables all instrumentation when you need an opt-out.
+
 
 The following data is emitted out of the box:
 

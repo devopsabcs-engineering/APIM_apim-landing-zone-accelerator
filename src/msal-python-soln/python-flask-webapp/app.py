@@ -61,6 +61,7 @@ def _configure_observability() -> None:
         configure_azure_monitor(
             connection_string=connection_string,
             resource=resource,
+            enable_live_metrics=app.config.get("ENABLE_LIVE_METRICS", False),
         )
         telemetry_logger.info("Azure Monitor exporter configured")
     except ValueError:

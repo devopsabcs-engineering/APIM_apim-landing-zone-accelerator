@@ -52,6 +52,7 @@ APPLICATIONINSIGHTS_CLOUD_ROLE_INSTANCE = os.getenv(
     os.getenv("WEBSITE_INSTANCE_ID"),
 )
 ENABLE_OPENTELEMETRY = os.getenv("ENABLE_OPENTELEMETRY", "true").lower() not in {"0", "false", "no"}
+ENABLE_LIVE_METRICS = os.getenv("ENABLE_LIVE_METRICS", "true").lower() not in {"0", "false", "no"}
 
 VERSION = "__VERSION__"  # The version of this sample, for troubleshooting purpose
 # In production, your setup may use multiple web servers behind a load balancer,
