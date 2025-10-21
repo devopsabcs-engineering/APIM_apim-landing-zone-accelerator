@@ -38,7 +38,7 @@ variables:
   - name: templateFile
     value: $(System.DefaultWorkingDirectory)/src/msal-python-soln/python-flask-webapp/main.bicep
   - name: pythonVersion
-    value: "3.9"
+    value: "3.13"
   - name: ResourceGroupName
     value: "rg-msal-python-soln"
   - name: Location
