@@ -42,6 +42,8 @@ resource webApp 'Microsoft.Web/sites@2023-01-01' = {
     httpsOnly: true
     siteConfig: {
       linuxFxVersion: runtime
+      appCommandLine: 'python -m uvicorn main:app --host 0.0.0.0 --port 8000'
+      alwaysOn: true
       appSettings: [
         {
           name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
@@ -50,6 +52,42 @@ resource webApp 'Microsoft.Web/sites@2023-01-01' = {
         {
           name: 'APPINSIGHTS_INSTRUMENTATIONKEY'
           value: appInsights.properties.InstrumentationKey
+        }
+        {
+          name: 'SCM_DO_BUILD_DURING_DEPLOYMENT'
+          value: '1'
+        }
+        {
+          name: 'WEBSITE_RUN_FROM_PACKAGE'
+          value: '1'
+        }
+        {
+          name: 'WEBSITES_PORT'
+          value: '8000'
+        }
+        {
+          name: 'PYTHON_VERSION'
+          value: '3.13'
+        }
+        {
+          name: 'OTEL_SERVICE_NAME'
+          value: appName
+        }
+        {
+          name: 'OTEL_SERVICE_NAMESPACE'
+          value: 'webapp'
+        }
+        {
+          name: 'OTEL_PYTHON_RESOURCE_DETECTORS'
+          value: 'azure_app_service,env,process'
+        }
+        {
+          name: 'ApplicationInsightsAgent_EXTENSION_VERSION'
+          value: 'disabled'
+        }
+        {
+          name: 'OTEL_EXPORTER_AZUREMONITOR_LIVEMETRICS_ENABLED'
+          value: 'true'
         }
       ]
     }
