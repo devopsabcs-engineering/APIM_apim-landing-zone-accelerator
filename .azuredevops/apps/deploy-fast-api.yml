@@ -16,15 +16,24 @@ trigger:
       - src/fast-api-app-insights/main.bicep
 
 variables:
-  pythonVersion: "3.13"
-  artifactName: "fastapi-app"
-  packageFolder: "package"
-  packageArchive: "app.zip"
-  bicepFile: "$(System.DefaultWorkingDirectory)/src/fast-api-app-insights/main.bicep"
-  resourceGroupName: "rg-fast-api-app-insights-001"
-  location: "canadacentral"
-  appName: "fast-api-app-insights-001"
-  azureServiceConnection: "fe55e4ed-12be-41f8-87eb-5d661b8b8e83"
+  - name: pythonVersion
+    value: "3.13"
+  - name: artifactName
+    value: "fastapi-app"
+  - name: packageFolder
+    value: "package"
+  - name: packageArchive
+    value: "app.zip"
+  - name: bicepFile
+    value: "/src/fast-api-app-insights/main.bicep"
+  - name: resourceGroupName
+    value: "rg-fast-api-app-insights-001"
+  - name: location
+    value: "canadacentral"
+  - name: appName
+    value: "fast-api-app-insights-001"
+  - name: azureServiceConnection
+    value: "fe55e4ed-12be-41f8-87eb-5d661b8b8e83"
 
 stages:
   - stage: Build
