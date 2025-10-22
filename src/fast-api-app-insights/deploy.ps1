@@ -77,6 +77,34 @@ foreach ($relativePath in $filesToInclude) {
     }
 }
 
+$requirementsPath = Join-Path -Path $PSScriptRoot -ChildPath 'requirements.txt'
+if (Test-Path -Path $requirementsPath) {
+    $sitePackagesPath = Join-Path -Path $packageContentDir -ChildPath '.python_packages/lib/site-packages'
+    if (-not (Test-Path -Path $sitePackagesPath)) {
+        New-Item -ItemType Directory -Path $sitePackagesPath -Force | Out-Null
+    }
+
+    $venvPythonCandidates = @(
+        (Join-Path -Path $PSScriptRoot -ChildPath '.venv\Scripts\python.exe')
+        (Join-Path -Path $PSScriptRoot -ChildPath '.venv/bin/python')
+    )
+
+    $venvPython = $venvPythonCandidates | Where-Object { Test-Path -Path $_ } | Select-Object -First 1
+    if (-not $venvPython) {
+        $venvPython = 'python'
+    }
+
+    Write-Host 'Bundling dependencies into .python_packages...' -ForegroundColor Cyan
+    try {
+        & $venvPython -m pip install --upgrade --target $sitePackagesPath -r $requirementsPath --no-compile
+    } catch {
+        Write-Error "Failed to bundle dependencies: $_"
+        throw
+    }
+} else {
+    Write-Warning 'No requirements.txt found; skipping dependency bundling.'
+}
+
 $packagePath = Join-Path -Path $packageRoot -ChildPath 'app.zip'
 if (Test-Path -Path $packagePath) {
     Remove-Item -Path $packagePath -Force
