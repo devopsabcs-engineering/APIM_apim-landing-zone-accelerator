@@ -1,0 +1,121 @@
+trigger:
+  batch: true
+  branches:
+    include:
+      - main
+    exclude:
+      - features/experimental/*
+  paths:
+    exclude:
+      - README.md
+    include:
+      - src/fast-api-app-insights/*
+      # include pipeline file
+      - .azuredevops/apps/deploy-fast-api.yml
+      # include infra files
+      - src/fast-api-app-insights/main.bicep
+
+variables:
+  pythonVersion: "3.13"
+  artifactName: "fastapi-app"
+  packageFolder: "package"
+  packageArchive: "app.zip"
+  bicepFile: "main.bicep"
+  resourceGroupName: "rg-fast-api-app-insights-001"
+  location: "canadacentral"
+  appName: "fast-api-app-insights-001"
+  azureServiceConnection: "fe55e4ed-12be-41f8-87eb-5d661b8b8e83"
+
+stages:
+  - stage: Build
+    displayName: Build and Package
+    jobs:
+      - job: Package
+        pool:
+          vmImage: "ubuntu-latest"
+        steps:
+          - checkout: self
+            clean: true
+
+          - task: UsePythonVersion@0
+            displayName: "Use Python $(pythonVersion)"
+            inputs:
+              versionSpec: "$(pythonVersion)"
+              architecture: "x64"
+
+          - script: |
+              set -e
+              python -m pip install --upgrade pip
+              mkdir -p $(Build.ArtifactStagingDirectory)/$(packageFolder)
+              mkdir -p $(Build.ArtifactStagingDirectory)/$(packageFolder)/.python_packages/lib/site-packages
+              pip install --no-compile --target $(Build.ArtifactStagingDirectory)/$(packageFolder)/.python_packages/lib/site-packages -r requirements.txt
+              cp main.py telemetry.py requirements.txt README.md $(Build.ArtifactStagingDirectory)/$(packageFolder)/
+            displayName: "Install dependencies and copy sources"
+            workingDirectory: "$(System.DefaultWorkingDirectory)"
+
+          - task: ArchiveFiles@2
+            displayName: "Create deployment archive"
+            inputs:
+              rootFolderOrFile: "$(Build.ArtifactStagingDirectory)/$(packageFolder)"
+              includeRootFolder: false
+              archiveType: "zip"
+              archiveFile: "$(Build.ArtifactStagingDirectory)/$(packageArchive)"
+              replaceExistingArchive: true
+
+          - task: PublishBuildArtifacts@1
+            displayName: "Publish artifact"
+            inputs:
+              PathtoPublish: "$(Build.ArtifactStagingDirectory)/$(packageArchive)"
+              ArtifactName: "$(artifactName)"
+              publishLocation: "Container"
+
+  - stage: Deploy
+    displayName: Deploy Infrastructure and App
+    dependsOn: Build
+    jobs:
+      - deployment: DeployToAzure
+        displayName: "Deploy to Azure Web App"
+        environment: "fastapi-app-insights"
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                  clean: true
+
+                - task: DownloadBuildArtifacts@0
+                  displayName: "Download build artifact"
+                  inputs:
+                    buildType: "current"
+                    downloadType: "single"
+                    artifactName: "$(artifactName)"
+                    downloadPath: "$(Pipeline.Workspace)"
+
+                - task: AzureCLI@2
+                  displayName: "Deploy Bicep template"
+                  inputs:
+                    azureSubscription: "$(azureServiceConnection)"
+                    scriptType: "bash"
+                    scriptLocation: "inlineScript"
+                    inlineScript: |
+                      set -euo pipefail
+                      az group create --name $(resourceGroupName) --location $(location)
+                      az deployment group create \
+                        --resource-group $(resourceGroupName) \
+                        --template-file $(System.DefaultWorkingDirectory)/$(bicepFile) \
+                        --parameters appName=$(appName) location=$(location) skuName=B1 skuTier=Basic skuCapacity=1
+
+                - task: AzureCLI@2
+                  displayName: "Deploy application package"
+                  inputs:
+                    azureSubscription: "$(azureServiceConnection)"
+                    scriptType: "bash"
+                    scriptLocation: "inlineScript"
+                    inlineScript: |
+                      set -euo pipefail
+                      package_path="$(Pipeline.Workspace)/$(artifactName)/$(packageArchive)"
+                      az webapp deploy \
+                        --resource-group $(resourceGroupName) \
+                        --name $(appName) \
+                        --type zip \
+                        --src-path "$package_path"
