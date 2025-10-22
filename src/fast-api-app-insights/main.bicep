@@ -58,10 +58,6 @@ resource webApp 'Microsoft.Web/sites@2023-01-01' = {
           value: '1'
         }
         {
-          name: 'WEBSITE_RUN_FROM_PACKAGE'
-          value: '1'
-        }
-        {
           name: 'WEBSITES_PORT'
           value: '8000'
         }
