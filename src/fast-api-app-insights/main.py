@@ -3,7 +3,10 @@
 import logging
 import os
 from contextlib import asynccontextmanager
+from typing import AsyncIterator
+
 import httpx
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
@@ -11,9 +14,11 @@ from telemetry import configure_telemetry
 
 logger = logging.getLogger("fastapi-app")
 
+load_dotenv()
+
 
 @asynccontextmanager
-def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Initialize telemetry once when the FastAPI app starts."""
 
     configure_telemetry(app)
