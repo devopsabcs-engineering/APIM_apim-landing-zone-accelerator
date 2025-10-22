@@ -70,7 +70,10 @@ def configure_telemetry(app: FastAPI, *, connection_string: Optional[str] = None
 
     LoggingInstrumentor().instrument(set_logging_format=True)
 
-    metric_exporter = AzureMonitorMetricExporter(connection_string=conn_str)
+    metric_exporter = AzureMonitorMetricExporter(
+        connection_string=conn_str,
+        enable_live_metrics=True,
+    )
     metric_reader = PeriodicExportingMetricReader(metric_exporter)
     meter_provider = MeterProvider(resource=resource, metric_readers=[metric_reader])
     metrics.set_meter_provider(meter_provider)
