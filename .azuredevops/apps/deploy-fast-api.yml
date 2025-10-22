@@ -75,7 +75,7 @@ stages:
     jobs:
       - deployment: DeployToAzure
         displayName: "Deploy to Azure Web App"
-        environment: "fastapi-app-insights"
+        environment: "APIM_fastapi-app-insights"
         strategy:
           runOnce:
             deploy:
