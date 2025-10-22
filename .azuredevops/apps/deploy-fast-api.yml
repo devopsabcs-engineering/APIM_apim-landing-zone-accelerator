@@ -20,7 +20,7 @@ variables:
   artifactName: "fastapi-app"
   packageFolder: "package"
   packageArchive: "app.zip"
-  bicepFile: "main.bicep"
+  bicepFile: "$(System.DefaultWorkingDirectory)/src/fast-api-app-insights/main.bicep"
   resourceGroupName: "rg-fast-api-app-insights-001"
   location: "canadacentral"
   appName: "fast-api-app-insights-001"
@@ -51,7 +51,7 @@ stages:
               pip install --no-compile --target $(Build.ArtifactStagingDirectory)/$(packageFolder)/.python_packages/lib/site-packages -r requirements.txt
               cp main.py telemetry.py requirements.txt README.md $(Build.ArtifactStagingDirectory)/$(packageFolder)/
             displayName: "Install dependencies and copy sources"
-            workingDirectory: "$(System.DefaultWorkingDirectory)"
+            workingDirectory: "$(System.DefaultWorkingDirectory)/src/fast-api-app-insights"
 
           - task: ArchiveFiles@2
             displayName: "Create deployment archive"
