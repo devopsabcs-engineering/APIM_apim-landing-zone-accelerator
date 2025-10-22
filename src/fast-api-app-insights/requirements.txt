@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-instrumentation-fastapi
+opentelemetry-instrumentation-logging
+opentelemetry-instrumentation-requests
+azure-monitor-opentelemetry-exporter
+python-dotenv
+httpx
