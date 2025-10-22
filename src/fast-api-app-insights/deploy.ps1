@@ -118,7 +118,6 @@ az webapp deploy `
     --name $AppName `
     --src-path $packagePath `
     --type zip `
-    --build-remote true `
     --only-show-errors | Out-Null
 
 Write-Host 'Cleaning up local staging artifacts...' -ForegroundColor DarkGray
