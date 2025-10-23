@@ -1,20 +1,19 @@
 {
   "properties": {
-    "path": "moviereviews",
+    "path": "swdev",
     "apiRevision": "1",
     "authenticationSettings": {},
+    "description": "",
     "isCurrent": true,
-    "displayName": "Movie Reviews",
+    "displayName": "Star Wars",
     "protocols": [
-      "http",
       "https"
     ],
-    "serviceUrl": "https://app-movie-reviews-api-cknbss3bmafei.azurewebsites.net/graphql",
+    "serviceUrl": "https://swapi.dev/api",
     "subscriptionKeyParameterNames": {
       "header": "Ocp-Apim-Subscription-Key",
       "query": "subscription-key"
     },
-    "subscriptionRequired": true,
-    "type": "graphql"
+    "subscriptionRequired": true
   }
 }

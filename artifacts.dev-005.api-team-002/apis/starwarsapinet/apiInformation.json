@@ -1,20 +1,18 @@
 {
   "properties": {
-    "path": "moviereviews",
+    "path": "sw",
     "apiRevision": "1",
     "authenticationSettings": {},
     "isCurrent": true,
-    "displayName": "Movie Reviews",
+    "displayName": "StarWarsApiNet",
     "protocols": [
-      "http",
       "https"
     ],
-    "serviceUrl": "https://app-movie-reviews-api-cknbss3bmafei.azurewebsites.net/graphql",
+    "serviceUrl": "https://app-star-wars-api-o3swnbq56q5wi.azurewebsites.net/",
     "subscriptionKeyParameterNames": {
       "header": "Ocp-Apim-Subscription-Key",
       "query": "subscription-key"
     },
-    "subscriptionRequired": true,
-    "type": "graphql"
+    "subscriptionRequired": true
   }
 }

@@ -1,0 +1,126 @@
+openapi: 3.0.1
+info:
+  title: WRKSHP_SimpleWebApiWithContainers
+  version: '1.0'
+servers:
+  - url: https://apim-dev-005-3snpbfdd5kffc.azure-api.net/weatherdemo001
+paths:
+  /WeatherForecast:
+    get:
+      tags:
+        - WeatherForecast
+      summary: GetWeatherForecast
+      description: GetWeatherForecast
+      operationId: GetWeatherForecast
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WeatherForecast'
+              example: ''
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WeatherForecast'
+              example:
+                - date: string
+                  temperatureC: 0
+                  temperatureF: 0
+                  summary: string
+                  version: string
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WeatherForecast'
+              example:
+                - date: string
+                  temperatureC: 0
+                  temperatureF: 0
+                  summary: string
+                  version: string
+  /WeatherForecast/environment:
+    get:
+      tags:
+        - WeatherForecast
+      summary: /WeatherForecast/environment - GET
+      description: /WeatherForecast/environment - GET
+      operationId: get-weatherforecast-environment
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: ''
+            application/json:
+              schema:
+                type: string
+              example: string
+            text/json:
+              schema:
+                type: string
+              example: string
+  /WeatherForecast/version:
+    get:
+      tags:
+        - WeatherForecast
+      summary: /WeatherForecast/version - GET
+      description: /WeatherForecast/version - GET
+      operationId: get-weatherforecast-version
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: ''
+            application/json:
+              schema:
+                type: string
+              example: string
+            text/json:
+              schema:
+                type: string
+              example: string
+components:
+  schemas:
+    WeatherForecast:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        temperatureC:
+          type: integer
+          format: int32
+        temperatureF:
+          type: integer
+          format: int32
+          readOnly: true
+        summary:
+          type: string
+          nullable: true
+        version:
+          type: string
+          nullable: true
+      additionalProperties: false
+  securitySchemes:
+    apiKeyHeader:
+      type: apiKey
+      name: Ocp-Apim-Subscription-Key
+      in: header
+    apiKeyQuery:
+      type: apiKey
+      name: subscription-key
+      in: query
+security:
+  - apiKeyHeader: [ ]
+  - apiKeyQuery: [ ]

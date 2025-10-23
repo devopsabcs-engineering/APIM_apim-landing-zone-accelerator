@@ -1,20 +1,18 @@
 {
   "properties": {
-    "path": "moviereviews",
+    "path": "weatherdemo001",
     "apiRevision": "1",
     "authenticationSettings": {},
     "isCurrent": true,
-    "displayName": "Movie Reviews",
+    "displayName": "WRKSHP_SimpleWebApiWithContainers",
     "protocols": [
-      "http",
       "https"
     ],
-    "serviceUrl": "https://app-movie-reviews-api-cknbss3bmafei.azurewebsites.net/graphql",
+    "serviceUrl": "https://wrkshpsimplewebapiwithcontainers-demo-001.azurewebsites.net/",
     "subscriptionKeyParameterNames": {
       "header": "Ocp-Apim-Subscription-Key",
       "query": "subscription-key"
     },
-    "subscriptionRequired": true,
-    "type": "graphql"
+    "subscriptionRequired": false
   }
 }
