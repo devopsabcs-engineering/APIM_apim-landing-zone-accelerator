@@ -2,6 +2,8 @@
 # More information about workspaces can be found here https://learn.microsoft.com/en-us/azure/api-management/workspaces-overview
 
 apiNames:
+  - basic-calculator
+  - colors-api
   #- demo-conference-api
   #- demo-conference-api-versioned
   #- demo-conference-api-versioned-v2
@@ -9,10 +11,25 @@ apiNames:
   - ipersonprofileservice
   - isoftwareversionservice
   - movie-reviews
+  - star-wars
+  - starwarsapinet
+  - swagger-petstore-openapi-3-0
   - weatherapi
+  - wrkshp-simplewebapiwithcontainers
 
 tagNames:
+  - Colors
+  - Films
+  - People
+  - pet
+  - Planets
   #- sampleapitag
+  - Species
+  - Starships
+  - store
+  - Transports
+  - user
+  - Vehicles
   - WeatherForecast
 
 #loggerNames:
@@ -29,7 +46,10 @@ namedValueNames:
 productNames:
   #- conference
   - graphql-product-dev
+  - odataproduct
+  - prodnosub
   - soapproduct
+  - star-wars
   #- starter
   #- unlimited
   - weatherproduct
