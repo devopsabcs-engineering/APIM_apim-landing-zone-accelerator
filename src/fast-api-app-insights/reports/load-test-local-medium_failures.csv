@@ -1,11 +1,13 @@
 Method,Name,Error,Occurrences
-GET,/[spike],"ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None)",2
-GET,/slow,CatchResponseError('Slow endpoint failed: 0'),6
-GET,/slow[heavy],"ReadTimeout(ReadTimeoutError(""HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=15)""))",14
-GET,/chain[heavy],"ReadTimeout(ReadTimeoutError(""HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=20)""))",9
-GET,/chain[heavy],HTTPError('500 Server Error: Internal Server Error for url: /chain[heavy]'),2
-GET,/[spike],HTTPError('500 Server Error: Internal Server Error for url: /[spike]'),6
-GET,/error,"CatchResponseError('Expected 500, got 0')",1
-GET,/chain,CatchResponseError('Chain endpoint failed: 0'),3
-GET,/,CatchResponseError('Got status code 0'),1
-GET,/,CatchResponseError('Got status code 500'),4
+GET,/[spike],"ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None)",7
+GET,/slow,CatchResponseError('Slow endpoint failed: 0'),2
+GET,/healthz[spike],"ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None)",2
+GET,/slow[heavy],"ReadTimeout(ReadTimeoutError(""HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=15)""))",13
+GET,/chain[heavy],"ReadTimeout(ReadTimeoutError(""HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=20)""))",16
+GET,/healthz,CatchResponseError('Health check failed: 0'),1
+GET,/[spike],HTTPError('500 Server Error: Internal Server Error for url: /[spike]'),8
+GET,/chain,CatchResponseError('Chain endpoint failed: 500'),1
+GET,/error,"CatchResponseError('Expected 500, got 0')",2
+GET,/chain,CatchResponseError('Chain endpoint failed: 0'),8
+GET,/,CatchResponseError('Got status code 0'),2
+GET,/,CatchResponseError('Got status code 500'),6

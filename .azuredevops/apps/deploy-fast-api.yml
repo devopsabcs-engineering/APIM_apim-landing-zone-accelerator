@@ -141,81 +141,55 @@ stages:
 
                       echo "Web App configuration complete"
 
+                - task: AzureWebApp@1
+                  displayName: "Deploy application package via Azure Web App task"
+                  inputs:
+                    azureSubscription: "$(azureServiceConnection)"
+                    appType: "webAppLinux"
+                    appName: "$(appName)"
+                    package: "$(Pipeline.Workspace)/$(artifactName)/$(packageArchive)"
+                    deploymentMethod: "zipDeploy"
+                    
                 - task: AzureCLI@2
-                  displayName: "Deploy application package with retry"
+                  displayName: "Verify deployment and restart app"
                   inputs:
                     azureSubscription: "$(azureServiceConnection)"
                     scriptType: "bash"
                     scriptLocation: "inlineScript"
                     inlineScript: |
                       set -euo pipefail
-                      package_path="$(Pipeline.Workspace)/$(artifactName)/$(packageArchive)"
-
-                      echo "Package path: $package_path"
-                      echo "Package size: $(du -h "$package_path" | cut -f1)"
-
-                      # Function to deploy with retry
-                      deploy_with_retry() {
-                        local max_attempts=3
-                        local attempt=1
-                        local wait_time=60
-                        
-                        while [ $attempt -le $max_attempts ]; do
-                          echo "Deployment attempt $attempt/$max_attempts..."
-                          
-                          if az webapp deploy \
-                            --resource-group $(resourceGroupName) \
-                            --name $(appName) \
-                            --type zip \
-                            --src-path "$package_path" \
-                            --timeout 600 \
-                            --async false; then
-                            echo "✓ Deployment successful!"
-                            return 0
-                          fi
-                          
-                          if [ $attempt -lt $max_attempts ]; then
-                            echo "⚠ Deployment attempt $attempt failed. Waiting ${wait_time}s before retry..."
-                            sleep $wait_time
-                            # Restart the app to clear any stuck processes
-                            echo "Restarting Web App..."
-                            az webapp restart \
-                              --resource-group $(resourceGroupName) \
-                              --name $(appName) \
-                              --output none
-                            sleep 30
-                          else
-                            echo "✗ Deployment failed after $max_attempts attempts"
-                            return 1
-                          fi
-                          
-                          attempt=$((attempt+1))
-                        done
-                        
-                        return 1
-                      }
-
-                      deploy_with_retry
-
-                      # Wait for deployment to stabilize
-                      echo "Waiting for deployment to stabilize..."
-                      sleep 30
-
-                      # Verify deployment
-                      echo "Verifying deployment status..."
-                      deployment_status=$(az webapp deployment list \
+                      
+                      echo "Restarting Web App to ensure clean start..."
+                      az webapp restart \
                         --resource-group $(resourceGroupName) \
                         --name $(appName) \
-                        --query "[0].status" -o tsv)
-
-                      echo "Latest deployment status: $deployment_status"
-
-                      if [ "$deployment_status" = "4" ] || [ "$deployment_status" = "Success" ]; then
-                        echo "✓ Deployment verified successfully!"
-                      else
-                        echo "⚠ Deployment status is: $deployment_status"
-                        echo "Check deployment logs at: https://$(appName).scm.azurewebsites.net/api/deployments/latest"
-                      fi
+                        --output none
+                      
+                      echo "Waiting for app to restart..."
+                      sleep 45
+                      
+                      # Verify the app is running
+                      echo "Verifying application health..."
+                      max_attempts=15
+                      attempt=1
+                      
+                      while [ $attempt -le $max_attempts ]; do
+                        echo "Health check attempt $attempt/$max_attempts..."
+                        
+                        if curl -f -s "https://$(appName).azurewebsites.net/healthz" > /dev/null 2>&1; then
+                          echo "✓ Application is healthy and responding!"
+                          exit 0
+                        fi
+                        
+                        if [ $attempt -eq $max_attempts ]; then
+                          echo "⚠ Application health check failed after $max_attempts attempts"
+                          echo "Check logs at: https://$(appName).scm.azurewebsites.net/api/logs/docker"
+                          exit 1
+                        fi
+                        
+                        attempt=$((attempt+1))
+                        sleep 10
+                      done
 
   - stage: Test
     displayName: Test Endpoints and Generate Telemetry
