@@ -60,6 +60,22 @@ Hit `http://localhost:8000/` to generate traces, metrics, and logs. The `/health
 
 Logs, traces, and metrics flow to Application Insights using the Azure Monitor exporters when the connection string is present. Live Metrics streaming is enabled automatically; no portal-side configuration changes are required. If you are running outside Azure, ensure outbound access to the configured ingestion endpoint so the live stream can connect.
 
+### API Documentation
+
+FastAPI provides automatic interactive API documentation:
+
+- **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs) - Interactive API explorer
+- **ReDoc**: [http://localhost:8000/redoc](http://localhost:8000/redoc) - Alternative documentation
+- **OpenAPI JSON**: [http://localhost:8000/openapi.json](http://localhost:8000/openapi.json) - Raw OpenAPI 3.0 specification
+
+To export the OpenAPI spec to a file:
+
+```pwsh
+python export-openapi.py
+# Or specify custom output
+python export-openapi.py --output api-spec.json
+```
+
 ## Deployment
 
 Use the PowerShell deployment script to provision infrastructure and deploy the app to Azure:
