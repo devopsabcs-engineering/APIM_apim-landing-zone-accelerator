@@ -1,0 +1,126 @@
+openapi: 3.0.1
+info:
+  title: FastAPI + Application Insights Demo
+  description: "\n    A demonstration FastAPI application instrumented with Azure Application Insights\n    using OpenTelemetry for distributed tracing, metrics, and logging.\n    \n    ## Features\n    \n    * **Distributed Tracing**: All endpoints automatically traced with OpenTelemetry\n    * **Live Metrics**: Real-time monitoring via Azure Application Insights\n    * **Custom Spans**: Detailed operation tracking with attributes and events\n    * **Exception Tracking**: Automatic error reporting and correlation\n    * **External Dependencies**: HTTP calls tracked with full context propagation\n    \n    ## Endpoints Overview\n    \n    * **Root (/)**: Basic endpoint with external API call\n    * **Health (/healthz)**: Simple health check probe\n    * **Slow (/slow)**: Demonstrates multi-step processing with delays\n    * **Chain (/chain)**: Shows sequential API call tracing\n    * **Error (/error)**: Tests exception tracking and error spans\n    "
+  contact:
+    name: API Support
+    email: support@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  version: '1.0'
+servers:
+  - url: https://apim-dev-005-3snpbfdd5kffc.azure-api.net/fastapi001
+paths:
+  /:
+    get:
+      tags:
+        - Demo
+      summary: Root endpoint
+      description: Returns a demo payload after making an external HTTP call to httpbin.org for trace demonstration
+      operationId: root__get
+      responses:
+        '200':
+          description: JSON response with telemetry demo data
+          content:
+            application/json:
+              schema: { }
+  /healthz:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Lightweight health probe endpoint for monitoring and load balancer checks
+      operationId: healthz_healthz_get
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                title: Response Healthz Healthz Get
+                type: object
+                additionalProperties:
+                  type: string
+              example:
+                status: ok
+  /slow:
+    get:
+      tags:
+        - Demo
+        - Performance
+      summary: Slow processing endpoint
+      description: Simulates a slow operation (~0.8s) with multiple external API calls for performance testing
+      operationId: slow_endpoint_slow_get
+      responses:
+        '200':
+          description: Successful slow operation
+          content:
+            application/json:
+              schema: { }
+              example:
+                message: Slow operation complete
+                results:
+                  - uuid: 550e8400-e29b-41d4-a716-446655440000
+                  - origin: 192.168.1.1
+                total_time: ~0.8s
+  /error:
+    get:
+      tags:
+        - Demo
+        - Testing
+      summary: Error endpoint
+      description: Intentionally raises an exception to demonstrate error tracking and exception telemetry
+      operationId: error_endpoint_error_get
+      responses:
+        '200':
+          description: This endpoint always raises an exception
+          content:
+            application/json:
+              schema: { }
+        '500':
+          description: Internal server error (expected behavior)
+          content:
+            application/json:
+              example:
+                detail: This is a test error to demonstrate exception tracking
+  /chain:
+    get:
+      tags:
+        - Demo
+        - Tracing
+      summary: Chain operation endpoint
+      description: Makes multiple sequential API calls to demonstrate distributed tracing chains
+      operationId: chain_endpoint_chain_get
+      responses:
+        '200':
+          description: Successful chain operation
+          content:
+            application/json:
+              schema: { }
+              example:
+                message: Chain operation complete
+                total_calls: 3
+                results:
+                  - endpoint: uuid
+                    data:
+                      uuid: '123'
+                  - endpoint: user-agent
+                    data:
+                      user-agent: python
+                  - endpoint: headers
+                    data:
+                      headers: { }
+components:
+  securitySchemes:
+    apiKeyHeader:
+      type: apiKey
+      name: Ocp-Apim-Subscription-Key
+      in: header
+    apiKeyQuery:
+      type: apiKey
+      name: subscription-key
+      in: query
+security:
+  - apiKeyHeader: [ ]
+  - apiKeyQuery: [ ]
