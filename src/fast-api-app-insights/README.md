@@ -19,6 +19,16 @@ pip install -r requirements.txt
 
 > **Note**: This app uses the `azure-monitor-opentelemetry` distro package which automatically instruments FastAPI, httpx, and other common libraries for distributed tracing and live metrics.
 
+## API Endpoints
+
+The FastAPI application includes these endpoints:
+
+- **`GET /`** - Root endpoint with external API call to httpbin.org (good for basic tracing)
+- **`GET /healthz`** - Health check endpoint (lightweight, no external calls)
+- **`GET /slow`** - Simulates slow processing with multiple external calls (~0.8s)
+- **`GET /chain`** - Makes 3 sequential API calls to demonstrate trace chains
+- **`GET /error`** - Intentionally raises an exception to test error tracking
+
 Export your Application Insights connection string (preferred) or instrumentation key before running the app (environment variables can also be stored in a local `.env` file that the app loads on startup):
 
 ```pwsh
@@ -29,6 +39,16 @@ $env:APPLICATIONINSIGHTS_CONNECTION_STRING = "InstrumentationKey=...;IngestionEn
 # $env:OTEL_SERVICE_NAME = "fast-api-app"
 # $env:OTEL_SERVICE_NAMESPACE = "sample"
 ```
+
+## API Endpoints
+
+The FastAPI application includes these endpoints:
+
+- **`GET /`** - Root endpoint with external API call to httpbin.org (good for basic tracing)
+- **`GET /healthz`** - Health check endpoint (lightweight, no external calls)
+- **`GET /slow`** - Simulates slow processing with multiple external calls (~0.8s)
+- **`GET /chain`** - Makes 3 sequential API calls to demonstrate trace chains
+- **`GET /error`** - Intentionally raises an exception to test error tracking
 
 ## Run the API
 
@@ -49,6 +69,69 @@ Use the PowerShell deployment script to provision infrastructure and deploy the 
 ```
 
 Or use the Azure DevOps pipeline (`azure-pipelines.yml`) for CI/CD automation.
+
+## Load Testing
+
+This project includes Locust-based load tests to generate telemetry data and test performance.
+
+### Local Load Testing
+
+Test your local development environment:
+
+```pwsh
+# Interactive mode - opens web UI at http://localhost:8089
+.\load-test-local.ps1 -Scenario Interactive
+
+# Pre-configured scenarios (headless mode)
+.\load-test-local.ps1 -Scenario Light    # 5 users, 60s
+.\load-test-local.ps1 -Scenario Medium   # 20 users, 120s
+.\load-test-local.ps1 -Scenario Heavy    # 50 users, 180s
+.\load-test-local.ps1 -Scenario Spike    # 100 users, 60s (spike traffic)
+```
+
+### Azure Load Testing
+
+Test your deployed Azure Web App:
+
+```pwsh
+# Interactive mode
+.\load-test-azure.ps1 -Scenario Interactive
+
+# Pre-configured scenarios
+.\load-test-azure.ps1 -Scenario Light
+.\load-test-azure.ps1 -Scenario Medium
+.\load-test-azure.ps1 -Scenario Heavy
+.\load-test-azure.ps1 -Scenario Spike
+
+# Custom app name
+.\load-test-azure.ps1 -Scenario Medium -AppName my-app-name
+```
+
+### Advanced Locust Usage
+
+Run Locust directly for more control:
+
+```pwsh
+# Local testing with custom parameters
+locust --host=http://localhost:8000 --users 50 --spawn-rate 5 --run-time 120s
+
+# Azure testing
+locust --host=https://fast-api-app-insights-001.azurewebsites.net
+
+# Use specific user class
+locust --host=http://localhost:8000 --user-classes HeavyUser
+
+# Generate reports
+locust --host=http://localhost:8000 --headless --html report.html --csv results
+```
+
+### Load Test Reports
+
+Headless mode generates reports in the `reports/` directory:
+- **HTML Report**: Visual summary with charts
+- **CSV Stats**: Detailed request statistics
+- **CSV Failures**: Failed request details
+- **CSV History**: Time-series data for analysis
 
 ## Troubleshooting
 
