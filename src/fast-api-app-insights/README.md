@@ -38,9 +38,21 @@ Hit `http://localhost:8000/` to generate traces, metrics, and logs. The `/health
 
 Logs, traces, and metrics flow to Application Insights using the Azure Monitor exporters when the connection string is present. Live Metrics streaming is enabled automatically; no portal-side configuration changes are required. If you are running outside Azure, ensure outbound access to the configured ingestion endpoint so the live stream can connect.
 
+## Deployment
+
+Use the PowerShell deployment script to provision infrastructure and deploy the app to Azure:
+
+```pwsh
+.\deploy.ps1 -ResourceGroupName 'rg-fast-api-app-insights-001' -Location 'canadacentral' -AppName 'fast-api-app-insights-001'
+```
+
+Or use the Azure DevOps pipeline (`azure-pipelines.yml`) for CI/CD automation.
+
 ## Troubleshooting
 
-- Ensure the connection string or instrumentation key environment variable is set before starting the app.
+- **No traces appearing**: Ensure you've installed all dependencies including `opentelemetry-instrumentation-httpx` and restarted the app after updating `requirements.txt`.
+- **Live Metrics not showing**: Live Metrics can take 1-2 minutes to establish connection after app startup. Verify outbound HTTPS access to the LiveEndpoint in your connection string.
+- **Missing connection string**: Ensure the connection string or instrumentation key environment variable is set before starting the app (check `.env` file or environment variables).
 - Use `pip list` to confirm the expected OpenTelemetry packages are installed.
 - If running behind a proxy, set the appropriate proxy variables so the exporter can reach Azure Monitor.
 - To suppress the local warning about missing `azure_app_service` detector, set `OTEL_PYTHON_RESOURCE_DETECTORS=env,process` before launching `uvicorn`.

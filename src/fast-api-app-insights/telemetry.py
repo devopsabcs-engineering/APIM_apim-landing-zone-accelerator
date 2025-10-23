@@ -12,6 +12,7 @@ from azure.monitor.opentelemetry.exporter import (
 from fastapi import FastAPI
 from opentelemetry import _logs, metrics, trace
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
@@ -65,8 +66,9 @@ def configure_telemetry(app: FastAPI, *, connection_string: Optional[str] = None
         )
     )
 
-    FastAPIInstrumentor.instrument_app(app, tracer_provider=tracer_provider)
-    RequestsInstrumentor().instrument(tracer_provider=tracer_provider)
+    FastAPIInstrumentor.instrument_app(app)
+    HTTPXClientInstrumentor().instrument()
+    RequestsInstrumentor().instrument()
 
     LoggingInstrumentor().instrument(set_logging_format=True)
 
