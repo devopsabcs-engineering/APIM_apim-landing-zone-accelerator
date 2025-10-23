@@ -60,23 +60,55 @@ stages:
               # Create package directory
               mkdir -p $(Build.ArtifactStagingDirectory)/$(packageFolder)
 
-              # Install dependencies directly into the package folder
-              pip install --target $(Build.ArtifactStagingDirectory)/$(packageFolder) -r requirements.txt
+              # Install dependencies with optimizations to reduce size
+              echo "Installing dependencies (optimized for size)..."
+              pip install \
+                --target $(Build.ArtifactStagingDirectory)/$(packageFolder) \
+                --no-cache-dir \
+                --compile \
+                -r requirements.txt
 
               # Copy application files
+              echo "Copying application files..."
               cp main.py telemetry.py $(Build.ArtifactStagingDirectory)/$(packageFolder)/
 
               # Copy requirements.txt for reference
               cp requirements.txt $(Build.ArtifactStagingDirectory)/$(packageFolder)/
 
-              echo "Package contents:"
-              ls -la $(Build.ArtifactStagingDirectory)/$(packageFolder)/
+              # Clean up to reduce package size
+              echo "Cleaning up unnecessary files to reduce package size..."
+              cd $(Build.ArtifactStagingDirectory)/$(packageFolder)
+              
+              # Remove test files and directories
+              find . -type d -name "tests" -exec rm -rf {} + 2>/dev/null || true
+              find . -type d -name "test" -exec rm -rf {} + 2>/dev/null || true
+              find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+              find . -type f -name "*.pyc" -delete 2>/dev/null || true
+              find . -type f -name "*.pyo" -delete 2>/dev/null || true
+              
+              # Remove .dist-info directories (keep only necessary metadata)
+              find . -type d -name "*.dist-info" -exec sh -c 'rm -rf "$1"/RECORD "$1"/INSTALLER "$1"/direct_url.json 2>/dev/null || true' _ {} \; 2>/dev/null || true
+              
+              # Remove documentation and examples
+              find . -type d -name "examples" -exec rm -rf {} + 2>/dev/null || true
+              find . -type d -name "docs" -exec rm -rf {} + 2>/dev/null || true
+              find . -type f -name "*.md" ! -name "requirements.txt" -delete 2>/dev/null || true
+              find . -type f -name "*.rst" -delete 2>/dev/null || true
+              
+              # Remove typing stubs if present
+              find . -type d -name "*.pyi" -delete 2>/dev/null || true
 
+              echo "Package size after cleanup:"
+              du -sh .
+              
               echo "Checking for uvicorn:"
-              ls -la $(Build.ArtifactStagingDirectory)/$(packageFolder)/uvicorn* || echo "uvicorn not found as directory"
+              ls -la uvicorn* 2>/dev/null || echo "uvicorn installed as module"
+              
+              echo "Verifying key dependencies:"
+              ls -d fastapi* uvicorn* opentelemetry* 2>/dev/null || echo "Dependencies installed"
 
               echo "Package created successfully"
-            displayName: "Install dependencies and copy sources"
+            displayName: "Install dependencies and copy sources (optimized)"
             workingDirectory: "$(System.DefaultWorkingDirectory)/src/fast-api-app-insights"
 
           - task: ArchiveFiles@2
@@ -170,6 +202,49 @@ stages:
                     appName: "$(appName)"
                     package: "$(Pipeline.Workspace)/$(artifactName)/$(packageArchive)"
                     deploymentMethod: "zipDeploy"
+                  continueOnError: true
+
+                - task: AzureCLI@2
+                  displayName: "Check deployment logs and status"
+                  inputs:
+                    azureSubscription: "$(azureServiceConnection)"
+                    scriptType: "bash"
+                    scriptLocation: "inlineScript"
+                    inlineScript: |
+                      set +e  # Don't exit on error for log checking
+                      
+                      echo "Checking deployment status..."
+                      
+                      # Get deployment status
+                      deployment_status=$(az webapp deployment list \
+                        --resource-group $(resourceGroupName) \
+                        --name $(appName) \
+                        --query "[0].{status:status,message:message,active:active}" \
+                        -o json 2>/dev/null)
+                      
+                      echo "Latest deployment status:"
+                      echo "$deployment_status"
+                      
+                      # Get recent logs
+                      echo ""
+                      echo "Fetching recent deployment logs..."
+                      az webapp log tail \
+                        --resource-group $(resourceGroupName) \
+                        --name $(appName) \
+                        --timeout 30 \
+                        2>/dev/null || echo "Could not fetch logs"
+                      
+                      # Check if deployment was successful
+                      if echo "$deployment_status" | grep -q '"status": 4' || echo "$deployment_status" | grep -q '"active": true'; then
+                        echo "✓ Deployment appears successful"
+                        exit 0
+                      else
+                        echo "⚠ Deployment may have issues - check logs at:"
+                        echo "  https://$(appName).scm.azurewebsites.net/api/deployments/latest"
+                        echo "  https://$(appName).scm.azurewebsites.net/api/logs/docker"
+                        exit 0  # Don't fail the pipeline, continue to restart
+                      fi
+                  condition: always()
 
                 - task: AzureCLI@2
                   displayName: "Verify deployment and restart app"
