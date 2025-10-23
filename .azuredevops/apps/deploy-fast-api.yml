@@ -270,3 +270,168 @@ stages:
                 Write-Host "  • Performance metrics from /slow and /chain endpoints" -ForegroundColor White
                 Write-Host "`n🔗 View in Azure Portal:" -ForegroundColor Cyan
                 Write-Host "   https://portal.azure.com/#@/resource/subscriptions/{subscription-id}/resourceGroups/$(resourceGroupName)/providers/microsoft.insights/components/$(appName)-insights" -ForegroundColor Blue
+
+  - stage: LoadTest
+    displayName: Run Load Tests with Locust
+    dependsOn: Test
+    jobs:
+      - job: LocustLoadTest
+        displayName: "Execute Locust Load Tests"
+        pool:
+          vmImage: "ubuntu-latest"
+        steps:
+          - checkout: self
+            clean: true
+
+          - task: UsePythonVersion@0
+            displayName: "Use Python $(pythonVersion)"
+            inputs:
+              versionSpec: "$(pythonVersion)"
+              architecture: "x64"
+
+          - script: |
+              set -e
+              python -m pip install --upgrade pip
+              pip install locust
+              locust --version
+            displayName: "Install Locust"
+            workingDirectory: "$(System.DefaultWorkingDirectory)/src/fast-api-app-insights"
+
+          - task: PowerShell@2
+            displayName: "Run Light Load Test (5 users, 60s)"
+            inputs:
+              targetType: "inline"
+              pwsh: true
+              workingDirectory: "$(System.DefaultWorkingDirectory)/src/fast-api-app-insights"
+              script: |
+                $ErrorActionPreference = "Stop"
+                $host_url = "https://$(appName).azurewebsites.net"
+                
+                Write-Host "`n==============================================================" -ForegroundColor Cyan
+                Write-Host "Locust Load Test - Light Scenario" -ForegroundColor Cyan
+                Write-Host "==============================================================" -ForegroundColor Cyan
+                Write-Host "Target: $host_url" -ForegroundColor Yellow
+                Write-Host "  - 5 concurrent users" -ForegroundColor Gray
+                Write-Host "  - 1 user spawned per second" -ForegroundColor Gray
+                Write-Host "  - 60 second duration`n" -ForegroundColor Gray
+                
+                # Check app is accessible
+                Write-Host "Verifying app is accessible..." -ForegroundColor Yellow
+                try {
+                  $response = Invoke-RestMethod -Uri "$host_url/healthz" -TimeoutSec 10
+                  Write-Host "✓ App is healthy and ready for load testing`n" -ForegroundColor Green
+                } catch {
+                  Write-Host "✗ App is not accessible. Skipping load test." -ForegroundColor Red
+                  exit 1
+                }
+                
+                # Create reports directory
+                if (-not (Test-Path "reports")) {
+                  New-Item -ItemType Directory -Path "reports" | Out-Null
+                }
+                
+                # Run Locust
+                Write-Host "Starting Locust load test..." -ForegroundColor Cyan
+                locust --host=$host_url `
+                       --users 5 `
+                       --spawn-rate 1 `
+                       --run-time 60s `
+                       --headless `
+                       --html reports/load-test-azure-light.html `
+                       --csv reports/load-test-azure-light `
+                       --loglevel INFO
+                
+                Write-Host "`n✓ Light load test completed successfully!" -ForegroundColor Green
+
+          - task: PowerShell@2
+            displayName: "Run Medium Load Test (20 users, 120s)"
+            inputs:
+              targetType: "inline"
+              pwsh: true
+              workingDirectory: "$(System.DefaultWorkingDirectory)/src/fast-api-app-insights"
+              script: |
+                $ErrorActionPreference = "Stop"
+                $host_url = "https://$(appName).azurewebsites.net"
+                
+                Write-Host "`n==============================================================" -ForegroundColor Cyan
+                Write-Host "Locust Load Test - Medium Scenario" -ForegroundColor Cyan
+                Write-Host "==============================================================" -ForegroundColor Cyan
+                Write-Host "Target: $host_url" -ForegroundColor Yellow
+                Write-Host "  - 20 concurrent users" -ForegroundColor Gray
+                Write-Host "  - 2 users spawned per second" -ForegroundColor Gray
+                Write-Host "  - 120 second duration`n" -ForegroundColor Gray
+                
+                Write-Host "Starting Locust load test..." -ForegroundColor Cyan
+                locust --host=$host_url `
+                       --users 20 `
+                       --spawn-rate 2 `
+                       --run-time 120s `
+                       --headless `
+                       --html reports/load-test-azure-medium.html `
+                       --csv reports/load-test-azure-medium `
+                       --loglevel INFO
+                
+                Write-Host "`n✓ Medium load test completed successfully!" -ForegroundColor Green
+
+          - task: PowerShell@2
+            displayName: "Parse and display test results"
+            inputs:
+              targetType: "inline"
+              pwsh: true
+              workingDirectory: "$(System.DefaultWorkingDirectory)/src/fast-api-app-insights"
+              script: |
+                Write-Host "`n==============================================================" -ForegroundColor Cyan
+                Write-Host "Load Test Results Summary" -ForegroundColor Cyan
+                Write-Host "==============================================================" -ForegroundColor Cyan
+                
+                # Parse Light test results
+                if (Test-Path "reports/load-test-azure-light_stats.csv") {
+                  Write-Host "`n📊 LIGHT LOAD TEST (5 users, 60s):" -ForegroundColor Yellow
+                  $lightStats = Import-Csv "reports/load-test-azure-light_stats.csv" | Where-Object { $_.Type -eq "Aggregated" }
+                  if ($lightStats) {
+                    Write-Host "  • Total Requests: $($lightStats.'Request Count')" -ForegroundColor White
+                    Write-Host "  • Failure Rate: $($lightStats.'Failure Count') failures" -ForegroundColor White
+                    Write-Host "  • Avg Response Time: $($lightStats.'Average Response Time') ms" -ForegroundColor White
+                    Write-Host "  • Min Response Time: $($lightStats.'Min Response Time') ms" -ForegroundColor White
+                    Write-Host "  • Max Response Time: $($lightStats.'Max Response Time') ms" -ForegroundColor White
+                    Write-Host "  • Requests/sec: $($lightStats.'Requests/s')" -ForegroundColor White
+                  }
+                }
+                
+                # Parse Medium test results
+                if (Test-Path "reports/load-test-azure-medium_stats.csv") {
+                  Write-Host "`n📊 MEDIUM LOAD TEST (20 users, 120s):" -ForegroundColor Yellow
+                  $mediumStats = Import-Csv "reports/load-test-azure-medium_stats.csv" | Where-Object { $_.Type -eq "Aggregated" }
+                  if ($mediumStats) {
+                    Write-Host "  • Total Requests: $($mediumStats.'Request Count')" -ForegroundColor White
+                    Write-Host "  • Failure Rate: $($mediumStats.'Failure Count') failures" -ForegroundColor White
+                    Write-Host "  • Avg Response Time: $($mediumStats.'Average Response Time') ms" -ForegroundColor White
+                    Write-Host "  • Min Response Time: $($mediumStats.'Min Response Time') ms" -ForegroundColor White
+                    Write-Host "  • Max Response Time: $($mediumStats.'Max Response Time') ms" -ForegroundColor White
+                    Write-Host "  • Requests/sec: $($mediumStats.'Requests/s')" -ForegroundColor White
+                  }
+                }
+                
+                Write-Host "`n==============================================================" -ForegroundColor Cyan
+                Write-Host "Load Testing Complete!" -ForegroundColor Green
+                Write-Host "==============================================================" -ForegroundColor Cyan
+                Write-Host "`nℹ️  Load test reports generated in reports/ directory" -ForegroundColor Cyan
+                Write-Host "`n🔍 Check Application Insights for:" -ForegroundColor Yellow
+                Write-Host "  • Server response times under load" -ForegroundColor White
+                Write-Host "  • Request volume and throughput" -ForegroundColor White
+                Write-Host "  • Dependency call performance" -ForegroundColor White
+                Write-Host "  • Error rates and exceptions" -ForegroundColor White
+                Write-Host "  • Application Map showing all dependencies" -ForegroundColor White
+                Write-Host "`n🔗 Azure Portal Links:" -ForegroundColor Cyan
+                Write-Host "  Application Insights: https://portal.azure.com/#@/resource/subscriptions/{subscription-id}/resourceGroups/$(resourceGroupName)" -ForegroundColor Blue
+                Write-Host "  Live Metrics: Check during test execution for real-time data" -ForegroundColor Gray
+                Write-Host "  Performance Blade: Review response times and throughput" -ForegroundColor Gray
+                Write-Host "  Application Map: Visualize all service dependencies" -ForegroundColor Gray
+
+          - task: PublishBuildArtifacts@1
+            displayName: "Publish load test reports"
+            inputs:
+              PathtoPublish: "$(System.DefaultWorkingDirectory)/src/fast-api-app-insights/reports"
+              ArtifactName: "load-test-reports"
+              publishLocation: "Container"
+            condition: always()
