@@ -3,13 +3,13 @@
     "path": "soappersonprofile",
     "apiRevision": "1",
     "authenticationSettings": {},
-    "description": "soap service with wsdl made easy",
+    "description": "soap service with wsdl made easy (team 002 changes soap api)",
     "isCurrent": true,
     "displayName": "IPersonProfileService",
     "protocols": [
       "https"
     ],
-    "serviceUrl": "https://app-soap-api-l6isc4zatv5ny.azurewebsites.net/PersonProfileService.asmx",
+    "serviceUrl": "https://app-soap-api-eck3siixea55c.azurewebsites.net/PersonProfileService.asmx",
     "subscriptionKeyParameterNames": {
       "header": "Ocp-Apim-Subscription-Key",
       "query": "subscription-key"

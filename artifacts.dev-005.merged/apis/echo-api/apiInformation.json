@@ -3,17 +3,17 @@
     "path": "echo",
     "apiRevision": "1",
     "authenticationSettings": {},
-    "description": "fix linting (DEV)",
+    "description": "fix linting (testing api team 001 PIPES) -- TC -- MAPAQ",
     "isCurrent": true,
     "displayName": "Echo API",
     "protocols": [
       "https"
     ],
-    "serviceUrl": "http://echoapi.cloudapp.net/api",
+    "serviceUrl": "https://echo.playground.azure-api.net/api",
     "subscriptionKeyParameterNames": {
       "header": "Ocp-Apim-Subscription-Key",
       "query": "subscription-key"
     },
-    "subscriptionRequired": true
+    "subscriptionRequired": false
   }
 }

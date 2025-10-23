@@ -9,7 +9,7 @@
       "http",
       "https"
     ],
-    "serviceUrl": "https://app-movie-api-mhk7hesuo5ziy.azurewebsites.net/graphql",
+    "serviceUrl": "https://app-movie-reviews-api-cknbss3bmafei.azurewebsites.net/graphql",
     "subscriptionKeyParameterNames": {
       "header": "Ocp-Apim-Subscription-Key",
       "query": "subscription-key"

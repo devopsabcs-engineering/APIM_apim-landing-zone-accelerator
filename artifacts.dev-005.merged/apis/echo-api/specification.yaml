@@ -1,7 +1,7 @@
 openapi: 3.0.1
 info:
   title: Echo API
-  description: fix linting (DEV)
+  description: fix linting (testing api team 001 PIPES) -- TC -- MAPAQ
   version: '1.0'
 servers:
   - url: https://apim-dev-005-3snpbfdd5kffc.azure-api.net/echo
@@ -99,5 +99,6 @@ components:
       name: subscription-key
       in: query
 security:
+  - { }
   - apiKeyHeader: [ ]
   - apiKeyQuery: [ ]

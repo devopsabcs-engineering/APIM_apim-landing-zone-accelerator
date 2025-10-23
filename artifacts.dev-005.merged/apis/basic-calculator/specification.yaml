@@ -1,0 +1,122 @@
+openapi: 3.0.1
+info:
+  title: Basic Calculator
+  description: Arithmetics is just a call away!
+  version: '1.0'
+servers:
+  - url: http://apim-dev-005-3snpbfdd5kffc.azure-api.net/calc
+  - url: https://apim-dev-005-3snpbfdd5kffc.azure-api.net/calc
+paths:
+  /add:
+    get:
+      summary: Add two integers
+      description: Produces a sum of two numbers.
+      operationId: 67893ad0fdfb1417d0fe8e0f
+      parameters:
+        - name: a
+          in: query
+          description: First operand. Default value is <code>51</code>.
+          required: true
+          schema:
+            enum:
+              - ''
+            type: string
+        - name: b
+          in: query
+          description: Second operand. Default value is <code>49</code>.
+          required: true
+          schema:
+            enum:
+              - ''
+            type: string
+      responses:
+        '200':
+          description: ''
+  /sub:
+    get:
+      summary: Subtract two integers
+      description: Produces a difference between two numbers.
+      operationId: 67893ad0fdfb1417d0fe8e10
+      parameters:
+        - name: a
+          in: query
+          description: First operand. Default value is <code>51</code>.
+          required: true
+          schema:
+            enum:
+              - ''
+            type: string
+        - name: b
+          in: query
+          description: Second operand. Default value is <code>49</code>.
+          required: true
+          schema:
+            enum:
+              - ''
+            type: string
+      responses:
+        '200':
+          description: ''
+  /mul:
+    get:
+      summary: Multiply two integers
+      description: Produces a product of two numbers.
+      operationId: 67893ad0fdfb1417d0fe8e11
+      parameters:
+        - name: a
+          in: query
+          description: First operand. Default value is <code>51</code>.
+          required: true
+          schema:
+            enum:
+              - ''
+            type: string
+        - name: b
+          in: query
+          description: Second operand. Default value is <code>49</code>.
+          required: true
+          schema:
+            enum:
+              - ''
+            type: string
+      responses:
+        '200':
+          description: ''
+  /div:
+    get:
+      summary: Divide two integers
+      description: Produces a quotient of two numbers.
+      operationId: 67893ad0fdfb1417d0fe8e12
+      parameters:
+        - name: a
+          in: query
+          description: First operand. Default value is <code>51</code>.
+          required: true
+          schema:
+            enum:
+              - ''
+            type: string
+        - name: b
+          in: query
+          description: Second operand. Default value is <code>49</code>.
+          required: true
+          schema:
+            enum:
+              - ''
+            type: string
+      responses:
+        '200':
+          description: ''
+components:
+  securitySchemes:
+    apiKeyHeader:
+      type: apiKey
+      name: Ocp-Apim-Subscription-Key
+      in: header
+    apiKeyQuery:
+      type: apiKey
+      name: subscription-key
+      in: query
+security:
+  - apiKeyHeader: [ ]
+  - apiKeyQuery: [ ]

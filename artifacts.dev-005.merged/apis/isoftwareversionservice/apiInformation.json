@@ -9,7 +9,7 @@
     "protocols": [
       "https"
     ],
-    "serviceUrl": "https://app-soap-api-l6isc4zatv5ny.azurewebsites.net/SoftwareVersionService.asmx",
+    "serviceUrl": "https://app-soap-api-eck3siixea55c.azurewebsites.net/SoftwareVersionService.asmx",
     "subscriptionKeyParameterNames": {
       "header": "Ocp-Apim-Subscription-Key",
       "query": "subscription-key"
