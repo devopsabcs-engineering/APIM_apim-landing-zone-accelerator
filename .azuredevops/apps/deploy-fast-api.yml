@@ -115,7 +115,34 @@ stages:
                         --parameters appName=$(appName) location=$(location) skuName=B1 skuTier=Basic skuCapacity=1
 
                 - task: AzureCLI@2
-                  displayName: "Deploy application package"
+                  displayName: "Configure Web App settings for deployment"
+                  inputs:
+                    azureSubscription: "$(azureServiceConnection)"
+                    scriptType: "bash"
+                    scriptLocation: "inlineScript"
+                    inlineScript: |
+                      set -euo pipefail
+
+                      echo "Configuring Web App deployment settings..."
+
+                      # Increase SCM timeout to prevent 504 errors
+                      az webapp config appsettings set \
+                        --resource-group $(resourceGroupName) \
+                        --name $(appName) \
+                        --settings SCM_COMMAND_IDLE_TIMEOUT=3600 \
+                        --output none
+
+                      # Configure app settings for Python
+                      az webapp config appsettings set \
+                        --resource-group $(resourceGroupName) \
+                        --name $(appName) \
+                        --settings WEBSITES_PORT=8000 \
+                        --output none
+
+                      echo "Web App configuration complete"
+
+                - task: AzureCLI@2
+                  displayName: "Deploy application package with retry"
                   inputs:
                     azureSubscription: "$(azureServiceConnection)"
                     scriptType: "bash"
@@ -123,11 +150,72 @@ stages:
                     inlineScript: |
                       set -euo pipefail
                       package_path="$(Pipeline.Workspace)/$(artifactName)/$(packageArchive)"
-                      az webapp deploy \
+
+                      echo "Package path: $package_path"
+                      echo "Package size: $(du -h "$package_path" | cut -f1)"
+
+                      # Function to deploy with retry
+                      deploy_with_retry() {
+                        local max_attempts=3
+                        local attempt=1
+                        local wait_time=60
+                        
+                        while [ $attempt -le $max_attempts ]; do
+                          echo "Deployment attempt $attempt/$max_attempts..."
+                          
+                          if az webapp deploy \
+                            --resource-group $(resourceGroupName) \
+                            --name $(appName) \
+                            --type zip \
+                            --src-path "$package_path" \
+                            --timeout 600 \
+                            --async false; then
+                            echo "✓ Deployment successful!"
+                            return 0
+                          fi
+                          
+                          if [ $attempt -lt $max_attempts ]; then
+                            echo "⚠ Deployment attempt $attempt failed. Waiting ${wait_time}s before retry..."
+                            sleep $wait_time
+                            # Restart the app to clear any stuck processes
+                            echo "Restarting Web App..."
+                            az webapp restart \
+                              --resource-group $(resourceGroupName) \
+                              --name $(appName) \
+                              --output none
+                            sleep 30
+                          else
+                            echo "✗ Deployment failed after $max_attempts attempts"
+                            return 1
+                          fi
+                          
+                          attempt=$((attempt+1))
+                        done
+                        
+                        return 1
+                      }
+
+                      deploy_with_retry
+
+                      # Wait for deployment to stabilize
+                      echo "Waiting for deployment to stabilize..."
+                      sleep 30
+
+                      # Verify deployment
+                      echo "Verifying deployment status..."
+                      deployment_status=$(az webapp deployment list \
                         --resource-group $(resourceGroupName) \
                         --name $(appName) \
-                        --type zip \
-                        --src-path "$package_path"
+                        --query "[0].status" -o tsv)
+
+                      echo "Latest deployment status: $deployment_status"
+
+                      if [ "$deployment_status" = "4" ] || [ "$deployment_status" = "Success" ]; then
+                        echo "✓ Deployment verified successfully!"
+                      else
+                        echo "⚠ Deployment status is: $deployment_status"
+                        echo "Check deployment logs at: https://$(appName).scm.azurewebsites.net/api/deployments/latest"
+                      fi
 
   - stage: Test
     displayName: Test Endpoints and Generate Telemetry
@@ -148,10 +236,10 @@ stages:
                 set -euo pipefail
                 echo "Waiting for application to start..."
                 sleep 30
-                
+
                 app_url="https://$(appName).azurewebsites.net"
                 echo "Application URL: $app_url"
-                
+
                 # Wait for health check to pass
                 max_attempts=10
                 attempt=1
@@ -177,12 +265,12 @@ stages:
               script: |
                 $ErrorActionPreference = "Continue"
                 $appUrl = "https://$(appName).azurewebsites.net"
-                
+
                 Write-Host "========================================" -ForegroundColor Cyan
                 Write-Host "Testing FastAPI Application Endpoints" -ForegroundColor Cyan
                 Write-Host "Application URL: $appUrl" -ForegroundColor Cyan
                 Write-Host "========================================" -ForegroundColor Cyan
-                
+
                 # Test 1: Root endpoint (with external call)
                 Write-Host "`n[TEST 1] Calling root endpoint (/)..." -ForegroundColor Yellow
                 try {
@@ -192,9 +280,9 @@ stages:
                 } catch {
                   Write-Host "✗ Root endpoint failed: $_" -ForegroundColor Red
                 }
-                
+
                 Start-Sleep -Seconds 2
-                
+
                 # Test 2: Health check endpoint
                 Write-Host "`n[TEST 2] Calling health check endpoint (/healthz)..." -ForegroundColor Yellow
                 try {
@@ -204,9 +292,9 @@ stages:
                 } catch {
                   Write-Host "✗ Health check failed: $_" -ForegroundColor Red
                 }
-                
+
                 Start-Sleep -Seconds 2
-                
+
                 # Test 3: Slow endpoint (multiple external calls)
                 Write-Host "`n[TEST 3] Calling slow endpoint (/slow)..." -ForegroundColor Yellow
                 try {
@@ -216,9 +304,9 @@ stages:
                 } catch {
                   Write-Host "✗ Slow endpoint failed: $_" -ForegroundColor Red
                 }
-                
+
                 Start-Sleep -Seconds 2
-                
+
                 # Test 4: Chain endpoint (sequential calls)
                 Write-Host "`n[TEST 4] Calling chain endpoint (/chain)..." -ForegroundColor Yellow
                 try {
@@ -228,9 +316,9 @@ stages:
                 } catch {
                   Write-Host "✗ Chain endpoint failed: $_" -ForegroundColor Red
                 }
-                
+
                 Start-Sleep -Seconds 2
-                
+
                 # Test 5: Error endpoint (should fail - tests exception tracking)
                 Write-Host "`n[TEST 5] Calling error endpoint (/error) - Expected to fail..." -ForegroundColor Yellow
                 try {
@@ -240,9 +328,9 @@ stages:
                   Write-Host "✓ Error endpoint failed as expected (for telemetry testing)" -ForegroundColor Green
                   Write-Host "  Error: $($_.Exception.Message)" -ForegroundColor Gray
                 }
-                
+
                 Start-Sleep -Seconds 2
-                
+
                 # Test 6: Multiple rapid calls to test request aggregation
                 Write-Host "`n[TEST 6] Making multiple rapid calls to root endpoint..." -ForegroundColor Yellow
                 $successCount = 0
@@ -258,7 +346,7 @@ stages:
                   Start-Sleep -Milliseconds 500
                 }
                 Write-Host "  Completed $successCount/5 calls successfully" -ForegroundColor Gray
-                
+
                 Write-Host "`n========================================" -ForegroundColor Cyan
                 Write-Host "Telemetry Testing Complete!" -ForegroundColor Cyan
                 Write-Host "========================================" -ForegroundColor Cyan
@@ -306,7 +394,7 @@ stages:
               script: |
                 $ErrorActionPreference = "Stop"
                 $host_url = "https://$(appName).azurewebsites.net"
-                
+
                 Write-Host "`n==============================================================" -ForegroundColor Cyan
                 Write-Host "Locust Load Test - Light Scenario" -ForegroundColor Cyan
                 Write-Host "==============================================================" -ForegroundColor Cyan
@@ -314,7 +402,7 @@ stages:
                 Write-Host "  - 5 concurrent users" -ForegroundColor Gray
                 Write-Host "  - 1 user spawned per second" -ForegroundColor Gray
                 Write-Host "  - 60 second duration`n" -ForegroundColor Gray
-                
+
                 # Check app is accessible
                 Write-Host "Verifying app is accessible..." -ForegroundColor Yellow
                 try {
@@ -324,12 +412,12 @@ stages:
                   Write-Host "✗ App is not accessible. Skipping load test." -ForegroundColor Red
                   exit 1
                 }
-                
+
                 # Create reports directory
                 if (-not (Test-Path "reports")) {
                   New-Item -ItemType Directory -Path "reports" | Out-Null
                 }
-                
+
                 # Run Locust
                 Write-Host "Starting Locust load test..." -ForegroundColor Cyan
                 locust --host=$host_url `
@@ -340,7 +428,7 @@ stages:
                        --html reports/load-test-azure-light.html `
                        --csv reports/load-test-azure-light `
                        --loglevel INFO
-                
+
                 Write-Host "`n✓ Light load test completed successfully!" -ForegroundColor Green
 
           - task: PowerShell@2
@@ -352,7 +440,7 @@ stages:
               script: |
                 $ErrorActionPreference = "Stop"
                 $host_url = "https://$(appName).azurewebsites.net"
-                
+
                 Write-Host "`n==============================================================" -ForegroundColor Cyan
                 Write-Host "Locust Load Test - Medium Scenario" -ForegroundColor Cyan
                 Write-Host "==============================================================" -ForegroundColor Cyan
@@ -360,7 +448,7 @@ stages:
                 Write-Host "  - 20 concurrent users" -ForegroundColor Gray
                 Write-Host "  - 2 users spawned per second" -ForegroundColor Gray
                 Write-Host "  - 120 second duration`n" -ForegroundColor Gray
-                
+
                 Write-Host "Starting Locust load test..." -ForegroundColor Cyan
                 locust --host=$host_url `
                        --users 20 `
@@ -370,7 +458,7 @@ stages:
                        --html reports/load-test-azure-medium.html `
                        --csv reports/load-test-azure-medium `
                        --loglevel INFO
-                
+
                 Write-Host "`n✓ Medium load test completed successfully!" -ForegroundColor Green
 
           - task: PowerShell@2
@@ -383,7 +471,7 @@ stages:
                 Write-Host "`n==============================================================" -ForegroundColor Cyan
                 Write-Host "Load Test Results Summary" -ForegroundColor Cyan
                 Write-Host "==============================================================" -ForegroundColor Cyan
-                
+
                 # Parse Light test results
                 if (Test-Path "reports/load-test-azure-light_stats.csv") {
                   Write-Host "`n📊 LIGHT LOAD TEST (5 users, 60s):" -ForegroundColor Yellow
@@ -397,7 +485,7 @@ stages:
                     Write-Host "  • Requests/sec: $($lightStats.'Requests/s')" -ForegroundColor White
                   }
                 }
-                
+
                 # Parse Medium test results
                 if (Test-Path "reports/load-test-azure-medium_stats.csv") {
                   Write-Host "`n📊 MEDIUM LOAD TEST (20 users, 120s):" -ForegroundColor Yellow
@@ -411,7 +499,7 @@ stages:
                     Write-Host "  • Requests/sec: $($mediumStats.'Requests/s')" -ForegroundColor White
                   }
                 }
-                
+
                 Write-Host "`n==============================================================" -ForegroundColor Cyan
                 Write-Host "Load Testing Complete!" -ForegroundColor Green
                 Write-Host "==============================================================" -ForegroundColor Cyan
