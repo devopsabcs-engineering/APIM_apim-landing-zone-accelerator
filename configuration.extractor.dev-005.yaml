@@ -8,6 +8,7 @@ apiNames:
   - demo-conference-api-versioned
   - demo-conference-api-versioned-v2
   - echo-api
+  - fastapi-application-insights-demo
   - ipersonprofileservice
   - isoftwareversionservice
   - movie-reviews
@@ -19,14 +20,19 @@ apiNames:
 
 tagNames:
   - Colors
+  - Demo
   - Films
+  - Health
   - People
+  - Performance
   - pet
   - Planets
   - sampleapitag
   - Species
   - Starships
   - store
+  - Testing
+  - Tracing
   - Transports
   - user
   - Vehicles
@@ -56,6 +62,7 @@ productNames:
 
 backendNames:
   - backend-weather-api
+  - WebApp_fast-api-app-insights-001
 
 policyFragmentNames:
   - SampleEmptyPolicyFragment
