@@ -40,13 +40,25 @@ parameters:
       - OpenAPIV3Json
       - OpenAPIV2Yaml
       - OpenAPIV2Json
+  - name: AGENT_TYPE
+    type: string
+    displayName: Agent type
+    default: "Microsoft-hosted"
+    values:
+      - Microsoft-hosted
+      - Self-hosted
+  - name: VM_IMAGE
+    type: string
+    displayName: VM Image (for Microsoft-hosted agents)
+    default: "ubuntu-latest"
+    values:
+      - ubuntu-latest
+      - windows-latest
+      - macos-latest
   - name: POOL_NAME
     type: string
-    displayName: Agent pool name
-    values:
-      - DefaultLinuxOnPremPool
-      - ubuntu-latest
-    default: "ubuntu-latest"
+    displayName: Pool name (for self-hosted agents)
+    default: "DefaultLinuxOnPremPool"
 
 trigger: none
 
@@ -61,7 +73,11 @@ stages:
     jobs:
       - job: create_artifact_from_portal
         displayName: Create artifact from portal
-        pool: "${{ parameters.POOL_NAME }}"
+        pool:
+          ${{ if eq(parameters.AGENT_TYPE, 'Microsoft-hosted') }}:
+            vmImage: "${{ parameters.VM_IMAGE }}"
+          ${{ if eq(parameters.AGENT_TYPE, 'Self-hosted') }}:
+            name: "${{ parameters.POOL_NAME }}"
         steps:
           - task: AzureCLI@2
             displayName: Set extraction variables
@@ -229,7 +245,11 @@ stages:
     jobs:
       - job: create_artifacts_pull_request
         displayName: Create artifacts pull request
-        pool: "${{ parameters.POOL_NAME }}"
+        pool:
+          ${{ if eq(parameters.AGENT_TYPE, 'Microsoft-hosted') }}:
+            vmImage: "${{ parameters.VM_IMAGE }}"
+          ${{ if eq(parameters.AGENT_TYPE, 'Self-hosted') }}:
+            name: "${{ parameters.POOL_NAME }}"
         steps:
           - task: DownloadPipelineArtifact@2
             displayName: Download pipeline artifact
