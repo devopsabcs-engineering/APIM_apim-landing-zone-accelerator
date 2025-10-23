@@ -29,6 +29,25 @@ parameters:
     values:
       - publish-artifacts-in-last-commit
       - publish-all-artifacts-in-repo
+  - name: AGENT_TYPE
+    type: string
+    displayName: Agent type
+    default: "Microsoft-hosted"
+    values:
+      - Microsoft-hosted
+      - Self-hosted
+  - name: VM_IMAGE
+    type: string
+    displayName: VM Image (for Microsoft-hosted agents)
+    default: "ubuntu-latest"
+    values:
+      - ubuntu-latest
+      - windows-latest
+      - macos-latest
+  - name: POOL_NAME
+    type: string
+    displayName: Pool name (for self-hosted agents)
+    default: "DefaultLinuxOnPremPool"
 
 variables:
   - group: APIM_rg-apim-vnet-external-dev-005-eu2-stable # CHANGE THIS TO YOUR RESOURCE GROUP VARIABLE GROUP
@@ -42,7 +61,10 @@ stages:
       - job: push_changes_to_Dev_APIM
         displayName: Push changes to Dev APIM
         pool:
-          vmImage: ubuntu-latest
+          ${{ if eq(parameters.AGENT_TYPE, 'Microsoft-hosted') }}:
+            vmImage: "${{ parameters.VM_IMAGE }}"
+          ${{ if eq(parameters.AGENT_TYPE, 'Self-hosted') }}:
+            name: "${{ parameters.POOL_NAME }}"
         steps:
           - template: run-publisher-with-env.yaml
             parameters:
@@ -60,7 +82,10 @@ stages:
           #setting the testSecretValue to the prod resource group name as an example
           testSecretValue: $(RESOURCE_GROUP_NAME_Prod)
         pool:
-          vmImage: ubuntu-latest
+          ${{ if eq(parameters.AGENT_TYPE, 'Microsoft-hosted') }}:
+            vmImage: "${{ parameters.VM_IMAGE }}"
+          ${{ if eq(parameters.AGENT_TYPE, 'Self-hosted') }}:
+            name: "${{ parameters.POOL_NAME }}"
         # creates an environment if it doesn't exist
         environment: "APIM_rg-apim-vnet-external-prod-005-eu2_apiops-stable" # CHANGE THIS TO YOUR ENVIRONMENT NAME for Production APIM
         strategy:
