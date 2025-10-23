@@ -54,11 +54,28 @@ stages:
 
           - script: |
               set -e
+              echo "Installing dependencies..."
               python -m pip install --upgrade pip
+
+              # Create package directory
               mkdir -p $(Build.ArtifactStagingDirectory)/$(packageFolder)
-              mkdir -p $(Build.ArtifactStagingDirectory)/$(packageFolder)/.python_packages/lib/site-packages
-              pip install --no-compile --target $(Build.ArtifactStagingDirectory)/$(packageFolder)/.python_packages/lib/site-packages -r requirements.txt
-              cp main.py telemetry.py requirements.txt README.md $(Build.ArtifactStagingDirectory)/$(packageFolder)/
+
+              # Install dependencies directly into the package folder
+              pip install --target $(Build.ArtifactStagingDirectory)/$(packageFolder) -r requirements.txt
+
+              # Copy application files
+              cp main.py telemetry.py $(Build.ArtifactStagingDirectory)/$(packageFolder)/
+
+              # Copy requirements.txt for reference
+              cp requirements.txt $(Build.ArtifactStagingDirectory)/$(packageFolder)/
+
+              echo "Package contents:"
+              ls -la $(Build.ArtifactStagingDirectory)/$(packageFolder)/
+
+              echo "Checking for uvicorn:"
+              ls -la $(Build.ArtifactStagingDirectory)/$(packageFolder)/uvicorn* || echo "uvicorn not found as directory"
+
+              echo "Package created successfully"
             displayName: "Install dependencies and copy sources"
             workingDirectory: "$(System.DefaultWorkingDirectory)/src/fast-api-app-insights"
 
@@ -125,18 +142,22 @@ stages:
 
                       echo "Configuring Web App deployment settings..."
 
-                      # Increase SCM timeout to prevent 504 errors
+                      # Configure app settings for Python deployment
                       az webapp config appsettings set \
                         --resource-group $(resourceGroupName) \
                         --name $(appName) \
-                        --settings SCM_COMMAND_IDLE_TIMEOUT=3600 \
+                        --settings \
+                          SCM_COMMAND_IDLE_TIMEOUT=3600 \
+                          SCM_DO_BUILD_DURING_DEPLOYMENT=false \
+                          ENABLE_ORYX_BUILD=false \
+                          WEBSITES_PORT=8000 \
                         --output none
 
-                      # Configure app settings for Python
-                      az webapp config appsettings set \
+                      # Set the startup command
+                      az webapp config set \
                         --resource-group $(resourceGroupName) \
                         --name $(appName) \
-                        --settings WEBSITES_PORT=8000 \
+                        --startup-file "python -m uvicorn main:app --host 0.0.0.0 --port 8000" \
                         --output none
 
                       echo "Web App configuration complete"
@@ -149,7 +170,7 @@ stages:
                     appName: "$(appName)"
                     package: "$(Pipeline.Workspace)/$(artifactName)/$(packageArchive)"
                     deploymentMethod: "zipDeploy"
-                    
+
                 - task: AzureCLI@2
                   displayName: "Verify deployment and restart app"
                   inputs:
@@ -158,21 +179,21 @@ stages:
                     scriptLocation: "inlineScript"
                     inlineScript: |
                       set -euo pipefail
-                      
+
                       echo "Restarting Web App to ensure clean start..."
                       az webapp restart \
                         --resource-group $(resourceGroupName) \
                         --name $(appName) \
                         --output none
-                      
+
                       echo "Waiting for app to restart..."
                       sleep 45
-                      
+
                       # Verify the app is running
                       echo "Verifying application health..."
                       max_attempts=15
                       attempt=1
-                      
+
                       while [ $attempt -le $max_attempts ]; do
                         echo "Health check attempt $attempt/$max_attempts..."
                         
