@@ -228,7 +228,7 @@ products:
       state: "published"
       subscriptionRequired: true
       terms: "PROD: Read the legal fine print SOAP-Terms!"
-      subscriptionsLimit: 0
+      subscriptionsLimit: 5 # example of setting a subscriptions limit on a product in PROD
   - name: weatherproduct
     properties:
       name: weatherproduct

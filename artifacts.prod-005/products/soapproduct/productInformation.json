@@ -5,7 +5,7 @@
     "approvalRequired": false,
     "state": "published",
     "subscriptionRequired": true,
-    "subscriptionsLimit": 0,
+    "subscriptionsLimit": 5,
     "terms": "PROD: Read the legal fine print SOAP-Terms!"
   }
 }
