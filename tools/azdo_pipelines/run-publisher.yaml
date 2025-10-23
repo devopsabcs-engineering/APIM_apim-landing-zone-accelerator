@@ -28,15 +28,18 @@ parameters:
     values:
       - publish-artifacts-in-last-commit
       - publish-all-artifacts-in-repo
+  - name: POOL_NAME
+    type: string
+    displayName: Agent pool name
+    values:
+      - DefaultLinuxOnPremPool
+      - ubuntu-latest
+    default: "ubuntu-latest"
 
 variables:
   - group: APIM_rg-apim-vnet-external-dev-005-eu2-stable # CHANGE THIS TO YOUR RESOURCE GROUP VARIABLE GROUP
   - name: System.Debug
     value: true
-
-pool:
-  #vmImage: "ubuntu-latest"
-  name: "DefaultLinuxOnPremPool"
 
 stages:
   - stage: push_changes_to_Dev_APIM
@@ -44,8 +47,7 @@ stages:
     jobs:
       - job: push_changes_to_Dev_APIM
         displayName: Push changes to Dev APIM
-        #pool:
-        #  vmImage: ubuntu-latest
+        pool: "${{ parameters.POOL_NAME }}"
         steps:
           - template: run-publisher-with-env.yaml
             parameters:
@@ -62,8 +64,7 @@ stages:
         variables:
           #setting the testSecretValue to the prod resource group name as an example
           testSecretValue: $(RESOURCE_GROUP_NAME_Prod)
-        #pool:
-        #  vmImage: ubuntu-latest
+        pool: "${{ parameters.POOL_NAME }}"
         # creates an environment if it doesn't exist
         environment: "APIM_rg-apim-vnet-external-prod-005-eu2_apiops-stable" # CHANGE THIS TO YOUR ENVIRONMENT NAME for Production APIM
         strategy:
