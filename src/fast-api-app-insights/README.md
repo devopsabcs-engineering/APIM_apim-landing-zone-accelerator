@@ -12,10 +12,12 @@ Simple FastAPI app instrumented with OpenTelemetry exporters for Azure Applicati
 ```pwsh
 # from repo root or this folder
 python -m venv .venv
-\.\.venv\Scripts\Activate.ps1
+.\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
+
+> **Note**: This app uses the `azure-monitor-opentelemetry` distro package which automatically instruments FastAPI, httpx, and other common libraries for distributed tracing and live metrics.
 
 Export your Application Insights connection string (preferred) or instrumentation key before running the app (environment variables can also be stored in a local `.env` file that the app loads on startup):
 

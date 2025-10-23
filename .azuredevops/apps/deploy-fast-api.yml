@@ -128,3 +128,145 @@ stages:
                         --name $(appName) \
                         --type zip \
                         --src-path "$package_path"
+
+  - stage: Test
+    displayName: Test Endpoints and Generate Telemetry
+    dependsOn: Deploy
+    jobs:
+      - job: TestEndpoints
+        displayName: "Call Endpoints to Test App Insights"
+        pool:
+          vmImage: "ubuntu-latest"
+        steps:
+          - task: AzureCLI@2
+            displayName: "Wait for app to be ready"
+            inputs:
+              azureSubscription: "$(azureServiceConnection)"
+              scriptType: "bash"
+              scriptLocation: "inlineScript"
+              inlineScript: |
+                set -euo pipefail
+                echo "Waiting for application to start..."
+                sleep 30
+                
+                app_url="https://$(appName).azurewebsites.net"
+                echo "Application URL: $app_url"
+                
+                # Wait for health check to pass
+                max_attempts=10
+                attempt=1
+                while [ $attempt -le $max_attempts ]; do
+                  echo "Health check attempt $attempt/$max_attempts"
+                  if curl -f -s "$app_url/healthz" > /dev/null; then
+                    echo "Application is healthy!"
+                    break
+                  fi
+                  if [ $attempt -eq $max_attempts ]; then
+                    echo "Application failed to become healthy after $max_attempts attempts"
+                    exit 1
+                  fi
+                  attempt=$((attempt+1))
+                  sleep 10
+                done
+
+          - task: PowerShell@2
+            displayName: "Test all endpoints and generate telemetry"
+            inputs:
+              targetType: "inline"
+              pwsh: true
+              script: |
+                $ErrorActionPreference = "Continue"
+                $appUrl = "https://$(appName).azurewebsites.net"
+                
+                Write-Host "========================================" -ForegroundColor Cyan
+                Write-Host "Testing FastAPI Application Endpoints" -ForegroundColor Cyan
+                Write-Host "Application URL: $appUrl" -ForegroundColor Cyan
+                Write-Host "========================================" -ForegroundColor Cyan
+                
+                # Test 1: Root endpoint (with external call)
+                Write-Host "`n[TEST 1] Calling root endpoint (/)..." -ForegroundColor Yellow
+                try {
+                  $response = Invoke-RestMethod -Uri "$appUrl/" -Method Get -TimeoutSec 30
+                  Write-Host "✓ Root endpoint successful" -ForegroundColor Green
+                  Write-Host "  Response: $($response | ConvertTo-Json -Compress)" -ForegroundColor Gray
+                } catch {
+                  Write-Host "✗ Root endpoint failed: $_" -ForegroundColor Red
+                }
+                
+                Start-Sleep -Seconds 2
+                
+                # Test 2: Health check endpoint
+                Write-Host "`n[TEST 2] Calling health check endpoint (/healthz)..." -ForegroundColor Yellow
+                try {
+                  $response = Invoke-RestMethod -Uri "$appUrl/healthz" -Method Get -TimeoutSec 30
+                  Write-Host "✓ Health check successful" -ForegroundColor Green
+                  Write-Host "  Response: $($response | ConvertTo-Json -Compress)" -ForegroundColor Gray
+                } catch {
+                  Write-Host "✗ Health check failed: $_" -ForegroundColor Red
+                }
+                
+                Start-Sleep -Seconds 2
+                
+                # Test 3: Slow endpoint (multiple external calls)
+                Write-Host "`n[TEST 3] Calling slow endpoint (/slow)..." -ForegroundColor Yellow
+                try {
+                  $response = Invoke-RestMethod -Uri "$appUrl/slow" -Method Get -TimeoutSec 60
+                  Write-Host "✓ Slow endpoint successful" -ForegroundColor Green
+                  Write-Host "  Response: $($response | ConvertTo-Json -Compress)" -ForegroundColor Gray
+                } catch {
+                  Write-Host "✗ Slow endpoint failed: $_" -ForegroundColor Red
+                }
+                
+                Start-Sleep -Seconds 2
+                
+                # Test 4: Chain endpoint (sequential calls)
+                Write-Host "`n[TEST 4] Calling chain endpoint (/chain)..." -ForegroundColor Yellow
+                try {
+                  $response = Invoke-RestMethod -Uri "$appUrl/chain" -Method Get -TimeoutSec 60
+                  Write-Host "✓ Chain endpoint successful" -ForegroundColor Green
+                  Write-Host "  Total calls made: $($response.total_calls)" -ForegroundColor Gray
+                } catch {
+                  Write-Host "✗ Chain endpoint failed: $_" -ForegroundColor Red
+                }
+                
+                Start-Sleep -Seconds 2
+                
+                # Test 5: Error endpoint (should fail - tests exception tracking)
+                Write-Host "`n[TEST 5] Calling error endpoint (/error) - Expected to fail..." -ForegroundColor Yellow
+                try {
+                  $response = Invoke-RestMethod -Uri "$appUrl/error" -Method Get -TimeoutSec 30 -ErrorAction Stop
+                  Write-Host "✗ Error endpoint should have failed but didn't!" -ForegroundColor Red
+                } catch {
+                  Write-Host "✓ Error endpoint failed as expected (for telemetry testing)" -ForegroundColor Green
+                  Write-Host "  Error: $($_.Exception.Message)" -ForegroundColor Gray
+                }
+                
+                Start-Sleep -Seconds 2
+                
+                # Test 6: Multiple rapid calls to test request aggregation
+                Write-Host "`n[TEST 6] Making multiple rapid calls to root endpoint..." -ForegroundColor Yellow
+                $successCount = 0
+                for ($i = 1; $i -le 5; $i++) {
+                  try {
+                    Write-Host "  Call $i/5..." -NoNewline
+                    $null = Invoke-RestMethod -Uri "$appUrl/" -Method Get -TimeoutSec 30
+                    Write-Host " ✓" -ForegroundColor Green
+                    $successCount++
+                  } catch {
+                    Write-Host " ✗" -ForegroundColor Red
+                  }
+                  Start-Sleep -Milliseconds 500
+                }
+                Write-Host "  Completed $successCount/5 calls successfully" -ForegroundColor Gray
+                
+                Write-Host "`n========================================" -ForegroundColor Cyan
+                Write-Host "Telemetry Testing Complete!" -ForegroundColor Cyan
+                Write-Host "========================================" -ForegroundColor Cyan
+                Write-Host "`nℹ️  Check Application Insights for:" -ForegroundColor Cyan
+                Write-Host "  • Request traces and dependencies" -ForegroundColor White
+                Write-Host "  • Live Metrics during test execution" -ForegroundColor White
+                Write-Host "  • Custom events and spans" -ForegroundColor White
+                Write-Host "  • Exception tracking from /error endpoint" -ForegroundColor White
+                Write-Host "  • Performance metrics from /slow and /chain endpoints" -ForegroundColor White
+                Write-Host "`n🔗 View in Azure Portal:" -ForegroundColor Cyan
+                Write-Host "   https://portal.azure.com/#@/resource/subscriptions/{subscription-id}/resourceGroups/$(resourceGroupName)/providers/microsoft.insights/components/$(appName)-insights" -ForegroundColor Blue
