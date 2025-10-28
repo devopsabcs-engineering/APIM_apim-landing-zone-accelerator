@@ -5,6 +5,8 @@ from typing import Optional
 
 from azure.monitor.opentelemetry import configure_azure_monitor
 from fastapi import FastAPI
+from opentelemetry import metrics
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 
 _configured = False
@@ -24,7 +26,7 @@ def _connection_string(env_override: Optional[str] = None) -> str:
 
 
 def configure_telemetry(app: FastAPI, *, connection_string: Optional[str] = None) -> None:
-    """Configure Azure Monitor telemetry using the distro package."""
+    """Configure Azure Monitor telemetry using the distro package with full metrics support."""
     global _configured
     if _configured:
         return
@@ -47,5 +49,54 @@ def configure_telemetry(app: FastAPI, *, connection_string: Optional[str] = None
             "httpx": {"enabled": True},
         },
     )
+    
+    # Explicitly instrument FastAPI for better performance metrics
+    FastAPIInstrumentor.instrument_app(app)
+    
+    # Create custom metrics for detailed performance tracking
+    meter = metrics.get_meter(__name__)
+    
+    # Create custom counters and histograms for performance insights
+    request_counter = meter.create_counter(
+        name="app.requests.total",
+        description="Total number of requests",
+        unit="1",
+    )
+    
+    request_duration = meter.create_histogram(
+        name="app.request.duration",
+        description="Request duration in milliseconds",
+        unit="ms",
+    )
+    
+    # Add middleware to track request metrics
+    @app.middleware("http")
+    async def metrics_middleware(request, call_next):
+        import time
+        
+        start_time = time.time()
+        response = await call_next(request)
+        duration = (time.time() - start_time) * 1000  # Convert to milliseconds
+        
+        # Record metrics with labels
+        request_counter.add(
+            1,
+            {
+                "method": request.method,
+                "endpoint": request.url.path,
+                "status": response.status_code,
+            }
+        )
+        
+        request_duration.record(
+            duration,
+            {
+                "method": request.method,
+                "endpoint": request.url.path,
+                "status": response.status_code,
+            }
+        )
+        
+        return response
 
     _configured = True
