@@ -11,7 +11,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from opentelemetry import trace
 
-from telemetry import configure_telemetry
+from telemetry import configure_telemetry, setup_metrics_middleware
 
 logger = logging.getLogger("fastapi-app")
 tracer = trace.get_tracer(__name__)
@@ -64,6 +64,9 @@ app = FastAPI(
     redoc_url="/redoc",  # ReDoc alternative documentation
     openapi_url="/openapi.json",  # OpenAPI spec endpoint
 )
+
+# Add metrics middleware before any requests are processed
+setup_metrics_middleware(app)
 
 
 @app.get(
