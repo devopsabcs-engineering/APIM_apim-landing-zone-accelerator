@@ -188,15 +188,22 @@ async def version_info() -> dict[str, str]:
     - Useful for tracking which version is deployed to each environment
     
     The version is automatically replaced during the CI/CD pipeline build process
-    from the GitVersion calculated semantic version.
+    from the GitVersion calculated semantic version. Falls back to APP_VERSION
+    environment variable if the replacement didn't occur.
     """
     logger.debug("Version endpoint called")
+    
+    # Get version: use baked-in VERSION, fallback to APP_VERSION env var, then to local-dev
+    if VERSION != "__VERSION__":
+        version = VERSION
+    else:
+        version = os.getenv("APP_VERSION", "local-dev")
     
     # Get environment from env var or default to unknown
     environment = os.getenv("DEPLOYMENT_ENVIRONMENT", "unknown")
     
     return {
-        "version": VERSION if VERSION != "__VERSION__" else "local-dev",
+        "version": version,
         "environment": environment,
     }
 
