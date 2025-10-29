@@ -13,6 +13,9 @@ from opentelemetry import trace
 
 from telemetry_v2 import configure_telemetry
 
+# Application version - replaced during CI/CD pipeline
+VERSION = "__VERSION__"
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -52,11 +55,12 @@ app = FastAPI(
     
     * **Root (/)**: Basic endpoint with external API call
     * **Health (/healthz)**: Simple health check probe
+    * **Version (/version)**: Returns the application version from deployment
     * **Slow (/slow)**: Demonstrates multi-step processing with delays
     * **Chain (/chain)**: Shows sequential API call tracing
     * **Error (/error)**: Tests exception tracking and error spans
     """,
-    version="1.0.0",
+    version=VERSION if VERSION != "__VERSION__" else "1.0.0-local",
     contact={
         "name": "API Support",
         "email": "support@example.com",
@@ -153,6 +157,48 @@ async def healthz() -> dict[str, str]:
 
     logger.debug("Health check endpoint called")
     return {"status": "ok"}
+
+
+@app.get(
+    "/version",
+    summary="Version information",
+    description="Returns the deployed version of the application from the Git tag created during CI/CD pipeline",
+    response_description="Version information object",
+    tags=["Health"],
+    responses={
+        200: {
+            "description": "Application version information",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "version": "1.2.3",
+                        "environment": "production"
+                    }
+                }
+            }
+        }
+    }
+)
+async def version_info() -> dict[str, str]:
+    """Return the application version from the deployment tag.
+    
+    This endpoint provides:
+    - Semantic version from Git tag created during pipeline deployment
+    - Environment information (if available)
+    - Useful for tracking which version is deployed to each environment
+    
+    The version is automatically replaced during the CI/CD pipeline build process
+    from the GitVersion calculated semantic version.
+    """
+    logger.debug("Version endpoint called")
+    
+    # Get environment from env var or default to unknown
+    environment = os.getenv("DEPLOYMENT_ENVIRONMENT", "unknown")
+    
+    return {
+        "version": VERSION if VERSION != "__VERSION__" else "local-dev",
+        "environment": environment,
+    }
 
 
 @app.get(
