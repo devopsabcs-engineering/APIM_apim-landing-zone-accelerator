@@ -11,7 +11,13 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from opentelemetry import trace
 
-from telemetry import configure_telemetry, setup_metrics_middleware
+from telemetry_v2 import configure_telemetry
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 
 logger = logging.getLogger("fastapi-app")
 tracer = trace.get_tracer(__name__)
@@ -23,7 +29,7 @@ load_dotenv()
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Initialize telemetry once when the FastAPI app starts."""
 
-    configure_telemetry(app)
+    configure_telemetry(app, add_middleware=False)  # Don't add middleware here
     logger.info("Telemetry configured")
     yield
 
@@ -65,8 +71,9 @@ app = FastAPI(
     openapi_url="/openapi.json",  # OpenAPI spec endpoint
 )
 
-# Add metrics middleware before any requests are processed
-setup_metrics_middleware(app)
+# Add telemetry middleware BEFORE lifespan starts
+from telemetry_v2 import RequestTelemetryMiddleware
+app.add_middleware(RequestTelemetryMiddleware)
 
 
 @app.get(
