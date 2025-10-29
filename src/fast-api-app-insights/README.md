@@ -1,19 +1,22 @@
 # FastAPI + Azure Application Insights Demo
 
-FastAPI application with **working** Azure Application Insights integration using OpenTelemetry. Features custom middleware that properly creates REQUEST telemetry for Application Insights Performance monitoring.
+FastAPI application with **working** Azure Application Insights integration using OpenTelemetry. Features custom middleware that properly creates REQUEST telemetry for Application Insights Performance monitoring, Live Metrics, and full observability.
 
 ## ✅ What Works
 
 - ✅ **Request tracking** - All HTTP requests appear in Performance blade
-- ✅ **Live Metrics** - Real-time request rate and duration
+- ✅ **Live Metrics** - Real-time request rate, duration, and server health streaming
 - ✅ **Transaction Search** - Requests properly classified as REQUEST type
-- ✅ **Dependency tracking** - External HTTP calls to httpbin.org
-- ✅ **Error tracking** - Exception telemetry with correlation
+- ✅ **Dependency tracking** - External HTTP calls tracked with distributed tracing
+- ✅ **Error tracking** - Exception telemetry with full correlation
+- ✅ **Version tracking** - Git-tagged semantic versioning via `/version` endpoint
+- ✅ **CI/CD Pipeline** - Automated deployment with Azure DevOps
 
 ## Prerequisites
 
 - Python 3.9+ (tested with 3.13)
 - Azure Application Insights resource with connection string
+- Azure subscription (for deployment)
 
 ## Quick Start
 
@@ -34,6 +37,7 @@ APPLICATIONINSIGHTS_CONNECTION_STRING=InstrumentationKey=...;IngestionEndpoint=h
 OTEL_SERVICE_NAME=fast-api-app-insights
 OTEL_METRIC_EXPORT_INTERVAL=5000
 OTEL_SEMCONV_STABILITY_OPT_IN=http
+DEPLOYMENT_ENVIRONMENT=local
 ```
 
 ### 3. Start Server
@@ -44,12 +48,16 @@ OTEL_SEMCONV_STABILITY_OPT_IN=http
 
 The server will start in a new window on `http://localhost:8000`
 
-> **Important**: This solution uses **custom middleware** (`telemetry_v2.py`) to create proper REQUEST telemetry. See [SOLUTION.md](SOLUTION.md) for technical details on why automatic instrumentation didn't work.
+> **Important**: This solution uses **custom middleware** (`telemetry_v2.py`) to create proper REQUEST telemetry. See [ARCHITECTURE.md](ARCHITECTURE.md) for technical details on why automatic instrumentation required custom implementation.
 
 ## API Endpoints
 
+### Core Endpoints
 - **`GET /`** - Root endpoint with external API call to httpbin.org
 - **`GET /healthz`** - Health check endpoint (lightweight, no external calls)
+- **`GET /version`** - Returns deployed version and environment information
+
+### Demo & Testing Endpoints
 - **`GET /slow`** - Simulates slow processing (~800ms with external calls)
 - **`GET /chain`** - Makes 3 sequential API calls to demonstrate distributed tracing
 - **`GET /error`** - Intentionally raises exception to test error tracking
@@ -67,6 +75,9 @@ FastAPI provides automatic interactive API documentation:
 ### Send Test Requests
 
 ```pwsh
+# Version check
+Invoke-WebRequest -Uri "http://localhost:8000/version" -UseBasicParsing
+
 # Single request
 Invoke-WebRequest -Uri "http://localhost:8000/" -UseBasicParsing
 
@@ -86,10 +97,10 @@ Invoke-WebRequest -Uri "http://localhost:8000/chain" -UseBasicParsing
 2. **Performance Blade**: Investigate → Performance
    - Request Rate, Duration, Failure Rate metrics
 3. **Live Metrics**: Investigate → Live Metrics  
-   - Real-time request streaming
+   - Real-time request streaming with server health
 4. **Transaction Search**: Investigate → Transaction search
    - Filter by event type: "Request"
-   - View individual request details
+   - View individual request details with full correlation
 
 ## Monitoring Features
 
@@ -103,7 +114,7 @@ Invoke-WebRequest -Uri "http://localhost:8000/chain" -UseBasicParsing
 
 **Request Details:**
 - HTTP method, URL, status code
-- Request duration
+- Request duration with percentile breakdowns
 - All HTTP semantic convention attributes
 - Correlated dependencies and traces
 
@@ -117,25 +128,65 @@ Invoke-WebRequest -Uri "http://localhost:8000/chain" -UseBasicParsing
 - Correlated with parent requests
 - Failure analysis and trends
 
+**Live Metrics:**
+- Real-time incoming request stream
+- Request duration histogram
+- Server performance metrics (CPU, Memory)
+- Sample telemetry as events occur
+
+## Deployment
+
+### Azure DevOps Pipeline
+
+The application includes a complete CI/CD pipeline (`.azuredevops/apps/deploy-fast-api.yml`) that:
+
+1. **Version Stage**: Creates Git tag with semantic version using GitVersion
+2. **Build Stage**: 
+   - Installs dependencies optimized for size
+   - Replaces version placeholder with Git tag
+   - Creates deployment package
+3. **Deploy Stage**:
+   - Deploys infrastructure via Bicep template
+   - Configures App Service with Application Insights
+   - Deploys application package
+   - Sets environment variables including version and environment
+
+### Manual Deployment
+
+```pwsh
+.\deploy.ps1 -ResourceGroupName 'rg-fast-api-app-insights-001' -Location 'canadacentral' -AppName 'fast-api-app-insights-001'
+```
+
+### Infrastructure as Code
+
+The `main.bicep` file provisions:
+- **App Service Plan** (Linux, Python 3.13)
+- **Web App** with system-assigned managed identity
+- **Application Insights** resource with Live Metrics enabled
+- **App Settings** for OpenTelemetry configuration, version, and environment
+
 ## Project Structure
 
 ```
-├── main.py                    # FastAPI application
-├── telemetry_v2.py           # ✅ WORKING telemetry configuration
-├── telemetry.py              # ❌ Deprecated (automatic instrumentation)
+├── main.py                    # FastAPI application with endpoints
+├── telemetry_v2.py           # ✅ WORKING telemetry configuration with custom middleware
+├── main.bicep                # Infrastructure as Code (Bicep template)
 ├── run-server.ps1            # Start server in new window
-├── test-single-request.ps1   # Send test request
 ├── requirements.txt          # Python dependencies
-├── .env                      # Environment configuration
+├── .env                      # Environment configuration (local)
 ├── README.md                 # This file
-└── SOLUTION.md               # Technical deep-dive on solution
+├── ARCHITECTURE.md           # Technical architecture deep-dive
+└── .azuredevops/
+    └── apps/
+        └── deploy-fast-api.yml  # CI/CD pipeline definition
 ```
 
 ## Key Files
 
-- **`telemetry_v2.py`**: Custom middleware that creates proper REQUEST telemetry
-- **`main.py`**: FastAPI app with middleware integration
-- **`SOLUTION.md`**: Complete technical explanation of the solution
+- **`telemetry_v2.py`**: Custom middleware that creates proper REQUEST telemetry with all HTTP semantic conventions
+- **`main.py`**: FastAPI app with middleware integration and comprehensive endpoint examples
+- **`main.bicep`**: Azure infrastructure template with App Insights integration
+- **`ARCHITECTURE.md`**: Complete technical explanation of the observability solution
 
 ## How It Works
 
@@ -144,8 +195,26 @@ This solution uses a **custom Starlette middleware** (`RequestTelemetryMiddlewar
 1. Creates OpenTelemetry spans with `SpanKind.SERVER`
 2. Sets ALL required HTTP semantic convention attributes
 3. Properly maps to Application Insights REQUEST telemetry type
+4. Enables Live Metrics streaming via QuickPulse
 
-The automatic FastAPI instrumentation was creating spans but Azure Monitor was classifying them as TRACES instead of REQUESTS. See [SOLUTION.md](SOLUTION.md) for full details.
+The automatic FastAPI instrumentation was creating spans but Azure Monitor was classifying them as TRACES instead of REQUESTS. The custom middleware ensures proper classification by explicitly setting all required attributes. See [ARCHITECTURE.md](ARCHITECTURE.md) for full technical details.
+
+## Versioning
+
+The application includes automatic semantic versioning:
+
+- **Git Tags**: Created automatically by CI/CD pipeline using GitVersion
+- **Build-time Replacement**: Version placeholder replaced during package build
+- **Runtime Access**: Available via `/version` endpoint and `APP_VERSION` environment variable
+- **Fallback Strategy**: Uses baked-in version, falls back to env var, then to "local-dev"
+
+Example `/version` response:
+```json
+{
+  "version": "1.2.3",
+  "environment": "production"
+}
+```
 
 ## Troubleshooting
 
@@ -155,14 +224,14 @@ The automatic FastAPI instrumentation was creating spans but Azure Monitor was c
 - `.env` file exists with valid `APPLICATIONINSIGHTS_CONNECTION_STRING`
 - Server logs show: `✅ Request: GET / -> 200`
 - Azure Portal time range is "Last 30 minutes"
-- Using `telemetry_v2.py` (not old `telemetry.py`)
+- Using `telemetry_v2.py` (not deprecated `telemetry.py.old`)
 
 ### Requests appearing as TRACES instead of REQUESTS
 
 **Check:**
 - Ensure you're using `telemetry_v2.py`
-- Verify `SpanKind.SERVER` is set
-- Confirm all HTTP attributes are present
+- Verify `SpanKind.SERVER` is set in middleware
+- Confirm all HTTP attributes are present in span
 
 ### Live Metrics not showing data
 
@@ -172,32 +241,54 @@ The automatic FastAPI instrumentation was creating spans but Azure Monitor was c
 - Live Metrics page is actively open (not background tab)
 - Server logs show QuickPulse ping/post succeeding
 
-See [SOLUTION.md](SOLUTION.md) for detailed troubleshooting guide.
+### Version showing as "local-dev"
+
+**Check:**
+- Application was deployed via CI/CD pipeline (not manual copy)
+- Build logs show version replacement occurring
+- `APP_VERSION` environment variable is set in Azure App Service
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed troubleshooting guide.
 
 ## Load Testing
 
 ### Local Load Testing with Locust
 
-Locust is included for local performance testing:
+```pwsh
+.\load-test-local.ps1
+```
 
+Or manually:
 ```pwsh
 locust -f locustfile.py --host http://localhost:8000
 ```
 
 Then open [http://localhost:8089](http://localhost:8089) to configure and run load tests.
 
-Or use the PowerShell helper script:
+### Azure Load Testing
 
 ```pwsh
-.\load-test-local.ps1
+.\load-test-azure.ps1
 ```
 
-Results are saved to the `reports/` directory.
+Results are saved to the `reports/` directory with HTML reports, CSV statistics, and time-series data.
 
 ## Export OpenAPI Specification
 
 ```pwsh
 python export-openapi.py
+# Or specify custom output
+python export-openapi.py --output api-spec.json
+```
+
+## References
+
+- [ARCHITECTURE.md](ARCHITECTURE.md) - Complete technical deep-dive on the observability solution
+- [OpenTelemetry Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/http/)
+- [Azure Monitor OpenTelemetry](https://learn.microsoft.com/en-us/azure/azure-monitor/app/opentelemetry-enable?tabs=python)
+- [Application Insights Data Model](https://learn.microsoft.com/en-us/azure/azure-monitor/app/data-model-complete)
+- [GitVersion Documentation](https://gitversion.net/docs/)
+
 # Or specify custom output
 python export-openapi.py --output api-spec.json
 ```

@@ -1,6 +1,23 @@
 # Architecture Overview
 
-## 🏗️ Solution Architecture
+## � Problem & Solution
+
+### Problem Statement
+FastAPI application with Azure Monitor OpenTelemetry was sending telemetry but **requests were not appearing** in Application Insights:
+- ❌ Performance blade showed no request metrics
+- ❌ Transaction Search showed 0 REQUEST events (only TRACES)
+- ❌ Live Metrics showed no incoming request data
+
+### Root Cause
+The automatic FastAPI instrumentation from `azure-monitor-opentelemetry` was creating OpenTelemetry spans, but **Azure Monitor was not classifying them as REQUEST telemetry type**. The spans were being exported as TRACES instead of REQUESTS.
+
+### Working Solution
+1. **Disabled automatic FastAPI instrumentation** in `configure_azure_monitor()`
+2. **Created custom middleware** that manually creates SERVER spans with ALL required HTTP semantic convention attributes
+3. **Applied middleware BEFORE app startup** to avoid timing issues
+4. **Enabled Live Metrics** via QuickPulse for real-time monitoring
+
+## �🏗️ Solution Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -316,10 +333,230 @@ Application Insights
   └─> Serves to Portal UI
 ```
 
+## � CI/CD Pipeline Architecture
+
+### Pipeline Stages
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Stage 1: Set Version                                        │
+│                                                               │
+│  1. Checkout with full Git history (fetchDepth: 0)          │
+│  2. Install GitVersion tools                                 │
+│  3. Calculate semantic version (e.g., 1.2.3)                │
+│  4. Create and push Git tag                                  │
+│                                                               │
+│  Output: GitVersion.SemVer variable                         │
+└─────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Stage 2: Build                                              │
+│                                                               │
+│  1. Checkout source code                                     │
+│  2. Install Python dependencies to package folder            │
+│  3. Copy application files (main.py, telemetry_v2.py)       │
+│  4. Replace __VERSION__ placeholder with GitVersion.SemVer   │
+│     (using sed command on deployed main.py)                  │
+│  5. Clean up unnecessary files (tests, docs, cache)         │
+│  6. Create deployment ZIP archive                            │
+│  7. Publish build artifact                                   │
+│                                                               │
+│  Output: Deployment package with baked-in version           │
+└─────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Stage 3: Deploy                                             │
+│                                                               │
+│  1. Checkout (for bicep template access)                    │
+│  2. Calculate GitVersion.SemVer again                        │
+│  3. Download build artifact (ZIP package)                    │
+│  4. Deploy Bicep template with parameters:                   │
+│     ├─ appName, location, SKU                               │
+│     ├─ deploymentEnvironment=production                      │
+│     └─ appVersion=$(GitVersion.SemVer)                      │
+│  5. Configure Web App deployment settings                    │
+│  6. Deploy application package to Azure Web App              │
+│                                                               │
+│  Output: Running application with version environment vars   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Version Flow
+
+```
+Git Commit → GitVersion Calculation → Git Tag Creation
+                 │                          │
+                 │                          └─> Pushed to repo (e.g., "1.2.3")
+                 │
+                 ├─> Build: Replace __VERSION__ in main.py
+                 │   (Baked into deployed code)
+                 │
+                 └─> Deploy: Pass to Bicep as parameter
+                     └─> Set as APP_VERSION env var in Azure
+```
+
+### Version Endpoint Strategy
+
+The `/version` endpoint uses a fallback mechanism:
+
+1. **Primary**: Baked-in `VERSION` constant (replaced during build)
+2. **Fallback**: `APP_VERSION` environment variable (set by Bicep)
+3. **Default**: `"local-dev"` (for local development)
+
+This ensures version is always available even if one mechanism fails.
+
+## 🔧 Infrastructure as Code
+
+### Bicep Template Components
+
+```
+main.bicep
+  │
+  ├─> App Service Plan
+  │   ├─ SKU: Configurable (default B1)
+  │   ├─ OS: Linux
+  │   └─ Reserved: true (Linux requirement)
+  │
+  ├─> Application Insights
+  │   ├─ Application_Type: web
+  │   ├─ Flow_Type: Bluefield
+  │   └─ IngestionMode: ApplicationInsights
+  │
+  └─> Web App
+      ├─ Runtime: PYTHON|3.13
+      ├─ Startup Command: python -m uvicorn main:app --host 0.0.0.0 --port 8000
+      ├─ Identity: System-assigned managed identity
+      └─ App Settings:
+          ├─ APPLICATIONINSIGHTS_CONNECTION_STRING (from AI resource)
+          ├─ APPINSIGHTS_INSTRUMENTATIONKEY (from AI resource)
+          ├─ OTEL_SERVICE_NAME (from appName parameter)
+          ├─ OTEL_EXPORTER_AZUREMONITOR_LIVEMETRICS_ENABLED=true
+          ├─ DEPLOYMENT_ENVIRONMENT (from parameter, e.g., "production")
+          └─ APP_VERSION (from parameter, e.g., "1.2.3")
+```
+
+### Environment Variables Flow
+
+```
+Pipeline Parameter (deploymentEnvironment) 
+    → Bicep Parameter 
+    → App Setting (DEPLOYMENT_ENVIRONMENT)
+    → Python os.getenv("DEPLOYMENT_ENVIRONMENT")
+    → /version endpoint response
+
+Pipeline Variable (GitVersion.SemVer)
+    → Bicep Parameter (appVersion)
+    → App Setting (APP_VERSION)
+    → Python os.getenv("APP_VERSION")
+    → /version endpoint fallback
+```
+
+## 📊 Telemetry Types & Classification
+
+### REQUEST (What We Achieve) ✅
+- Appears in Performance blade
+- Queryable in Transaction Search as "Request"
+- Shows in Live Metrics as incoming requests
+- Counted for request rate/duration metrics
+- **Requirements**: SpanKind.SERVER + all HTTP attributes
+
+### TRACE (What Automatic Instrumentation Produced) ❌
+- Only appears in Logs/Traces
+- Not counted in request metrics
+- Doesn't populate Performance blade
+- Not classified as HTTP request
+- **Cause**: Missing attributes or wrong SpanKind
+
+### DEPENDENCY
+- Outgoing HTTP calls (tracked by httpx instrumentation)
+- Shown in Application Map
+- Correlated with parent REQUEST
+- **SpanKind**: CLIENT
+
+## ✅ Success Criteria
+
+You know it's working when Azure Portal shows:
+
+### 1. Performance Blade
+- Request rate chart with data points
+- Average duration metrics (with P95/P99)
+- Failure rate percentage
+
+### 2. Live Metrics
+- "Incoming Requests" section populated in real-time
+- Request Duration chart streaming
+- Sample telemetry showing individual requests
+- Server health metrics (CPU, Memory)
+
+### 3. Transaction Search
+- Filter by "Request" event type shows results
+- Each request has full HTTP details
+- Status codes, URLs, durations all present
+- Correlation IDs linking requests to dependencies
+
+### 4. Application Map
+- Your service node appears
+- Dependencies shown (httpbin.org calls)
+- End-to-end trace correlation works
+
+### 5. Version Endpoint
+- Returns semantic version (e.g., "1.2.3")
+- Environment shows correct value (e.g., "production")
+- Version matches Git tag in repository
+
+## 🐛 Troubleshooting
+
+### Issue: No requests appearing
+**Root Causes:**
+- Connection string not configured
+- Middleware not added before app startup
+- SpanKind not set to SERVER
+- Required HTTP attributes missing
+
+**Solution:**
+- Verify `.env` file or Azure app settings
+- Check `telemetry_v2.py` is being used
+- Confirm middleware registration order in `main.py`
+
+### Issue: Requests appearing as TRACES
+**Root Cause:**
+- Using automatic FastAPI instrumentation
+- Missing HTTP semantic convention attributes
+
+**Solution:**
+- Disable automatic instrumentation: `"fastapi": {"enabled": False}`
+- Use `RequestTelemetryMiddleware` from `telemetry_v2.py`
+
+### Issue: Live Metrics not showing data
+**Root Causes:**
+- Live Metrics not enabled in configuration
+- Missing LiveEndpoint in connection string
+- Page not actively focused (browser tab in background)
+
+**Solution:**
+- Set `enable_live_metrics=True` in configure_azure_monitor
+- Ensure connection string includes `LiveEndpoint=https://...`
+- Keep Live Metrics page in active browser tab
+
+### Issue: Version showing "local-dev"
+**Root Causes:**
+- Application deployed manually (not via pipeline)
+- Version replacement failed during build
+- APP_VERSION environment variable not set
+
+**Solution:**
+- Deploy via CI/CD pipeline
+- Check build logs for sed command success
+- Verify Bicep deployment included appVersion parameter
+- Check Azure App Service configuration for APP_VERSION setting
+
 ## 📚 Further Reading
 
-- [SOLUTION.md](SOLUTION.md) - Complete technical explanation
-- [CHANGES.md](CHANGES.md) - What changed from before
-- [README.md](README.md) - Quick start guide
+- [README.md](README.md) - Quick start guide and usage
 - [OpenTelemetry HTTP Conventions](https://opentelemetry.io/docs/specs/semconv/http/)
 - [Azure Monitor Data Model](https://learn.microsoft.com/en-us/azure/azure-monitor/app/data-model-complete)
+- [GitVersion Documentation](https://gitversion.net/docs/)
+- [Azure Bicep Documentation](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/)
+
