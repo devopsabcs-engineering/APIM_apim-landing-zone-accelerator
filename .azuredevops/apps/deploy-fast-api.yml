@@ -70,7 +70,7 @@ stages:
 
               # Copy application files
               echo "Copying application files..."
-              cp main.py telemetry.py $(Build.ArtifactStagingDirectory)/$(packageFolder)/
+              cp main.py telemetry_v2.py $(Build.ArtifactStagingDirectory)/$(packageFolder)/
 
               # Copy requirements.txt for reference
               cp requirements.txt $(Build.ArtifactStagingDirectory)/$(packageFolder)/

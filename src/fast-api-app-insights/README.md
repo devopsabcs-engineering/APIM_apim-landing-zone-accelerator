@@ -1,64 +1,58 @@
 # FastAPI + Azure Application Insights Demo
 
-Simple FastAPI app instrumented with OpenTelemetry exporters for Azure Application Insights. Uses a Python 3.13 virtual environment and auto instrumentation patterns inspired by the referenced articles.
+FastAPI application with **working** Azure Application Insights integration using OpenTelemetry. Features custom middleware that properly creates REQUEST telemetry for Application Insights Performance monitoring.
+
+## ✅ What Works
+
+- ✅ **Request tracking** - All HTTP requests appear in Performance blade
+- ✅ **Live Metrics** - Real-time request rate and duration
+- ✅ **Transaction Search** - Requests properly classified as REQUEST type
+- ✅ **Dependency tracking** - External HTTP calls to httpbin.org
+- ✅ **Error tracking** - Exception telemetry with correlation
 
 ## Prerequisites
 
-- Python 3.13 installed and available as `python` or `python3`
-- An Application Insights resource with either a connection string or instrumentation key
+- Python 3.9+ (tested with 3.13)
+- Azure Application Insights resource with connection string
 
-## Setup
+## Quick Start
+
+### 1. Setup Virtual Environment
 
 ```pwsh
-# from repo root or this folder
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-> **Note**: This app uses the `azure-monitor-opentelemetry` distro package which automatically instruments FastAPI, httpx, and other common libraries for distributed tracing and live metrics.
+### 2. Configure Application Insights
+
+Create a `.env` file:
+
+```env
+APPLICATIONINSIGHTS_CONNECTION_STRING=InstrumentationKey=...;IngestionEndpoint=https://...;LiveEndpoint=https://...
+OTEL_SERVICE_NAME=fast-api-app-insights
+OTEL_METRIC_EXPORT_INTERVAL=5000
+OTEL_SEMCONV_STABILITY_OPT_IN=http
+```
+
+### 3. Start Server
+
+```pwsh
+.\run-server.ps1
+```
+
+The server will start in a new window on `http://localhost:8000`
+
+> **Important**: This solution uses **custom middleware** (`telemetry_v2.py`) to create proper REQUEST telemetry. See [SOLUTION.md](SOLUTION.md) for technical details on why automatic instrumentation didn't work.
 
 ## API Endpoints
 
-The FastAPI application includes these endpoints:
-
-- **`GET /`** - Root endpoint with external API call to httpbin.org (good for basic tracing)
+- **`GET /`** - Root endpoint with external API call to httpbin.org
 - **`GET /healthz`** - Health check endpoint (lightweight, no external calls)
-- **`GET /slow`** - Simulates slow processing with multiple external calls (~0.8s)
-- **`GET /chain`** - Makes 3 sequential API calls to demonstrate trace chains
-- **`GET /error`** - Intentionally raises an exception to test error tracking
-
-Export your Application Insights connection string (preferred) or instrumentation key before running the app (environment variables can also be stored in a local `.env` file that the app loads on startup):
-
-```pwsh
-$env:APPLICATIONINSIGHTS_CONNECTION_STRING = "InstrumentationKey=...;IngestionEndpoint=..."
-# or fallback
-# $env:APPINSIGHTS_INSTRUMENTATIONKEY = "00000000-0000-0000-0000-000000000000"
-# optional overrides
-# $env:OTEL_SERVICE_NAME = "fast-api-app"
-# $env:OTEL_SERVICE_NAMESPACE = "sample"
-```
-
-## API Endpoints
-
-The FastAPI application includes these endpoints:
-
-- **`GET /`** - Root endpoint with external API call to httpbin.org (good for basic tracing)
-- **`GET /healthz`** - Health check endpoint (lightweight, no external calls)
-- **`GET /slow`** - Simulates slow processing with multiple external calls (~0.8s)
-- **`GET /chain`** - Makes 3 sequential API calls to demonstrate trace chains
-- **`GET /error`** - Intentionally raises an exception to test error tracking
-
-## Run the API
-
-```pwsh
-uvicorn main:app --host 0.0.0.0 --port 8000
-```
-
-Hit `http://localhost:8000/` to generate traces, metrics, and logs. The `/healthz` endpoint provides a simple health probe.
-
-Logs, traces, and metrics flow to Application Insights using the Azure Monitor exporters when the connection string is present. Live Metrics streaming is enabled automatically; no portal-side configuration changes are required. If you are running outside Azure, ensure outbound access to the configured ingestion endpoint so the live stream can connect.
+- **`GET /slow`** - Simulates slow processing (~800ms with external calls)
+- **`GET /chain`** - Makes 3 sequential API calls to demonstrate distributed tracing
+- **`GET /error`** - Intentionally raises exception to test error tracking
 
 ### API Documentation
 
@@ -68,7 +62,139 @@ FastAPI provides automatic interactive API documentation:
 - **ReDoc**: [http://localhost:8000/redoc](http://localhost:8000/redoc) - Alternative documentation
 - **OpenAPI JSON**: [http://localhost:8000/openapi.json](http://localhost:8000/openapi.json) - Raw OpenAPI 3.0 specification
 
-To export the OpenAPI spec to a file:
+## Testing
+
+### Send Test Requests
+
+```pwsh
+# Single request
+Invoke-WebRequest -Uri "http://localhost:8000/" -UseBasicParsing
+
+# Slow request (test performance tracking)
+Invoke-WebRequest -Uri "http://localhost:8000/slow" -UseBasicParsing
+
+# Error request (test failure tracking)
+try { Invoke-WebRequest -Uri "http://localhost:8000/error" -UseBasicParsing } catch { }
+
+# Chain request (test dependency tracking)
+Invoke-WebRequest -Uri "http://localhost:8000/chain" -UseBasicParsing
+```
+
+### View in Azure Portal
+
+1. Navigate to your Application Insights resource
+2. **Performance Blade**: Investigate → Performance
+   - Request Rate, Duration, Failure Rate metrics
+3. **Live Metrics**: Investigate → Live Metrics  
+   - Real-time request streaming
+4. **Transaction Search**: Investigate → Transaction search
+   - Filter by event type: "Request"
+   - View individual request details
+
+## Monitoring Features
+
+### What You'll See in Application Insights
+
+**Performance Metrics:**
+- Request rate per second
+- Average/P95/P99 response times
+- Failure rate percentages
+- Server CPU/Memory metrics
+
+**Request Details:**
+- HTTP method, URL, status code
+- Request duration
+- All HTTP semantic convention attributes
+- Correlated dependencies and traces
+
+**Dependencies:**
+- External HTTP calls tracked (httpbin.org)
+- End-to-end distributed tracing
+- Dependency duration and success rates
+
+**Errors:**
+- Exception telemetry with stack traces
+- Correlated with parent requests
+- Failure analysis and trends
+
+## Project Structure
+
+```
+├── main.py                    # FastAPI application
+├── telemetry_v2.py           # ✅ WORKING telemetry configuration
+├── telemetry.py              # ❌ Deprecated (automatic instrumentation)
+├── run-server.ps1            # Start server in new window
+├── test-single-request.ps1   # Send test request
+├── requirements.txt          # Python dependencies
+├── .env                      # Environment configuration
+├── README.md                 # This file
+└── SOLUTION.md               # Technical deep-dive on solution
+```
+
+## Key Files
+
+- **`telemetry_v2.py`**: Custom middleware that creates proper REQUEST telemetry
+- **`main.py`**: FastAPI app with middleware integration
+- **`SOLUTION.md`**: Complete technical explanation of the solution
+
+## How It Works
+
+This solution uses a **custom Starlette middleware** (`RequestTelemetryMiddleware`) that:
+
+1. Creates OpenTelemetry spans with `SpanKind.SERVER`
+2. Sets ALL required HTTP semantic convention attributes
+3. Properly maps to Application Insights REQUEST telemetry type
+
+The automatic FastAPI instrumentation was creating spans but Azure Monitor was classifying them as TRACES instead of REQUESTS. See [SOLUTION.md](SOLUTION.md) for full details.
+
+## Troubleshooting
+
+### No requests appearing in Application Insights
+
+**Check:**
+- `.env` file exists with valid `APPLICATIONINSIGHTS_CONNECTION_STRING`
+- Server logs show: `✅ Request: GET / -> 200`
+- Azure Portal time range is "Last 30 minutes"
+- Using `telemetry_v2.py` (not old `telemetry.py`)
+
+### Requests appearing as TRACES instead of REQUESTS
+
+**Check:**
+- Ensure you're using `telemetry_v2.py`
+- Verify `SpanKind.SERVER` is set
+- Confirm all HTTP attributes are present
+
+### Live Metrics not showing data
+
+**Check:**
+- `enable_live_metrics=True` in configuration
+- Connection string includes `LiveEndpoint=...`
+- Live Metrics page is actively open (not background tab)
+- Server logs show QuickPulse ping/post succeeding
+
+See [SOLUTION.md](SOLUTION.md) for detailed troubleshooting guide.
+
+## Load Testing
+
+### Local Load Testing with Locust
+
+Locust is included for local performance testing:
+
+```pwsh
+locust -f locustfile.py --host http://localhost:8000
+```
+
+Then open [http://localhost:8089](http://localhost:8089) to configure and run load tests.
+
+Or use the PowerShell helper script:
+
+```pwsh
+.\load-test-local.ps1
+```
+
+Results are saved to the `reports/` directory.
+
+## Export OpenAPI Specification
 
 ```pwsh
 python export-openapi.py
@@ -86,46 +212,7 @@ Use the PowerShell deployment script to provision infrastructure and deploy the 
 
 Or use the Azure DevOps pipeline (`azure-pipelines.yml`) for CI/CD automation.
 
-## Load Testing
-
-This project includes Locust-based load tests to generate telemetry data and test performance.
-
-### Local Load Testing
-
-Test your local development environment:
-
-```pwsh
-# Interactive mode - opens web UI at http://localhost:8089
-.\load-test-local.ps1 -Scenario Interactive
-
-# Pre-configured scenarios (headless mode)
-.\load-test-local.ps1 -Scenario Light    # 5 users, 60s
-.\load-test-local.ps1 -Scenario Medium   # 20 users, 120s
-.\load-test-local.ps1 -Scenario Heavy    # 50 users, 180s
-.\load-test-local.ps1 -Scenario Spike    # 100 users, 60s (spike traffic)
-```
-
-### Azure Load Testing
-
-Test your deployed Azure Web App:
-
-```pwsh
-# Interactive mode
-.\load-test-azure.ps1 -Scenario Interactive
-
-# Pre-configured scenarios
-.\load-test-azure.ps1 -Scenario Light
-.\load-test-azure.ps1 -Scenario Medium
-.\load-test-azure.ps1 -Scenario Heavy
-.\load-test-azure.ps1 -Scenario Spike
-
-# Custom app name
-.\load-test-azure.ps1 -Scenario Medium -AppName my-app-name
-```
-
-### Advanced Locust Usage
-
-Run Locust directly for more control:
+### Advanced Load Testing with Locust
 
 ```pwsh
 # Local testing with custom parameters
@@ -133,27 +220,21 @@ locust --host=http://localhost:8000 --users 50 --spawn-rate 5 --run-time 120s
 
 # Azure testing
 locust --host=https://fast-api-app-insights-001.azurewebsites.net
-
-# Use specific user class
-locust --host=http://localhost:8000 --user-classes HeavyUser
-
-# Generate reports
-locust --host=http://localhost:8000 --headless --html report.html --csv results
 ```
 
 ### Load Test Reports
 
 Headless mode generates reports in the `reports/` directory:
+
 - **HTML Report**: Visual summary with charts
 - **CSV Stats**: Detailed request statistics
 - **CSV Failures**: Failed request details
 - **CSV History**: Time-series data for analysis
 
-## Troubleshooting
+## References
 
-- **No traces appearing**: Ensure you've installed all dependencies including `opentelemetry-instrumentation-httpx` and restarted the app after updating `requirements.txt`.
-- **Live Metrics not showing**: Live Metrics can take 1-2 minutes to establish connection after app startup. Verify outbound HTTPS access to the LiveEndpoint in your connection string.
-- **Missing connection string**: Ensure the connection string or instrumentation key environment variable is set before starting the app (check `.env` file or environment variables).
-- Use `pip list` to confirm the expected OpenTelemetry packages are installed.
-- If running behind a proxy, set the appropriate proxy variables so the exporter can reach Azure Monitor.
-- To suppress the local warning about missing `azure_app_service` detector, set `OTEL_PYTHON_RESOURCE_DETECTORS=env,process` before launching `uvicorn`.
+- [SOLUTION.md](SOLUTION.md) - Complete technical deep-dive on the working solution
+- [OpenTelemetry Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/http/)
+- [Azure Monitor OpenTelemetry](https://learn.microsoft.com/en-us/azure/azure-monitor/app/opentelemetry-enable?tabs=python)
+- [Application Insights Data Model](https://learn.microsoft.com/en-us/azure/azure-monitor/app/data-model-complete)
+
