@@ -5,6 +5,8 @@ param serverFarmName string = '${appName}-plan'
 param skuName string = 'B1'
 param skuTier string = 'Basic'
 param skuCapacity int = 1
+param deploymentEnvironment string = 'production'
+param appVersion string = '1.0.0'
 
 var runtime = 'PYTHON|3.13'
 
@@ -84,6 +86,14 @@ resource webApp 'Microsoft.Web/sites@2023-01-01' = {
         {
           name: 'OTEL_EXPORTER_AZUREMONITOR_LIVEMETRICS_ENABLED'
           value: 'true'
+        }
+        {
+          name: 'DEPLOYMENT_ENVIRONMENT'
+          value: deploymentEnvironment
+        }
+        {
+          name: 'APP_VERSION'
+          value: appVersion
         }
       ]
     }

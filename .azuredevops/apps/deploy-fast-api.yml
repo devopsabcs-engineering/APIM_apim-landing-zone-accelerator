@@ -119,19 +119,21 @@ stages:
                 --compile \
                 -r requirements.txt
 
-              # Replace version placeholder in main.py before copying
-              echo "Replacing __VERSION__ with $(GitVersion.SemVer) in main.py"
-              sed -i "s/__VERSION__/$(GitVersion.SemVer)/g" main.py
-              
-              echo "Displaying version in main.py:"
-              grep "VERSION = " main.py || echo "VERSION not found"
-
               # Copy application files
               echo "Copying application files..."
               cp main.py telemetry_v2.py $(Build.ArtifactStagingDirectory)/$(packageFolder)/
 
               # Copy requirements.txt for reference
               cp requirements.txt $(Build.ArtifactStagingDirectory)/$(packageFolder)/
+
+              # Replace version placeholder in the copied main.py
+              echo "Replacing __VERSION__ with $(GitVersion.SemVer) in deployed main.py"
+              sed -i "s/__VERSION__/$(GitVersion.SemVer)/g" $(Build.ArtifactStagingDirectory)/$(packageFolder)/main.py
+              
+              echo "Verifying version replacement in deployed main.py:"
+              grep "VERSION = " $(Build.ArtifactStagingDirectory)/$(packageFolder)/main.py || echo "VERSION not found"
+              
+              echo "GitVersion.SemVer value: $(GitVersion.SemVer)"
 
               # Clean up to reduce package size
               echo "Cleaning up unnecessary files to reduce package size..."
@@ -198,6 +200,20 @@ stages:
               steps:
                 - checkout: self
                   clean: true
+                  fetchDepth: 0
+
+                - task: gitversion/setup@3
+                  enabled: true
+                  displayName: "Install GitTools"
+                  inputs:
+                    versionSpec: "5.x"
+                
+                - task: gitversion/execute@3
+                  enabled: true
+                  displayName: "Calculate SemVer"
+                
+                - script: echo Deploying version $(GitVersion.SemVer)
+                  displayName: "Display version to deploy"
 
                 - task: DownloadBuildArtifacts@0
                   displayName: "Download build artifact"
@@ -219,7 +235,13 @@ stages:
                       az deployment group create \
                         --resource-group $(resourceGroupName) \
                         --template-file $(System.DefaultWorkingDirectory)/$(bicepFile) \
-                        --parameters appName=$(appName) location=$(location) skuName=B1 skuTier=Basic skuCapacity=1
+                        --parameters appName=$(appName) \
+                                     location=$(location) \
+                                     skuName=B1 \
+                                     skuTier=Basic \
+                                     skuCapacity=1 \
+                                     deploymentEnvironment=production \
+                                     appVersion=$(GitVersion.SemVer)
 
                 - task: AzureCLI@2
                   displayName: "Configure Web App settings for deployment"
