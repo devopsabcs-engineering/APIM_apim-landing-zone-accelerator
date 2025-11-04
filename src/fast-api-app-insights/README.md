@@ -2,6 +2,11 @@
 
 FastAPI application with **working** Azure Application Insights integration using OpenTelemetry. Features custom middleware that properly creates REQUEST telemetry for Application Insights Performance monitoring, Live Metrics, and full observability.
 
+https://stackoverflow.com/questions/76579388/python-azure-opentelemetry-inbound-requests-not-getting-logged
+
+https://learn.microsoft.com/en-us/troubleshoot/azure/azure-monitor/app-insights/telemetry/opentelemetry-troubleshooting-python
+
+
 ## ✅ What Works
 
 - ✅ **Request tracking** - All HTTP requests appear in Performance blade
