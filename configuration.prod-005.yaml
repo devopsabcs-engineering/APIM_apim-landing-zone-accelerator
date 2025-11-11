@@ -250,12 +250,12 @@ products:
   - name: star-wars
     properties:
       name: star-wars
-      displayName: Star Wars Product (PROD)
+      displayName: Star Wars Product (PROD) - DEMO ONLY
       description: Star Wars product (PROD)
       approvalRequired: false
       state: "published"
       subscriptionRequired: true
-      terms: "PROD: Read the legal fine print Star-Wars-Terms!"
+      terms: "PROD: Read the legal fine print Star-Wars-Terms! (DEMO ONLY) - yoda vs dark vader"
 policyFragments:
   - name: SampleEmptyPolicyFragment
     properties:
