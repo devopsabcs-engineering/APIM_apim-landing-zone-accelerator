@@ -1,8 +1,0 @@
-{
-  "properties": {
-    "description": "fast-api-app-insights-001",
-    "protocol": "http",
-    "resourceId": "https://management.azure.com/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-fast-api-app-insights-001/providers/Microsoft.Web/sites/fast-api-app-insights-001",
-    "url": "https://fast-api-app-insights-001.azurewebsites.net"
-  }
-}
