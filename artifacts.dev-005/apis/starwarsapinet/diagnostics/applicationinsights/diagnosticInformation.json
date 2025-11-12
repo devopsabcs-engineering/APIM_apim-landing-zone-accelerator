@@ -32,10 +32,11 @@
     },
     "httpCorrelationProtocol": "Legacy",
     "logClientIp": true,
+    "metrics": true,
     "sampling": {
-      "percentage": 42,
+      "percentage": 100,
       "samplingType": "fixed"
     },
-    "verbosity": "information"
+    "verbosity": "verbose"
   }
 }
