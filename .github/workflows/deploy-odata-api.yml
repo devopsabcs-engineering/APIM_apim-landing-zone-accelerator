@@ -37,7 +37,7 @@ env:
   BASE_NAME: odata-api
   IMAGE_NAME: odataapi
   WORKING_DIRECTORY: src/OdataAppSoln/OdataApp
-  DOCKER_CONTEXT: src/OdataAppSoln
+  BUILD_CONTEXT: src/OdataAppSoln
   DOCKERFILE_PATH: src/OdataAppSoln/OdataApp/Dockerfile
   INSTANCE_NUMBER: ${{ inputs.instance_number || '002' }}
   DEPLOY_INFRA: ${{ inputs.deploy_infra || true }}
@@ -167,7 +167,7 @@ jobs:
               --build-arg GitVersion_SemVer=${{ needs.set-version.outputs.semver }} \
               --build-arg GitVersion_AssemblySemFileVer=${{ needs.set-version.outputs.assembly_sem_file_ver }} \
               --build-arg GitVersion_AssemblySemVer=${{ needs.set-version.outputs.assembly_sem_ver }} \
-              ${{ env.DOCKER_CONTEXT }}
+              ${{ env.BUILD_CONTEXT }}
 
   deploy-app:
     name: Deploy Application

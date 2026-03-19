@@ -38,7 +38,7 @@ env:
   BASE_NAME: soap-api
   IMAGE_NAME: soapapi
   WORKING_DIRECTORY: src/soap-service-dotnetcore-example/AddressBook.Service.SOAP
-  DOCKER_CONTEXT: src/soap-service-dotnetcore-example
+  BUILD_CONTEXT: src/soap-service-dotnetcore-example
   DOCKERFILE_PATH: src/soap-service-dotnetcore-example/AddressBook.Service.SOAP/Dockerfile
   INSTANCE_NUMBER: ${{ inputs.instance_number || '007' }}
   DEPLOY_INFRA: ${{ inputs.deploy_infra || true }}
@@ -168,7 +168,7 @@ jobs:
               --build-arg GitVersion_SemVer=${{ needs.set-version.outputs.semver }} \
               --build-arg GitVersion_AssemblySemFileVer=${{ needs.set-version.outputs.assembly_sem_file_ver }} \
               --build-arg GitVersion_AssemblySemVer=${{ needs.set-version.outputs.assembly_sem_ver }} \
-              ${{ env.DOCKER_CONTEXT }}
+              ${{ env.BUILD_CONTEXT }}
 
   deploy-app:
     name: Deploy Application

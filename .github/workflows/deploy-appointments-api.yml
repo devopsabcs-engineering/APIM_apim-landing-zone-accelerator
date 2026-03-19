@@ -37,7 +37,7 @@ env:
   BASE_NAME: appointments-api
   IMAGE_NAME: appointmentsapi
   WORKING_DIRECTORY: src/power-platform-custom-connector-api/Appointment/Appointment
-  DOCKER_CONTEXT: src/power-platform-custom-connector-api/Appointment
+  BUILD_CONTEXT: src/power-platform-custom-connector-api/Appointment
   DOCKERFILE_PATH: src/power-platform-custom-connector-api/Appointment/Appointment/Dockerfile
   INSTANCE_NUMBER: ${{ inputs.instance_number || '003' }}
   DEPLOY_INFRA: ${{ inputs.deploy_infra || true }}
@@ -166,7 +166,7 @@ jobs:
               --build-arg GitVersion_SemVer=${{ needs.set-version.outputs.semver }} \
               --build-arg GitVersion_AssemblySemFileVer=${{ needs.set-version.outputs.assembly_sem_file_ver }} \
               --build-arg GitVersion_AssemblySemVer=${{ needs.set-version.outputs.assembly_sem_ver }} \
-              ${{ env.DOCKER_CONTEXT }}
+              ${{ env.BUILD_CONTEXT }}
 
   deploy-app:
     name: Deploy Application
