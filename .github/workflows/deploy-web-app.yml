@@ -97,6 +97,7 @@ jobs:
         run: |
           dotnet publish "${{ env.WORKING_DIRECTORY }}" \
             --configuration ${{ env.BUILD_CONFIGURATION }} \
+            --framework net8.0 \
             --output "${{ runner.temp }}/${{ env.WEBSITE_PACKAGE_NAME }}_${{ github.run_id }}" \
             -p:Version=${{ needs.set-version.outputs.semver }} \
             -p:FileVersion=${{ needs.set-version.outputs.assembly_sem_file_ver }} \
