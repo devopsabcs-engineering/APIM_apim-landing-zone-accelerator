@@ -128,8 +128,7 @@ jobs:
               --name ${{ env.DEPLOYMENT_NAME }} \
               --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
               --template-file ${{ env.TEMPLATE_FILE }} \
-              --parameters instanceNumber=${{ env.INSTANCE_NUMBER }} \
-              --parameters addAzureAdAppSettings=${{ env.ADD_AZURE_AD_APP_SETTINGS }}
+              --parameters instanceNumber=${{ env.INSTANCE_NUMBER }}
 
   build-and-push:
     name: Build and push Docker image
