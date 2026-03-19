@@ -169,6 +169,8 @@ jobs:
     needs: [set-version, build-and-push]
     runs-on: ubuntu-latest
     environment: APIM_Soap_Api_app_production
+    outputs:
+      app_name: ${{ steps.get_app.outputs.app_name }}
     steps:
       - uses: azure/login@v2
         with:
@@ -195,3 +197,43 @@ jobs:
         with:
           app-name: ${{ steps.get_app.outputs.app_name }}
           package: ${{ runner.temp }}/artifact
+
+  smoke-test:
+    name: Smoke Test
+    needs: deploy-app
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for app warmup
+        run: sleep 30
+      - name: Smoke test SOAP WSDL
+        id: smoke
+        env:
+          APP_NAME: ${{ needs.deploy-app.outputs.app_name }}
+        run: |
+          APP_URL="https://${APP_NAME}.azurewebsites.net"
+          SMOKE_URL="${APP_URL}/PersonProfileService.asmx?wsdl"
+          echo "Testing: ${SMOKE_URL}"
+          HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" --max-time 60 --retry 3 --retry-delay 10 "${SMOKE_URL}")
+          echo "HTTP status: ${HTTP_STATUS}"
+          echo "app_url=${APP_URL}" >> "$GITHUB_OUTPUT"
+          echo "smoke_url=${SMOKE_URL}" >> "$GITHUB_OUTPUT"
+          if [[ "${HTTP_STATUS}" -ge 200 && "${HTTP_STATUS}" -lt 400 ]]; then
+            echo "result=✅ Passed (HTTP ${HTTP_STATUS})" >> "$GITHUB_OUTPUT"
+          else
+            echo "result=⚠️ Warning (HTTP ${HTTP_STATUS})" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Write job summary
+        env:
+          APP_URL: ${{ steps.smoke.outputs.app_url }}
+          SMOKE_URL: ${{ steps.smoke.outputs.smoke_url }}
+          SMOKE_RESULT: ${{ steps.smoke.outputs.result }}
+        run: |
+          {
+            echo "## 🔍 Smoke Test Results"
+            echo ""
+            echo "| Check | URL | Status |"
+            echo "|-------|-----|--------|"
+            echo "| SOAP WSDL | [${SMOKE_URL}](${SMOKE_URL}) | ${SMOKE_RESULT} |"
+            echo ""
+            echo "🔗 **Application URL:** [${APP_URL}](${APP_URL})"
+          } >> "$GITHUB_STEP_SUMMARY"

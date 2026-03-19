@@ -199,6 +199,57 @@ jobs:
               --name ${{ env.APP_NAME }} \
               --output none
 
-            echo "Waiting for app to restart..."
-            sleep 45
-            echo "Deployment complete"
+  smoke-test:
+    name: Smoke Test
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for app warmup
+        run: sleep 30
+      - name: Smoke test health endpoint
+        id: smoke_health
+        run: |
+          APP_URL="https://${{ env.APP_NAME }}.azurewebsites.net"
+          SMOKE_URL="${APP_URL}/healthz"
+          echo "Testing: ${SMOKE_URL}"
+          HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" --max-time 60 --retry 3 --retry-delay 10 "${SMOKE_URL}")
+          echo "HTTP status: ${HTTP_STATUS}"
+          echo "app_url=${APP_URL}" >> "$GITHUB_OUTPUT"
+          echo "smoke_url=${SMOKE_URL}" >> "$GITHUB_OUTPUT"
+          if [[ "${HTTP_STATUS}" -ge 200 && "${HTTP_STATUS}" -lt 400 ]]; then
+            echo "result=✅ Passed (HTTP ${HTTP_STATUS})" >> "$GITHUB_OUTPUT"
+          else
+            echo "result=⚠️ Warning (HTTP ${HTTP_STATUS})" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Smoke test API docs
+        id: smoke_docs
+        run: |
+          APP_URL="https://${{ env.APP_NAME }}.azurewebsites.net"
+          SMOKE_URL="${APP_URL}/docs"
+          echo "Testing: ${SMOKE_URL}"
+          HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" --max-time 60 --retry 3 --retry-delay 10 "${SMOKE_URL}")
+          echo "HTTP status: ${HTTP_STATUS}"
+          echo "smoke_url=${SMOKE_URL}" >> "$GITHUB_OUTPUT"
+          if [[ "${HTTP_STATUS}" -ge 200 && "${HTTP_STATUS}" -lt 400 ]]; then
+            echo "result=✅ Passed (HTTP ${HTTP_STATUS})" >> "$GITHUB_OUTPUT"
+          else
+            echo "result=⚠️ Warning (HTTP ${HTTP_STATUS})" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Write job summary
+        env:
+          APP_URL: ${{ steps.smoke_health.outputs.app_url }}
+          HEALTH_URL: ${{ steps.smoke_health.outputs.smoke_url }}
+          HEALTH_RESULT: ${{ steps.smoke_health.outputs.result }}
+          DOCS_URL: ${{ steps.smoke_docs.outputs.smoke_url }}
+          DOCS_RESULT: ${{ steps.smoke_docs.outputs.result }}
+        run: |
+          {
+            echo "## 🔍 Smoke Test Results"
+            echo ""
+            echo "| Check | URL | Status |"
+            echo "|-------|-----|--------|"
+            echo "| Health Check | [${HEALTH_URL}](${HEALTH_URL}) | ${HEALTH_RESULT} |"
+            echo "| API Docs | [${DOCS_URL}](${DOCS_URL}) | ${DOCS_RESULT} |"
+            echo ""
+            echo "🔗 **Application URL:** [${APP_URL}](${APP_URL})"
+          } >> "$GITHUB_STEP_SUMMARY"
