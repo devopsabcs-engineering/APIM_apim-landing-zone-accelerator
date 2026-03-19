@@ -195,4 +195,3 @@ jobs:
           az functionapp restart \
             --name ${{ steps.get_app.outputs.app_name }} \
             --resource-group ${{ env.RESOURCE_GROUP_NAME }}
-              --resource-group ${{ env.RESOURCE_GROUP_NAME }}
