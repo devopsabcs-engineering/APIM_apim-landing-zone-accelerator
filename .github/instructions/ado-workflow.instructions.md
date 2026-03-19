@@ -10,6 +10,8 @@ maturity: stable
 
 * Organization: `devopsabcs`
 * Project: `OneProject`
+* Default Area Path: `OneProject\RnD Portfolio\DevOps Program\API Management`
+* Default Team: `APIM_DevOps_Team`
 
 All work items, boards, and test plans live in this project.
 
@@ -29,6 +31,8 @@ Epic
 * Every Feature must belong to an Epic.
 * Create the parent items first if they do not exist before creating child items.
 * Every work item (Epic, Feature, User Story, Bug) must include the tag `Agentic AI`.
+* Every work item must set the Area Path to `OneProject\RnD Portfolio\DevOps Program\API Management`.
+* Every work item must be assigned to the `APIM_DevOps_Team` team iteration path.
 
 ## Branching Strategy
 
