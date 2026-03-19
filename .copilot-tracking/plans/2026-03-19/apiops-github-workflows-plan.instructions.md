@@ -57,51 +57,51 @@ Convert 6 Azure DevOps APIops pipelines (3 extractors + 3 publishers) to GitHub 
 
 ## Implementation Checklist
 
-### [ ] Implementation Phase 1: Upgrade Existing Reusable Publisher Workflow
+### [x] Implementation Phase 1: Upgrade Existing Reusable Publisher Workflow
 
 <!-- parallelizable: false -->
 
-* [ ] Step 1.1: Upgrade `run-publisher-with-env.yaml` to v6.0.2 with zip-based download, modern actions, updated token replacement, and explicit `configuration.prod-005.yaml` file pattern
+* [x] Step 1.1: Upgrade `run-publisher-with-env.yaml` to v6.0.2 with zip-based download, modern actions, updated token replacement, and explicit `configuration.prod-005.yaml` file pattern
   * Details: .copilot-tracking/details/2026-03-19/apiops-github-workflows-details.md (Phase 1, Step 1.1)
-* [ ] Step 1.2: Validate reusable workflow YAML syntax
+* [x] Step 1.2: Validate reusable workflow YAML syntax
   * Run `yamllint` or GitHub Actions lint on the modified file
 
-### [ ] Implementation Phase 2: Upgrade and Extend Extractor Workflows
+### [x] Implementation Phase 2: Upgrade and Extend Extractor Workflows
 
 <!-- parallelizable: true -->
 
-* [ ] Step 2.1: Upgrade `run-extractor.yaml` — update to v6.0.2, zip download, add `artifacts.dev-005` output folder option (keep `artifacts` for backward compatibility), add config file choices (keep `configuration.extractor.yaml` for backward compatibility), add Spectral linting, add PR creation via `peter-evans/create-pull-request@v6`, upgrade actions to v4
+* [x] Step 2.1: Upgrade `run-extractor.yaml` — update to v6.0.2, zip download, add `artifacts.dev-005` output folder option (keep `artifacts` for backward compatibility), add config file choices (keep `configuration.extractor.yaml` for backward compatibility), add Spectral linting, add PR creation via `peter-evans/create-pull-request@v6`, upgrade actions to v4
   * Details: .copilot-tracking/details/2026-03-19/apiops-github-workflows-details.md (Phase 2, Step 2.1)
-* [ ] Step 2.2: Create `run-extractor.api-team-001.yaml` — team-001 scoped extractor with fixed config and artifact folder, Spectral linting, PR creation
+* [x] Step 2.2: Create `run-extractor.api-team-001.yaml` — team-001 scoped extractor with fixed config and artifact folder, Spectral linting, PR creation
   * Details: .copilot-tracking/details/2026-03-19/apiops-github-workflows-details.md (Phase 2, Step 2.2)
-* [ ] Step 2.3: Create `run-extractor.api-team-002.yaml` — team-002 scoped extractor with fixed config and artifact folder, Spectral linting, PR creation
+* [x] Step 2.3: Create `run-extractor.api-team-002.yaml` — team-002 scoped extractor with fixed config and artifact folder, Spectral linting, PR creation
   * Details: .copilot-tracking/details/2026-03-19/apiops-github-workflows-details.md (Phase 2, Step 2.3)
 
-### [ ] Implementation Phase 3: Upgrade and Extend Publisher Workflows
+### [x] Implementation Phase 3: Upgrade and Extend Publisher Workflows
 
 <!-- parallelizable: true -->
 
-* [ ] Step 3.1: Upgrade `run-publisher.yaml` — update to use `artifacts.dev-005` default folder (keep `artifacts` for backward compatibility), add `artifacts.dev-005.api-team-001` and `artifacts.dev-005.api-team-002` options, use `dev`/`prod` environment names, upgrade to call updated reusable workflow with dev then prod stages
+* [x] Step 3.1: Upgrade `run-publisher.yaml` — update to use `artifacts.dev-005` default folder (keep `artifacts` for backward compatibility), add `artifacts.dev-005.api-team-001` and `artifacts.dev-005.api-team-002` options, use `dev`/`prod` environment names, upgrade to call updated reusable workflow with dev then prod stages
   * Details: .copilot-tracking/details/2026-03-19/apiops-github-workflows-details.md (Phase 3, Step 3.1)
-* [ ] Step 3.2: Create `run-publisher.api-team-001.yaml` — auto-trigger on push to main when `artifacts.dev-005.api-team-001/**` changes, calls reusable workflow for dev then prod
+* [x] Step 3.2: Create `run-publisher.api-team-001.yaml` — auto-trigger on push to main when `artifacts.dev-005.api-team-001/**` changes, calls reusable workflow for dev then prod
   * Details: .copilot-tracking/details/2026-03-19/apiops-github-workflows-details.md (Phase 3, Step 3.2)
-* [ ] Step 3.3: Create `run-publisher.api-team-002.yaml` — auto-trigger on push to main when `artifacts.dev-005.api-team-002/**` changes, calls reusable workflow for dev then prod
+* [x] Step 3.3: Create `run-publisher.api-team-002.yaml` — auto-trigger on push to main when `artifacts.dev-005.api-team-002/**` changes, calls reusable workflow for dev then prod
   * Details: .copilot-tracking/details/2026-03-19/apiops-github-workflows-details.md (Phase 3, Step 3.3)
 
-### [ ] Implementation Phase 4: Validation
+### [x] Implementation Phase 4: Validation
 
 <!-- parallelizable: false -->
 
-* [ ] Step 4.1: Validate all 7 workflow YAML files syntax
+* [x] Step 4.1: Validate all 7 workflow YAML files syntax
   * Verify YAML parses correctly for all files in `.github/workflows/`
   * Check all `workflow_call` input references match between caller and callee
-* [ ] Step 4.2: Verify cross-workflow references
+* [x] Step 4.2: Verify cross-workflow references
   * Confirm `run-publisher.yaml`, `run-publisher.api-team-001.yaml`, and `run-publisher.api-team-002.yaml` correctly reference `run-publisher-with-env.yaml`
     * Confirm environment names (`dev`, `prod`) are consistent across all workflows and match the reusable workflow's conditional logic
-* [ ] Step 4.3: Verify artifact folder paths
+* [x] Step 4.3: Verify artifact folder paths
   * Confirm extractor output paths match publisher input paths for each team scope
   * Verify configuration file references exist in the repo root
-* [ ] Step 4.4: Document any blocking issues
+* [x] Step 4.4: Document any blocking issues
   * Report issues requiring GitHub environment/secret setup
   * Provide user with next steps for runtime validation
 
