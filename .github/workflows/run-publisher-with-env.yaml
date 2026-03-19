@@ -17,7 +17,7 @@ on:
         type: string
 
 env:
-  apiops_release_version: v4.1.2
+  apiops_release_version: v6.0.2
   Logging__LogLevel__Default: Debug
 
 jobs:
@@ -25,26 +25,19 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ inputs.API_MANAGEMENT_ENVIRONMENT }}
     steps:
-      # Run Spectral
-      - uses: actions/setup-node@v3
-        with:
-          node-version: "14"
-      - run: npm install -g @stoplight/spectral
-      - run: spectral lint "${{ GITHUB.WORKSPACE }}/${{ inputs.API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH }}\apis\*.{json,yml,yaml}" --ruleset https://raw.githubusercontent.com/connectedcircuits/devops-api-linter/main/rules.yaml
-
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
       # Add this step for each APIM environment and pass specific set of secrets that you want replaced in the env section below
       - name: "Perform namevalue secret substitution in configuration.${{ inputs.API_MANAGEMENT_ENVIRONMENT}}.yaml"
         if: (inputs.API_MANAGEMENT_ENVIRONMENT == 'prod' )
-        uses: cschleiden/replace-tokens@v1.1
+        uses: cschleiden/replace-tokens@v1.3
         with:
           tokenPrefix: "{#"
           tokenSuffix: "#}"
-          files: ${{ format('["**/configuration.{0}.yaml"]', inputs.API_MANAGEMENT_ENVIRONMENT) }}
+          files: '["**/configuration.prod-005.yaml"]'
         # specify environment specific secrets to be replaced. For example the QA environment could have a different set sercrets to
         # replace within the configuration.[environment].yaml file
         env:
@@ -70,10 +63,18 @@ jobs:
           Write-Information "Doing ${{ vars.API_MANAGEMENT_SERVICE_NAME }} in ${{ vars.AZURE_RESOURCE_GROUP_NAME }} ..."
           Write-Information "Doing ${{ env.API_MANAGEMENT_SERVICE_NAME }} in ${{ env.AZURE_RESOURCE_GROUP_NAME }} ..."
           Write-Information "Downloading publisher..."
-          $publisherFileName = "${{ runner.os }}" -like "*win*" ? "publisher.win-x64.exe" : "publisher.linux-x64.exe"
-          $uri = "https://github.com/Azure/apiops/releases/download/${{ env.apiops_release_version }}/$publisherFileName"
-          $destinationFilePath = Join-Path "${{ runner.temp }}" "publisher.exe"
-          Invoke-WebRequest -Uri "$uri" -OutFile "$destinationFilePath"
+          $releaseFileName = "publisher-linux-x64.zip"
+          $executableFileName = "publisher"
+          if ("${{ runner.os }}" -like "*win*") {
+            $releaseFileName = "publisher-win-x64.zip"
+            $executableFileName = "publisher.exe"
+          }
+          $uri = "https://github.com/Azure/apiops/releases/download/${{ env.apiops_release_version }}/$releaseFileName"
+          $downloadFilePath = Join-Path "${{ runner.temp }}" $releaseFileName
+          Invoke-WebRequest -Uri "$uri" -OutFile "$downloadFilePath"
+          $executableFolderPath = Join-Path "${{ runner.temp }}" "publisher"
+          Expand-Archive -Path "$downloadFilePath" -DestinationPath "$executableFolderPath"
+          $destinationFilePath = Join-Path "$executableFolderPath" $executableFileName
 
           if ("${{ runner.os }}" -like "*linux*")
           {
@@ -107,10 +108,18 @@ jobs:
           Write-Information "Doing ${{ vars.API_MANAGEMENT_SERVICE_NAME }} in ${{ vars.AZURE_RESOURCE_GROUP_NAME }} ..."
           Write-Information "Doing ${{ env.API_MANAGEMENT_SERVICE_NAME }} in ${{ env.AZURE_RESOURCE_GROUP_NAME }} ..."
           Write-Information "Downloading publisher..."
-          $publisherFileName = "${{ runner.os }}" -like "*win*" ? "publisher.win-x64.exe" : "publisher.linux-x64.exe"
-          $uri = "https://github.com/Azure/apiops/releases/download/${{ env.apiops_release_version }}/$publisherFileName"
-          $destinationFilePath = Join-Path "${{ runner.temp }}" "publisher.exe"
-          Invoke-WebRequest -Uri "$uri" -OutFile "$destinationFilePath"
+          $releaseFileName = "publisher-linux-x64.zip"
+          $executableFileName = "publisher"
+          if ("${{ runner.os }}" -like "*win*") {
+            $releaseFileName = "publisher-win-x64.zip"
+            $executableFileName = "publisher.exe"
+          }
+          $uri = "https://github.com/Azure/apiops/releases/download/${{ env.apiops_release_version }}/$releaseFileName"
+          $downloadFilePath = Join-Path "${{ runner.temp }}" $releaseFileName
+          Invoke-WebRequest -Uri "$uri" -OutFile "$downloadFilePath"
+          $executableFolderPath = Join-Path "${{ runner.temp }}" "publisher"
+          Expand-Archive -Path "$downloadFilePath" -DestinationPath "$executableFolderPath"
+          $destinationFilePath = Join-Path "$executableFolderPath" $executableFileName
 
           if ("${{ runner.os }}" -like "*linux*")
           {
@@ -146,10 +155,18 @@ jobs:
           Write-Information "Doing ${{ vars.API_MANAGEMENT_SERVICE_NAME }} in ${{ vars.AZURE_RESOURCE_GROUP_NAME }} ..."
           Write-Information "Doing ${{ env.API_MANAGEMENT_SERVICE_NAME }} in ${{ env.AZURE_RESOURCE_GROUP_NAME }} ..."
           Write-Information "Downloading publisher..."
-          $publisherFileName = "${{ runner.os }}" -like "*win*" ? "publisher.win-x64.exe" : "publisher.linux-x64.exe"
-          $uri = "https://github.com/Azure/apiops/releases/download/${{ env.apiops_release_version }}/$publisherFileName"
-          $destinationFilePath = Join-Path "${{ runner.temp }}" "publisher.exe"
-          Invoke-WebRequest -Uri "$uri" -OutFile "$destinationFilePath"
+          $releaseFileName = "publisher-linux-x64.zip"
+          $executableFileName = "publisher"
+          if ("${{ runner.os }}" -like "*win*") {
+            $releaseFileName = "publisher-win-x64.zip"
+            $executableFileName = "publisher.exe"
+          }
+          $uri = "https://github.com/Azure/apiops/releases/download/${{ env.apiops_release_version }}/$releaseFileName"
+          $downloadFilePath = Join-Path "${{ runner.temp }}" $releaseFileName
+          Invoke-WebRequest -Uri "$uri" -OutFile "$downloadFilePath"
+          $executableFolderPath = Join-Path "${{ runner.temp }}" "publisher"
+          Expand-Archive -Path "$downloadFilePath" -DestinationPath "$executableFolderPath"
+          $destinationFilePath = Join-Path "$executableFolderPath" $executableFileName
 
           if ("${{ runner.os }}" -like "*linux*")
           {
@@ -184,10 +201,18 @@ jobs:
           Write-Information "Doing ${{ vars.API_MANAGEMENT_SERVICE_NAME }} in ${{ vars.AZURE_RESOURCE_GROUP_NAME }} ..."
           Write-Information "Doing ${{ env.API_MANAGEMENT_SERVICE_NAME }} in ${{ env.AZURE_RESOURCE_GROUP_NAME }} ..."
           Write-Information "Downloading publisher..."
-          $publisherFileName = "${{ runner.os }}" -like "*win*" ? "publisher.win-x64.exe" : "publisher.linux-x64.exe"
-          $uri = "https://github.com/Azure/apiops/releases/download/${{ env.apiops_release_version }}/$publisherFileName"
-          $destinationFilePath = Join-Path "${{ runner.temp }}" "publisher.exe"
-          Invoke-WebRequest -Uri "$uri" -OutFile "$destinationFilePath"
+          $releaseFileName = "publisher-linux-x64.zip"
+          $executableFileName = "publisher"
+          if ("${{ runner.os }}" -like "*win*") {
+            $releaseFileName = "publisher-win-x64.zip"
+            $executableFileName = "publisher.exe"
+          }
+          $uri = "https://github.com/Azure/apiops/releases/download/${{ env.apiops_release_version }}/$releaseFileName"
+          $downloadFilePath = Join-Path "${{ runner.temp }}" $releaseFileName
+          Invoke-WebRequest -Uri "$uri" -OutFile "$downloadFilePath"
+          $executableFolderPath = Join-Path "${{ runner.temp }}" "publisher"
+          Expand-Archive -Path "$downloadFilePath" -DestinationPath "$executableFolderPath"
+          $destinationFilePath = Join-Path "$executableFolderPath" $executableFileName
 
           if ("${{ runner.os }}" -like "*linux*")
           {

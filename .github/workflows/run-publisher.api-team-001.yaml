@@ -1,9 +1,10 @@
-name: Run - Publisher
+name: Run - Publisher - API Team 001
 
 on:
-  pull_request:
+  push:
     branches: [main]
-    types: [closed]
+    paths:
+      - 'artifacts.dev-005.api-team-001/**'
 
   workflow_dispatch:
     inputs:
@@ -15,16 +16,6 @@ on:
         options:
           - "publish-artifacts-in-last-commit"
           - "publish-all-artifacts-in-repo"
-      API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH:
-        description: 'Artifacts folder'
-        required: true
-        type: choice
-        default: "artifacts.dev-005"
-        options:
-          - "artifacts"
-          - "artifacts.dev-005"
-          - "artifacts.dev-005.api-team-001"
-          - "artifacts.dev-005.api-team-002"
 
 jobs:
   get-commit:
@@ -44,7 +35,7 @@ jobs:
     with:
       API_MANAGEMENT_ENVIRONMENT: dev
       COMMIT_ID: ${{ needs.get-commit.outputs.commit_id }}
-      API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH: ${{ github.event.inputs.API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH || 'artifacts.dev-005' }}
+      API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH: artifacts.dev-005.api-team-001
     secrets: inherit
 
   Push-Changes-To-APIM-Dev-Without-Commit-ID:
@@ -53,7 +44,7 @@ jobs:
     uses: ./.github/workflows/run-publisher-with-env.yaml
     with:
       API_MANAGEMENT_ENVIRONMENT: dev
-      API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH: ${{ github.event.inputs.API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH || 'artifacts.dev-005' }}
+      API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH: artifacts.dev-005.api-team-001
     secrets: inherit
 
   Push-Changes-To-APIM-Prod-With-Commit-ID:
@@ -63,7 +54,7 @@ jobs:
     with:
       API_MANAGEMENT_ENVIRONMENT: prod
       CONFIGURATION_YAML_PATH: configuration.prod-005.yaml
-      API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH: ${{ github.event.inputs.API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH || 'artifacts.dev-005' }}
+      API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH: artifacts.dev-005.api-team-001
       COMMIT_ID: ${{ needs.get-commit.outputs.commit_id }}
     secrets: inherit
 
@@ -74,5 +65,5 @@ jobs:
     with:
       API_MANAGEMENT_ENVIRONMENT: prod
       CONFIGURATION_YAML_PATH: configuration.prod-005.yaml
-      API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH: ${{ github.event.inputs.API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH || 'artifacts.dev-005' }}
+      API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH: artifacts.dev-005.api-team-001
     secrets: inherit
