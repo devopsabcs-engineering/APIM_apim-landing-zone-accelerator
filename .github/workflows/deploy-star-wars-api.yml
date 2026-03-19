@@ -31,7 +31,7 @@ env:
   ARTIFACT_NAME: myWebsites
   WEBSITE_PACKAGE_NAME: StarWarsApi
   RESOURCE_GROUP_NAME: rg-star-wars-appservice-linux-${{ inputs.instance_number || '003' }}
-  LOCATION: eastus2
+  LOCATION: canadacentral
   DEPLOYMENT_NAME: infra-deployment
   TEMPLATE_FILE: infra/appservice/main.bicep
   BASE_NAME: star-wars-api

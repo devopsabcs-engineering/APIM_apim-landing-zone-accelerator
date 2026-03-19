@@ -31,7 +31,7 @@ env:
   ARTIFACT_NAME: myWebsites
   WEBSITE_PACKAGE_NAME: WebApp-OpenIDConnect-DotNet
   RESOURCE_GROUP_NAME: rg-web-appservice-linux-${{ inputs.instance_number || '005' }}
-  LOCATION: eastus2
+  LOCATION: canadacentral
   DEPLOYMENT_NAME: infra-deployment
   TEMPLATE_FILE: infra/appservice/main.bicep
   BASE_NAME: web-app
