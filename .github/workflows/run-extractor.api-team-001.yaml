@@ -13,6 +13,10 @@ on:
           - OpenAPIV2Yaml
           - OpenAPIV2Json
 
+permissions:
+  contents: write
+  pull-requests: write
+
 env:
   apiops_release_version: v6.0.2
   Logging__LogLevel__Default: Debug

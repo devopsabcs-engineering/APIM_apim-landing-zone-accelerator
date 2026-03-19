@@ -33,6 +33,10 @@ on:
           - artifacts.dev-005.api-team-001
           - artifacts.dev-005.api-team-002
 
+permissions:
+  contents: write
+  pull-requests: write
+
 env:
   apiops_release_version: v6.0.2
   Logging__LogLevel__Default: Debug
