@@ -172,7 +172,7 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      - name: Get app name
+      - name: Get app name and ACR
         id: get_app
         uses: azure/cli@v2
         with:
@@ -182,13 +182,20 @@ jobs:
               --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
               --query properties.outputs.functionAppName.value -o tsv)
             echo "app_name=$APP_NAME" >> "$GITHUB_OUTPUT"
-      - name: Download artifact
-        uses: actions/download-artifact@v4
+            ACR_NAME=$(az deployment group show \
+              --name ${{ env.DEPLOYMENT_NAME }} \
+              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+              --query properties.outputs.containerRegistryName.value -o tsv)
+            echo "acr_name=$ACR_NAME" >> "$GITHUB_OUTPUT"
+      - name: Configure container image and restart
+        uses: azure/cli@v2
         with:
-          name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ runner.temp }}/artifact
-      - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: ${{ steps.get_app.outputs.app_name }}
-          package: ${{ runner.temp }}/artifact
+          inlineScript: |
+            az functionapp config container set \
+              --name ${{ steps.get_app.outputs.app_name }} \
+              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+              --image "${{ steps.get_app.outputs.acr_name }}.azurecr.io/${{ env.IMAGE_NAME }}:latest" \
+              --registry-server "https://${{ steps.get_app.outputs.acr_name }}.azurecr.io"
+            az functionapp restart \
+              --name ${{ steps.get_app.outputs.app_name }} \
+              --resource-group ${{ env.RESOURCE_GROUP_NAME }}
