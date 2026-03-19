@@ -1,0 +1,195 @@
+name: Deploy Movie API
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/MovieReviewsSoln/MovieReviews/**'
+      - 'src/MovieReviewsSoln/**'
+      - 'src/MovieReviewsSoln/MovieReviews/Dockerfile'
+      - '.github/workflows/deploy-movie-api.yml'
+      - 'infra/appservice/main.bicep'
+  workflow_dispatch:
+    inputs:
+      deploy_infra:
+        description: 'Deploy infrastructure'
+        type: boolean
+        default: true
+      instance_number:
+        description: 'Instance number'
+        type: string
+        default: '006'
+
+permissions:
+  id-token: write
+  contents: write
+
+env:
+  SOLUTION: src/MovieReviewsSoln/MovieReviews.sln
+  BUILD_CONFIGURATION: Release
+  ARTIFACT_NAME: myWebsites
+  WEBSITE_PACKAGE_NAME: MovieReviews
+  RESOURCE_GROUP_NAME: rg-movies-appservice-linux-${{ inputs.instance_number || '006' }}
+  LOCATION: eastus2
+  DEPLOYMENT_NAME: infra-deployment
+  TEMPLATE_FILE: infra/appservice/main.bicep
+  BASE_NAME: movie-reviews-api
+  IMAGE_NAME: moviereviews
+  WORKING_DIRECTORY: src/MovieReviewsSoln/MovieReviews
+  DOCKER_CONTEXT: src/MovieReviewsSoln
+  DOCKERFILE_PATH: src/MovieReviewsSoln/MovieReviews/Dockerfile
+  INSTANCE_NUMBER: ${{ inputs.instance_number || '006' }}
+  DEPLOY_INFRA: ${{ inputs.deploy_infra || true }}
+  ADD_AZURE_AD_APP_SETTINGS: 'false'
+
+jobs:
+  set-version:
+    name: Set version and create tag
+    runs-on: ubuntu-latest
+    outputs:
+      semver: ${{ steps.gitversion.outputs.semVer }}
+      assembly_sem_ver: ${{ steps.gitversion.outputs.assemblySemVer }}
+      assembly_sem_file_ver: ${{ steps.gitversion.outputs.assemblySemFileVer }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v3
+        with:
+          versionSpec: '5.x'
+      - name: Calculate SemVer
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v3
+      - name: Display version
+        run: echo "Current version is ${{ steps.gitversion.outputs.semVer }}"
+      - name: Create Git tag
+        run: |
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+          git config user.name "${{ github.actor }}"
+          git tag -a "${{ steps.gitversion.outputs.semVer }}" -m "Main version ${{ steps.gitversion.outputs.semVer }}"
+          git push origin "${{ steps.gitversion.outputs.semVer }}"
+
+  build:
+    name: Build
+    needs: set-version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.x'
+      - name: Build
+        run: dotnet build "${{ env.SOLUTION }}" --configuration ${{ env.BUILD_CONFIGURATION }}
+      - name: Publish
+        run: |
+          dotnet publish "${{ env.WORKING_DIRECTORY }}" \
+            --configuration ${{ env.BUILD_CONFIGURATION }} \
+            --output "${{ runner.temp }}/${{ env.WEBSITE_PACKAGE_NAME }}_${{ github.run_id }}" \
+            -p:Version=${{ needs.set-version.outputs.semver }} \
+            -p:FileVersion=${{ needs.set-version.outputs.assembly_sem_file_ver }} \
+            -p:AssemblyVersion=${{ needs.set-version.outputs.assembly_sem_ver }}
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ runner.temp }}/${{ env.WEBSITE_PACKAGE_NAME }}_${{ github.run_id }}
+
+  deploy-infra:
+    name: Deploy Infrastructure
+    needs: build
+    if: ${{ inputs.deploy_infra == true || github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    environment: APIM_MovieReviews_Api_infra_production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Deploy Bicep
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            az group create --name ${{ env.RESOURCE_GROUP_NAME }} --location ${{ env.LOCATION }}
+            az deployment group create \
+              --name ${{ env.DEPLOYMENT_NAME }} \
+              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+              --template-file ${{ env.TEMPLATE_FILE }} \
+              --parameters baseName=${{ env.BASE_NAME }} \
+              --parameters imageName=${{ env.IMAGE_NAME }} \
+              --parameters addAzureAdAppSettings=${{ env.ADD_AZURE_AD_APP_SETTINGS }}
+
+  build-and-push:
+    name: Build and push Docker image
+    needs: [set-version, deploy-infra]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Get container registry
+        id: get_acr
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            ACR_NAME=$(az deployment group show \
+              --name ${{ env.DEPLOYMENT_NAME }} \
+              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+              --query properties.outputs.containerRegistryName.value -o tsv)
+            echo "acr_name=$ACR_NAME" >> "$GITHUB_OUTPUT"
+      - name: Build and push image
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            az acr build \
+              --registry ${{ steps.get_acr.outputs.acr_name }} \
+              --image ${{ env.IMAGE_NAME }}:${{ github.run_id }} \
+              --image ${{ env.IMAGE_NAME }}:latest \
+              --file ${{ env.DOCKERFILE_PATH }} \
+              --build-arg GitVersion_SemVer=${{ needs.set-version.outputs.semver }} \
+              --build-arg GitVersion_AssemblySemFileVer=${{ needs.set-version.outputs.assembly_sem_file_ver }} \
+              --build-arg GitVersion_AssemblySemVer=${{ needs.set-version.outputs.assembly_sem_ver }} \
+              ${{ env.DOCKER_CONTEXT }}
+
+  deploy-app:
+    name: Deploy Application
+    needs: [set-version, build-and-push]
+    runs-on: ubuntu-latest
+    environment: APIM_MovieReviews_Api_app_production
+    steps:
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Get app name
+        id: get_app
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            APP_NAME=$(az deployment group show \
+              --name ${{ env.DEPLOYMENT_NAME }} \
+              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+              --query properties.outputs.appName.value -o tsv)
+            echo "app_name=$APP_NAME" >> "$GITHUB_OUTPUT"
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ runner.temp }}/artifact
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ steps.get_app.outputs.app_name }}
+          package: ${{ runner.temp }}/artifact

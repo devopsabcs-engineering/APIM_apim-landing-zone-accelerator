@@ -1,0 +1,147 @@
+name: Deploy Flask App
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/msal-python-soln/python-flask-webapp/**'
+      - '.github/workflows/deploy-flask-app.yml'
+      - 'src/msal-python-soln/python-flask-webapp/main.bicep'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: write
+
+env:
+  PYTHON_VERSION: '3.13'
+  WEB_APP_NAME: app-flask-iru5pc6fcyhre
+  PROJECT_ROOT: src/msal-python-soln/python-flask-webapp
+  TEMPLATE_FILE: src/msal-python-soln/python-flask-webapp/main.bicep
+  RESOURCE_GROUP_NAME: rg-msal-python-soln
+  LOCATION: canadacentral
+  DEPLOYMENT_NAME: infra-deployment
+  APP_CONFIG_FILE: src/msal-python-soln/python-flask-webapp/app_config.py
+
+jobs:
+  set-version:
+    name: Set version and create tag
+    runs-on: ubuntu-latest
+    outputs:
+      semver: ${{ steps.gitversion.outputs.semVer }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v3
+        with:
+          versionSpec: '5.x'
+      - name: Calculate SemVer
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v3
+      - name: Display version
+        run: echo "Current version is ${{ steps.gitversion.outputs.semVer }}"
+      - name: Create Git tag
+        run: |
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+          git config user.name "${{ github.actor }}"
+          git tag -a "${{ steps.gitversion.outputs.semVer }}" -m "Main version ${{ steps.gitversion.outputs.semVer }}"
+          git push origin "${{ steps.gitversion.outputs.semVer }}"
+
+  build:
+    name: Build
+    needs: set-version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v3
+        with:
+          versionSpec: '5.x'
+      - name: Calculate SemVer
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v3
+      - name: Display version
+        run: echo "Current version is ${{ steps.gitversion.outputs.semVer }}"
+      - name: Replace version in app_config.py
+        run: |
+          echo "Replacing __VERSION__ with ${{ steps.gitversion.outputs.semVer }}"
+          sed -i "s/__VERSION__/${{ steps.gitversion.outputs.semVer }}/g" ${{ env.APP_CONFIG_FILE }}
+          cat ${{ env.APP_CONFIG_FILE }}
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install requirements
+        working-directory: ${{ env.PROJECT_ROOT }}
+        run: |
+          python -m venv antenv
+          source antenv/bin/activate
+          python -m pip install --upgrade pip
+          pip install setup
+          pip install -r requirements.txt
+      - name: Create archive
+        run: |
+          cd ${{ env.PROJECT_ROOT }}
+          zip -r ${{ runner.temp }}/${{ github.run_id }}.zip . -x "antenv/*"
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: drop
+          path: ${{ runner.temp }}/${{ github.run_id }}.zip
+
+  deploy-infra:
+    name: Deploy Infrastructure
+    needs: build
+    runs-on: ubuntu-latest
+    environment: APIM_app-flask-iru5pc6fcyhre_Infra
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Deploy Infrastructure
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            az group create --name ${{ env.RESOURCE_GROUP_NAME }} --location ${{ env.LOCATION }}
+            az deployment group create \
+              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+              --name ${{ env.DEPLOYMENT_NAME }} \
+              --template-file ${{ env.TEMPLATE_FILE }} \
+              --parameters secretValue=${{ secrets.SECRET_VALUE }} \
+              --parameters pythonVersion=${{ env.PYTHON_VERSION }}
+
+  deploy-app:
+    name: Deploy Web App
+    needs: deploy-infra
+    runs-on: ubuntu-latest
+    environment: APIM_app-flask-iru5pc6fcyhre
+    steps:
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: drop
+          path: ${{ runner.temp }}/drop
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.WEB_APP_NAME }}
+          package: ${{ runner.temp }}/drop/${{ github.run_id }}.zip

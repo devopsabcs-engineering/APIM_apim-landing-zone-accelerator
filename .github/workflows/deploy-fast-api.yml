@@ -1,0 +1,203 @@
+name: Deploy Fast API
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/fast-api-app-insights/**'
+      - '.github/workflows/deploy-fast-api.yml'
+      - 'src/fast-api-app-insights/main.bicep'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: write
+
+env:
+  PYTHON_VERSION: '3.13'
+  ARTIFACT_NAME: fastapi-app
+  PACKAGE_FOLDER: package
+  PACKAGE_ARCHIVE: app.zip
+  BICEP_FILE: src/fast-api-app-insights/main.bicep
+  RESOURCE_GROUP_NAME: rg-fast-api-app-insights-001
+  LOCATION: canadacentral
+  APP_NAME: fast-api-app-insights-001
+
+jobs:
+  set-version:
+    name: Set version and create tag
+    runs-on: ubuntu-latest
+    outputs:
+      semver: ${{ steps.gitversion.outputs.semVer }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v3
+        with:
+          versionSpec: '5.x'
+      - name: Calculate SemVer
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v3
+      - name: Display version
+        run: echo "Current version is ${{ steps.gitversion.outputs.semVer }}"
+      - name: Create Git tag
+        run: |
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+          git config user.name "${{ github.actor }}"
+          git tag -a "${{ steps.gitversion.outputs.semVer }}" -m "FastAPI version ${{ steps.gitversion.outputs.semVer }}"
+          git push origin "${{ steps.gitversion.outputs.semVer }}"
+
+  build:
+    name: Build and Package
+    needs: set-version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v3
+        with:
+          versionSpec: '5.x'
+      - name: Calculate SemVer
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v3
+      - name: Display version
+        run: echo "Current version is ${{ steps.gitversion.outputs.semVer }}"
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install dependencies and create package
+        working-directory: src/fast-api-app-insights
+        run: |
+          set -e
+          echo "Installing dependencies..."
+          python -m pip install --upgrade pip
+
+          mkdir -p ${{ runner.temp }}/${{ env.PACKAGE_FOLDER }}
+
+          echo "Installing dependencies (optimized for size)..."
+          pip install \
+            --target ${{ runner.temp }}/${{ env.PACKAGE_FOLDER }} \
+            --no-cache-dir \
+            --compile \
+            -r requirements.txt
+
+          echo "Copying application files..."
+          cp main.py telemetry_v2.py ${{ runner.temp }}/${{ env.PACKAGE_FOLDER }}/
+          cp requirements.txt ${{ runner.temp }}/${{ env.PACKAGE_FOLDER }}/
+
+          echo "Replacing __VERSION__ with ${{ steps.gitversion.outputs.semVer }}"
+          sed -i "s/__VERSION__/${{ steps.gitversion.outputs.semVer }}/g" ${{ runner.temp }}/${{ env.PACKAGE_FOLDER }}/main.py
+
+          echo "Cleaning up unnecessary files..."
+          cd ${{ runner.temp }}/${{ env.PACKAGE_FOLDER }}
+          find . -type d -name "tests" -exec rm -rf {} + 2>/dev/null || true
+          find . -type d -name "test" -exec rm -rf {} + 2>/dev/null || true
+          find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+          find . -type f -name "*.pyc" -delete 2>/dev/null || true
+          find . -type f -name "*.pyo" -delete 2>/dev/null || true
+          find . -type d -name "examples" -exec rm -rf {} + 2>/dev/null || true
+          find . -type d -name "docs" -exec rm -rf {} + 2>/dev/null || true
+
+          echo "Package size after cleanup:"
+          du -sh .
+          echo "Package created successfully"
+
+      - name: Create deployment archive
+        run: |
+          cd ${{ runner.temp }}/${{ env.PACKAGE_FOLDER }}
+          zip -r ${{ runner.temp }}/${{ env.PACKAGE_ARCHIVE }} .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ runner.temp }}/${{ env.PACKAGE_ARCHIVE }}
+
+  deploy:
+    name: Deploy Infrastructure and App
+    needs: [set-version, build]
+    runs-on: ubuntu-latest
+    environment: APIM_fastapi-app-insights
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v3
+        with:
+          versionSpec: '5.x'
+      - name: Calculate SemVer
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v3
+      - name: Display version
+        run: echo "Deploying version ${{ steps.gitversion.outputs.semVer }}"
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ runner.temp }}/artifact
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Deploy Bicep template
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            set -euo pipefail
+            az group create --name ${{ env.RESOURCE_GROUP_NAME }} --location ${{ env.LOCATION }}
+            az deployment group create \
+              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+              --template-file ${{ env.BICEP_FILE }} \
+              --parameters appName=${{ env.APP_NAME }} \
+                           location=${{ env.LOCATION }} \
+                           skuName=B1 \
+                           skuTier=Basic \
+                           skuCapacity=1 \
+                           deploymentEnvironment=production \
+                           appVersion=${{ steps.gitversion.outputs.semVer }}
+      - name: Configure Web App settings
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            set -euo pipefail
+            az webapp config appsettings set \
+              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+              --name ${{ env.APP_NAME }} \
+              --settings \
+                SCM_COMMAND_IDLE_TIMEOUT=3600 \
+                SCM_DO_BUILD_DURING_DEPLOYMENT=false \
+                ENABLE_ORYX_BUILD=false \
+                WEBSITES_PORT=8000 \
+              --output none
+
+            az webapp config set \
+              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+              --name ${{ env.APP_NAME }} \
+              --startup-file "python -m uvicorn main:app --host 0.0.0.0 --port 8000" \
+              --output none
+      - name: Deploy application package
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.APP_NAME }}
+          package: ${{ runner.temp }}/artifact/${{ env.PACKAGE_ARCHIVE }}
+      - name: Restart and verify
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            set -euo pipefail
+            az webapp restart \
+              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+              --name ${{ env.APP_NAME }} \
+              --output none
+
+            echo "Waiting for app to restart..."
+            sleep 45
+            echo "Deployment complete"
