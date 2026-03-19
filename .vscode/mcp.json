@@ -3,7 +3,18 @@
     "ado-remote-mcp": {
       "url": "https://mcp.dev.azure.com/devopsabcs",
       "type": "http"
+    },
+    "ado": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@azure-devops/mcp", "${input:ado_org}"]
     }
   },
-  "inputs": []
+  "inputs": [
+    {
+      "id": "ado_org",
+      "type": "promptString",
+      "description": "Azure DevOps organization name  (e.g. 'contoso')"
+    }
+  ]
 }
