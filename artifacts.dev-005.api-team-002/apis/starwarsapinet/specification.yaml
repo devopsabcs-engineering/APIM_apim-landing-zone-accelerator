@@ -1,6 +1,7 @@
 openapi: 3.0.1
 info:
   title: StarWarsApiNet
+  description: Détruit le death star -- DEMO MTQ
   version: '1.0'
 servers:
   - url: https://apim-dev-005-3snpbfdd5kffc.azure-api.net/sw
