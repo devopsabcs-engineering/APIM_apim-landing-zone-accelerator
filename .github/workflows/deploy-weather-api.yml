@@ -46,7 +46,7 @@ permissions:
 env:
   SOLUTION: src/WeatherApiSoln/WeatherApiSoln.sln
   BUILD_CONFIGURATION: Release
-  ARTIFACT_NAME: myWebsites
+  ARTIFACT_NAME: weather-api-artifact
   WEBSITE_PACKAGE_NAME: WeatherApi
   RESOURCE_GROUP_NAME: rg-weather-appservice-linux-${{ inputs.instance_number || '005' }}
   LOCATION: canadacentral

@@ -46,7 +46,7 @@ permissions:
 env:
   SOLUTION: src/WebAppSoln/WebApp-OpenIDConnect-DotNet/WebApp-OpenIDConnect-DotNet.csproj
   BUILD_CONFIGURATION: Release
-  ARTIFACT_NAME: myWebsites
+  ARTIFACT_NAME: web-app-artifact
   WEBSITE_PACKAGE_NAME: WebApp-OpenIDConnect-DotNet
   RESOURCE_GROUP_NAME: rg-web-appservice-linux-${{ inputs.instance_number || '005' }}
   LOCATION: canadacentral

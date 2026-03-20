@@ -46,7 +46,7 @@ permissions:
 env:
   SOLUTION: src/OdataAppSoln/OdataAppSoln.sln
   BUILD_CONFIGURATION: Release
-  ARTIFACT_NAME: myWebsites
+  ARTIFACT_NAME: odata-api-artifact
   WEBSITE_PACKAGE_NAME: OdataApp
   RESOURCE_GROUP_NAME: rg-odata-appservice-linux-${{ inputs.instance_number || '002' }}
   LOCATION: canadacentral

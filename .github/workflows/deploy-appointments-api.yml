@@ -46,7 +46,7 @@ permissions:
 env:
   SOLUTION: src/power-platform-custom-connector-api/Appointment/Appointment.sln
   BUILD_CONFIGURATION: Release
-  ARTIFACT_NAME: myWebsites
+  ARTIFACT_NAME: appointments-api-artifact
   WEBSITE_PACKAGE_NAME: Appointment
   RESOURCE_GROUP_NAME: rg-appointments-fnapp-linux-${{ inputs.instance_number || '003' }}
   LOCATION: canadacentral

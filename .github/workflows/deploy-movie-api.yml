@@ -46,7 +46,7 @@ permissions:
 env:
   SOLUTION: src/MovieReviewsSoln/MovieReviews.sln
   BUILD_CONFIGURATION: Release
-  ARTIFACT_NAME: myWebsites
+  ARTIFACT_NAME: movie-api-artifact
   WEBSITE_PACKAGE_NAME: MovieReviews
   RESOURCE_GROUP_NAME: rg-movies-appservice-linux-${{ inputs.instance_number || '006' }}
   LOCATION: canadacentral

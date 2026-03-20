@@ -46,7 +46,7 @@ permissions:
 env:
   SOLUTION: src/StarWarsApiNetSoln/StarWarsApiNetSoln.sln
   BUILD_CONFIGURATION: Release
-  ARTIFACT_NAME: myWebsites
+  ARTIFACT_NAME: star-wars-api-artifact
   WEBSITE_PACKAGE_NAME: StarWarsApi
   RESOURCE_GROUP_NAME: rg-star-wars-appservice-linux-${{ inputs.instance_number || '003' }}
   LOCATION: canadacentral

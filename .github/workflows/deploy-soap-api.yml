@@ -47,7 +47,7 @@ env:
   SOLUTION: src/soap-service-dotnetcore-example/soap-service-dotnetcore-example.sln
   BUILD_CONFIGURATION: Release
   TEST_PROJECT: src/soap-service-dotnetcore-example/AddressBook.Service.SOAP.IntegrationTests/AddressBook.Service.SOAP.IntegrationTests.csproj
-  ARTIFACT_NAME: myWebsites
+  ARTIFACT_NAME: soap-api-artifact
   WEBSITE_PACKAGE_NAME: AddressBook.Service.SOAP
   RESOURCE_GROUP_NAME: rg-soap-appservice-linux-${{ inputs.instance_number || '007' }}
   LOCATION: canadacentral
