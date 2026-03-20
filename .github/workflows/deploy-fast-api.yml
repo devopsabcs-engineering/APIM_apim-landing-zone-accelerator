@@ -9,6 +9,17 @@ on:
       - '.github/workflows/deploy-fast-api.yml'
       - 'src/fast-api-app-insights/main.bicep'
   workflow_dispatch:
+    inputs:
+      teardown:
+        description: 'Tear down infrastructure after deployment'
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      teardown:
+        description: 'Tear down infrastructure after deployment'
+        type: boolean
+        default: false
 
 permissions:
   id-token: write
@@ -253,3 +264,25 @@ jobs:
             echo ""
             echo "🔗 **Application URL:** [${APP_URL}](${APP_URL})"
           } >> "$GITHUB_STEP_SUMMARY"
+
+  teardown:
+    name: Teardown Infrastructure
+    needs: smoke-test
+    if: ${{ inputs.teardown == true }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Delete resource group
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            echo "Deleting resource group ${{ env.RESOURCE_GROUP_NAME }}..."
+            az group delete \
+              --name ${{ env.RESOURCE_GROUP_NAME }} \
+              --yes \
+              --no-wait
+            echo "Teardown initiated for ${{ env.RESOURCE_GROUP_NAME }}"

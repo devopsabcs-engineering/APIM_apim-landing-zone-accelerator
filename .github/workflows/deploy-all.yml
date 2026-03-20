@@ -1,0 +1,189 @@
+name: Deploy All Apps and APIs
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_infra:
+        description: 'Deploy infrastructure'
+        type: boolean
+        default: true
+      teardown:
+        description: 'Tear down all infrastructure after deployment'
+        type: boolean
+        default: false
+      web_app_instance:
+        description: 'Web App instance number'
+        type: string
+        default: '005'
+      weather_api_instance:
+        description: 'Weather API instance number'
+        type: string
+        default: '005'
+      star_wars_api_instance:
+        description: 'Star Wars API instance number'
+        type: string
+        default: '003'
+      soap_api_instance:
+        description: 'SOAP API instance number'
+        type: string
+        default: '007'
+      odata_api_instance:
+        description: 'OData API instance number'
+        type: string
+        default: '002'
+      movie_api_instance:
+        description: 'Movie API instance number'
+        type: string
+        default: '006'
+      appointments_api_instance:
+        description: 'Appointments API instance number'
+        type: string
+        default: '003'
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  deploy-web-app:
+    name: Web App
+    uses: ./.github/workflows/deploy-web-app.yml
+    with:
+      deploy_infra: ${{ inputs.deploy_infra }}
+      instance_number: ${{ inputs.web_app_instance }}
+      teardown: false
+    secrets: inherit
+
+  deploy-weather-api:
+    name: Weather API
+    uses: ./.github/workflows/deploy-weather-api.yml
+    with:
+      deploy_infra: ${{ inputs.deploy_infra }}
+      instance_number: ${{ inputs.weather_api_instance }}
+      teardown: false
+    secrets: inherit
+
+  deploy-star-wars-api:
+    name: Star Wars API
+    uses: ./.github/workflows/deploy-star-wars-api.yml
+    with:
+      deploy_infra: ${{ inputs.deploy_infra }}
+      instance_number: ${{ inputs.star_wars_api_instance }}
+      teardown: false
+    secrets: inherit
+
+  deploy-soap-api:
+    name: SOAP API
+    uses: ./.github/workflows/deploy-soap-api.yml
+    with:
+      deploy_infra: ${{ inputs.deploy_infra }}
+      instance_number: ${{ inputs.soap_api_instance }}
+      teardown: false
+    secrets: inherit
+
+  deploy-odata-api:
+    name: OData API
+    uses: ./.github/workflows/deploy-odata-api.yml
+    with:
+      deploy_infra: ${{ inputs.deploy_infra }}
+      instance_number: ${{ inputs.odata_api_instance }}
+      teardown: false
+    secrets: inherit
+
+  deploy-movie-api:
+    name: Movie API
+    uses: ./.github/workflows/deploy-movie-api.yml
+    with:
+      deploy_infra: ${{ inputs.deploy_infra }}
+      instance_number: ${{ inputs.movie_api_instance }}
+      teardown: false
+    secrets: inherit
+
+  deploy-flask-app:
+    name: Flask App
+    uses: ./.github/workflows/deploy-flask-app.yml
+    with:
+      teardown: false
+    secrets: inherit
+
+  deploy-fast-api:
+    name: Fast API
+    uses: ./.github/workflows/deploy-fast-api.yml
+    with:
+      teardown: false
+    secrets: inherit
+
+  deploy-appointments-api:
+    name: Appointments API
+    uses: ./.github/workflows/deploy-appointments-api.yml
+    with:
+      deploy_infra: ${{ inputs.deploy_infra }}
+      instance_number: ${{ inputs.appointments_api_instance }}
+      teardown: false
+    secrets: inherit
+
+  teardown-all:
+    name: Teardown All Infrastructure
+    needs:
+      - deploy-web-app
+      - deploy-weather-api
+      - deploy-star-wars-api
+      - deploy-soap-api
+      - deploy-odata-api
+      - deploy-movie-api
+      - deploy-flask-app
+      - deploy-fast-api
+      - deploy-appointments-api
+    if: ${{ inputs.teardown == true }}
+    runs-on: ubuntu-latest
+    environment: APIM_Teardown_All
+    steps:
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Tear down all resource groups
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            set -euo pipefail
+            RESOURCE_GROUPS=(
+              "rg-web-appservice-linux-${{ inputs.web_app_instance }}"
+              "rg-weather-appservice-linux-${{ inputs.weather_api_instance }}"
+              "rg-star-wars-appservice-linux-${{ inputs.star_wars_api_instance }}"
+              "rg-soap-appservice-linux-${{ inputs.soap_api_instance }}"
+              "rg-odata-appservice-linux-${{ inputs.odata_api_instance }}"
+              "rg-movies-appservice-linux-${{ inputs.movie_api_instance }}"
+              "rg-msal-python-soln"
+              "rg-fast-api-app-insights-001"
+              "rg-appointments-fnapp-linux-${{ inputs.appointments_api_instance }}"
+            )
+            for RG in "${RESOURCE_GROUPS[@]}"; do
+              if az group exists --name "$RG" | grep -q true; then
+                echo "Deleting resource group $RG..."
+                az group delete --name "$RG" --yes --no-wait
+              else
+                echo "Resource group $RG does not exist, skipping."
+              fi
+            done
+            echo "Teardown initiated for all resource groups."
+      - name: Write job summary
+        run: |
+          {
+            echo "## 🗑️ Teardown Summary"
+            echo ""
+            echo "| Resource Group | Status |"
+            echo "|----------------|--------|"
+            echo "| rg-web-appservice-linux-${{ inputs.web_app_instance }} | 🔄 Deleting |"
+            echo "| rg-weather-appservice-linux-${{ inputs.weather_api_instance }} | 🔄 Deleting |"
+            echo "| rg-star-wars-appservice-linux-${{ inputs.star_wars_api_instance }} | 🔄 Deleting |"
+            echo "| rg-soap-appservice-linux-${{ inputs.soap_api_instance }} | 🔄 Deleting |"
+            echo "| rg-odata-appservice-linux-${{ inputs.odata_api_instance }} | 🔄 Deleting |"
+            echo "| rg-movies-appservice-linux-${{ inputs.movie_api_instance }} | 🔄 Deleting |"
+            echo "| rg-msal-python-soln | 🔄 Deleting |"
+            echo "| rg-fast-api-app-insights-001 | 🔄 Deleting |"
+            echo "| rg-appointments-fnapp-linux-${{ inputs.appointments_api_instance }} | 🔄 Deleting |"
+            echo ""
+            echo "> **Note:** Resource groups are being deleted asynchronously. Deletion may take several minutes to complete."
+          } >> "$GITHUB_STEP_SUMMARY"
