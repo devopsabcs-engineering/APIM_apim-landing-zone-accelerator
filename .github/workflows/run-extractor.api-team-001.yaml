@@ -97,7 +97,7 @@ jobs:
       - name: Create pull request
         uses: peter-evans/create-pull-request@v6
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT_TOKEN }}
           commit-message: "Update artifacts.dev-005.api-team-001 artifacts from APIM"
           title: "Update APIM artifacts - artifacts.dev-005.api-team-001"
           body: "Automated extraction of APIM artifacts from dev environment for API Team 001"
