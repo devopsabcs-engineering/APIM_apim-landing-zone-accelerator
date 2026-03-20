@@ -3,6 +3,7 @@
     "path": "sw",
     "apiRevision": "1",
     "authenticationSettings": {},
+    "description": "D\u00E9truit le death star -- DEMO MTQ",
     "isCurrent": true,
     "displayName": "StarWarsApiNet",
     "protocols": [
