@@ -17,12 +17,22 @@ var host = new HostBuilder()
         services.AddSingleton<TableServiceClient>(sp =>
         {
             string storageAccountName = Environment.GetEnvironmentVariable("StorageAccountName") ?? "";
-            string managedIdentityClientId = Environment.GetEnvironmentVariable("MANAGED_IDENTITY_CLIENT_ID") ?? "";
+            string managedIdentityClientId = Environment.GetEnvironmentVariable("MANAGED_IDENTITY_CLIENT_ID");
 
-            var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
+            var credentialOptions = new DefaultAzureCredentialOptions
             {
-                ManagedIdentityClientId = managedIdentityClientId
-            });
+                ExcludeSharedTokenCacheCredential = true,
+                ExcludeVisualStudioCodeCredential = true,
+                ExcludeVisualStudioCredential = true,
+                ExcludeInteractiveBrowserCredential = true
+            };
+
+            if (!string.IsNullOrEmpty(managedIdentityClientId))
+            {
+                credentialOptions.ManagedIdentityClientId = managedIdentityClientId;
+            }
+
+            var credential = new DefaultAzureCredential(credentialOptions);
 
             return new TableServiceClient(
                 new Uri($"https://{storageAccountName}.table.core.windows.net"),
