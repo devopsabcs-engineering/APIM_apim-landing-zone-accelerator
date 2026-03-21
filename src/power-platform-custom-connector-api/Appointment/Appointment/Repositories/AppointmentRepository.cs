@@ -11,10 +11,8 @@ namespace Appointments.Repositories
     {
         private readonly TableClient _tableClient;
 
-        public AppointmentRepository(string connectionString, string tableName)
+        public AppointmentRepository(TableServiceClient tableServiceClient, string tableName)
         {
-
-            var tableServiceClient = new TableServiceClient(connectionString);
             _tableClient = tableServiceClient.GetTableClient(tableName);
         }
 
