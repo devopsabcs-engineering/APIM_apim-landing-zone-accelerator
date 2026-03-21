@@ -176,11 +176,12 @@ jobs:
         uses: azure/cli@v2
         with:
           inlineScript: |
-            az functionapp deployment source config-zip \
+            az webapp deploy \
               --name ${{ steps.get_app.outputs.app_name }} \
               --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
-              --src ${{ runner.temp }}/deploy.zip \
-              --build-remote false
+              --src-path ${{ runner.temp }}/deploy.zip \
+              --type zip \
+              --clean true
 
             echo "Restarting function app to pick up deployed functions..."
             az functionapp restart \
@@ -188,13 +189,19 @@ jobs:
               --resource-group ${{ env.RESOURCE_GROUP_NAME }}
 
             echo "Waiting for runtime to initialize..."
-            sleep 60
+            sleep 90
 
             echo "Listing deployed functions:"
             az functionapp function list \
               --name ${{ steps.get_app.outputs.app_name }} \
               --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
               --output table || echo "Function listing not available yet"
+
+            echo "Checking runtime logs for errors..."
+            az webapp log tail \
+              --name ${{ steps.get_app.outputs.app_name }} \
+              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+              --timeout 15 2>&1 | head -50 || true
 
   smoke-test:
     name: Smoke Test
