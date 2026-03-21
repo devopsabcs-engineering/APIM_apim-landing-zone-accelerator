@@ -14,20 +14,27 @@ var host = new HostBuilder()
         services.AddApplicationInsightsTelemetryWorkerService();
         services.ConfigureFunctionsApplicationInsights();
 
-        string appointmentsTable = Environment.GetEnvironmentVariable("StorageAccountAppointmentsTable");
-        string storageAccountName = Environment.GetEnvironmentVariable("StorageAccountName");
-        string managedIdentityClientId = Environment.GetEnvironmentVariable("MANAGED_IDENTITY_CLIENT_ID");
-
-        var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
+        services.AddSingleton<TableServiceClient>(sp =>
         {
-            ManagedIdentityClientId = managedIdentityClientId
+            string storageAccountName = Environment.GetEnvironmentVariable("StorageAccountName") ?? "";
+            string managedIdentityClientId = Environment.GetEnvironmentVariable("MANAGED_IDENTITY_CLIENT_ID") ?? "";
+
+            var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
+            {
+                ManagedIdentityClientId = managedIdentityClientId
+            });
+
+            return new TableServiceClient(
+                new Uri($"https://{storageAccountName}.table.core.windows.net"),
+                credential);
         });
 
-        var tableServiceClient = new TableServiceClient(
-            new Uri($"https://{storageAccountName}.table.core.windows.net"),
-            credential);
-
-        services.AddSingleton<IAppointmentRepository>(new AppointmentRepository(tableServiceClient, appointmentsTable));
+        services.AddSingleton<IAppointmentRepository>(sp =>
+        {
+            string appointmentsTable = Environment.GetEnvironmentVariable("StorageAccountAppointmentsTable") ?? "Appointments";
+            var tableServiceClient = sp.GetRequiredService<TableServiceClient>();
+            return new AppointmentRepository(tableServiceClient, appointmentsTable);
+        });
 
         services.AddSingleton<AppointmentService>();
     })
