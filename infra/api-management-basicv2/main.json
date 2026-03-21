@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "820775849647009171"
+      "templateHash": "4651099485279296015"
     }
   },
   "parameters": {
@@ -139,15 +139,12 @@
       "properties": {
         "tags": [],
         "secret": true,
-        "keyVault": {
-          "secretIdentifier": "[reference(resourceId('Microsoft.KeyVault/vaults/secrets', variables('keyVaultName'), 'AppInsightsKeyApim'), '2024-04-01-preview').secretUri]"
-        },
-        "displayName": "instrumentationKey"
+        "displayName": "instrumentationKey",
+        "value": "[reference(resourceId('Microsoft.Insights/components', variables('applicationInsightsName')), '2020-02-02').InstrumentationKey]"
       },
       "dependsOn": [
         "[resourceId('Microsoft.ApiManagement/service', variables('apiManagementName'))]",
-        "[extensionResourceId(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), 'Microsoft.Authorization/roleAssignments', guid(subscription().subscriptionId, variables('keyVaultName'), variables('apiManagementName')))]",
-        "[resourceId('Microsoft.KeyVault/vaults/secrets', variables('keyVaultName'), 'AppInsightsKeyApim')]"
+        "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]"
       ]
     },
     {
