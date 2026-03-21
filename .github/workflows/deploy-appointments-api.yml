@@ -173,7 +173,7 @@ jobs:
           cd ${{ runner.temp }}/drop
           zip -r ${{ runner.temp }}/deploy.zip .
       - name: Deploy to Azure Functions
-        uses: azure/webapps-deploy@v3
+        uses: azure/functions-action@v1
         with:
           app-name: ${{ steps.get_app.outputs.app_name }}
           package: ${{ runner.temp }}/deploy.zip
