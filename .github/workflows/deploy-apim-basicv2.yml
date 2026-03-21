@@ -1,0 +1,253 @@
+name: Deploy APIM BasicV2
+
+on:
+  workflow_dispatch:
+    inputs:
+      instance_number:
+        description: 'Instance number'
+        type: string
+        default: '005'
+      location:
+        description: 'Azure region'
+        type: string
+        default: 'canadacentral'
+      deploy_dev:
+        description: 'Deploy Dev environment'
+        type: boolean
+        default: true
+      deploy_prod:
+        description: 'Deploy Prod environment'
+        type: boolean
+        default: true
+      teardown_dev:
+        description: 'Tear down Dev environment after deployment'
+        type: boolean
+        default: false
+      teardown_prod:
+        description: 'Tear down Prod environment after deployment'
+        type: boolean
+        default: false
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  TEMPLATE_FILE: infra/api-management-basicv2/main.bicep
+  PARAMETERS_DIR: infra/api-management-basicv2
+  INSTANCE_NUMBER: ${{ inputs.instance_number || '005' }}
+  LOCATION: ${{ inputs.location || 'canadacentral' }}
+  RG_DEV: rg-apim-basicv2-dev-${{ inputs.instance_number || '005' }}
+  RG_PROD: rg-apim-basicv2-prod-${{ inputs.instance_number || '005' }}
+
+jobs:
+  validate:
+    name: Validate Bicep Template
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Bicep
+        run: az bicep build --file ${{ env.TEMPLATE_FILE }}
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Validate Dev template
+        if: ${{ inputs.deploy_dev }}
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            az group create --name ${{ env.RG_DEV }} --location ${{ env.LOCATION }} 2>/dev/null || true
+            az deployment group validate \
+              --resource-group ${{ env.RG_DEV }} \
+              --template-file ${{ env.TEMPLATE_FILE }} \
+              --parameters ${{ env.PARAMETERS_DIR }}/main.parameters.dev-${{ env.INSTANCE_NUMBER }}.json
+      - name: Validate Prod template
+        if: ${{ inputs.deploy_prod }}
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            az group create --name ${{ env.RG_PROD }} --location ${{ env.LOCATION }} 2>/dev/null || true
+            az deployment group validate \
+              --resource-group ${{ env.RG_PROD }} \
+              --template-file ${{ env.TEMPLATE_FILE }} \
+              --parameters ${{ env.PARAMETERS_DIR }}/main.parameters.prod-${{ env.INSTANCE_NUMBER }}.json
+
+  deploy-dev:
+    name: Deploy Dev APIM
+    needs: validate
+    if: ${{ inputs.deploy_dev }}
+    runs-on: ubuntu-latest
+    environment: APIM_BasicV2_Dev
+    outputs:
+      apim_name: ${{ steps.deploy.outputs.apim_name }}
+      gateway_url: ${{ steps.deploy.outputs.gateway_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: What-If analysis
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            az group create --name ${{ env.RG_DEV }} --location ${{ env.LOCATION }}
+            az deployment group what-if \
+              --resource-group ${{ env.RG_DEV }} \
+              --name ${{ env.RG_DEV }} \
+              --template-file ${{ env.TEMPLATE_FILE }} \
+              --parameters ${{ env.PARAMETERS_DIR }}/main.parameters.dev-${{ env.INSTANCE_NUMBER }}.json
+      - name: Deploy APIM Dev
+        id: deploy
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            az group create --name ${{ env.RG_DEV }} --location ${{ env.LOCATION }}
+            RESULT=$(az deployment group create \
+              --resource-group ${{ env.RG_DEV }} \
+              --name ${{ env.RG_DEV }} \
+              --template-file ${{ env.TEMPLATE_FILE }} \
+              --parameters ${{ env.PARAMETERS_DIR }}/main.parameters.dev-${{ env.INSTANCE_NUMBER }}.json \
+              --query '{name:properties.outputs.apiManagementName.value, url:properties.outputs.apiManagementGatewayUrl.value}' \
+              -o json)
+            APIM_NAME=$(echo "$RESULT" | jq -r '.name')
+            GATEWAY_URL=$(echo "$RESULT" | jq -r '.url')
+            echo "apim_name=$APIM_NAME" >> "$GITHUB_OUTPUT"
+            echo "gateway_url=$GATEWAY_URL" >> "$GITHUB_OUTPUT"
+      - name: Write job summary
+        env:
+          APIM_NAME: ${{ steps.deploy.outputs.apim_name }}
+          GATEWAY_URL: ${{ steps.deploy.outputs.gateway_url }}
+        run: |
+          {
+            echo "## 🚀 Dev APIM Deployment"
+            echo ""
+            echo "| Property | Value |"
+            echo "|----------|-------|"
+            echo "| APIM Name | \`${APIM_NAME}\` |"
+            echo "| Gateway URL | [${GATEWAY_URL}](${GATEWAY_URL}) |"
+            echo "| SKU | BasicV2 |"
+            echo "| Resource Group | \`${{ env.RG_DEV }}\` |"
+            echo "| Location | \`${{ env.LOCATION }}\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy-prod:
+    name: Deploy Prod APIM
+    needs: validate
+    if: ${{ inputs.deploy_prod }}
+    runs-on: ubuntu-latest
+    environment: APIM_BasicV2_Prod
+    outputs:
+      apim_name: ${{ steps.deploy.outputs.apim_name }}
+      gateway_url: ${{ steps.deploy.outputs.gateway_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: What-If analysis
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            az group create --name ${{ env.RG_PROD }} --location ${{ env.LOCATION }}
+            az deployment group what-if \
+              --resource-group ${{ env.RG_PROD }} \
+              --name ${{ env.RG_PROD }} \
+              --template-file ${{ env.TEMPLATE_FILE }} \
+              --parameters ${{ env.PARAMETERS_DIR }}/main.parameters.prod-${{ env.INSTANCE_NUMBER }}.json
+      - name: Deploy APIM Prod
+        id: deploy
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            az group create --name ${{ env.RG_PROD }} --location ${{ env.LOCATION }}
+            RESULT=$(az deployment group create \
+              --resource-group ${{ env.RG_PROD }} \
+              --name ${{ env.RG_PROD }} \
+              --template-file ${{ env.TEMPLATE_FILE }} \
+              --parameters ${{ env.PARAMETERS_DIR }}/main.parameters.prod-${{ env.INSTANCE_NUMBER }}.json \
+              --query '{name:properties.outputs.apiManagementName.value, url:properties.outputs.apiManagementGatewayUrl.value}' \
+              -o json)
+            APIM_NAME=$(echo "$RESULT" | jq -r '.name')
+            GATEWAY_URL=$(echo "$RESULT" | jq -r '.url')
+            echo "apim_name=$APIM_NAME" >> "$GITHUB_OUTPUT"
+            echo "gateway_url=$GATEWAY_URL" >> "$GITHUB_OUTPUT"
+      - name: Write job summary
+        env:
+          APIM_NAME: ${{ steps.deploy.outputs.apim_name }}
+          GATEWAY_URL: ${{ steps.deploy.outputs.gateway_url }}
+        run: |
+          {
+            echo "## 🚀 Prod APIM Deployment"
+            echo ""
+            echo "| Property | Value |"
+            echo "|----------|-------|"
+            echo "| APIM Name | \`${APIM_NAME}\` |"
+            echo "| Gateway URL | [${GATEWAY_URL}](${GATEWAY_URL}) |"
+            echo "| SKU | BasicV2 |"
+            echo "| Resource Group | \`${{ env.RG_PROD }}\` |"
+            echo "| Location | \`${{ env.LOCATION }}\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  teardown-dev:
+    name: Teardown Dev
+    needs: deploy-dev
+    if: ${{ inputs.teardown_dev == true }}
+    runs-on: ubuntu-latest
+    environment: APIM_BasicV2_Dev_Teardown
+    steps:
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Delete Dev resource group
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            echo "Deleting Dev resource group ${{ env.RG_DEV }}..."
+            az group delete --name ${{ env.RG_DEV }} --yes --no-wait
+            echo "Teardown initiated for ${{ env.RG_DEV }}"
+      - name: Write job summary
+        run: |
+          {
+            echo "## 🗑️ Dev Teardown"
+            echo ""
+            echo "| Resource Group | Status |"
+            echo "|----------------|--------|"
+            echo "| ${{ env.RG_DEV }} | 🔄 Deleting (async) |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  teardown-prod:
+    name: Teardown Prod
+    needs: deploy-prod
+    if: ${{ inputs.teardown_prod == true }}
+    runs-on: ubuntu-latest
+    environment: APIM_BasicV2_Prod_Teardown
+    steps:
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Delete Prod resource group
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            echo "Deleting Prod resource group ${{ env.RG_PROD }}..."
+            az group delete --name ${{ env.RG_PROD }} --yes --no-wait
+            echo "Teardown initiated for ${{ env.RG_PROD }}"
+      - name: Write job summary
+        run: |
+          {
+            echo "## 🗑️ Prod Teardown"
+            echo ""
+            echo "| Resource Group | Status |"
+            echo "|----------------|--------|"
+            echo "| ${{ env.RG_PROD }} | 🔄 Deleting (async) |"
+          } >> "$GITHUB_STEP_SUMMARY"
