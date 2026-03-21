@@ -142,6 +142,16 @@ jobs:
               --template-file ${{ env.TEMPLATE_FILE }} \
               --parameters instanceNumber=${{ env.INSTANCE_NUMBER }}
 
+            echo "Waiting 60s for system-assigned identity RBAC to propagate..."
+            sleep 60
+
+            echo "Restarting function app after RBAC propagation..."
+            FUNC_NAME=$(az deployment group show \
+              --name ${{ env.DEPLOYMENT_NAME }} \
+              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+              --query properties.outputs.functionAppName.value -o tsv)
+            az functionapp restart --name "$FUNC_NAME" --resource-group ${{ env.RESOURCE_GROUP_NAME }}
+
   deploy-app:
     name: Deploy Application
     needs: [set-version, deploy-infra]
@@ -182,19 +192,26 @@ jobs:
               --src ${{ runner.temp }}/deploy.zip \
               --build-remote false
 
-            echo "Restarting function app to pick up deployed functions..."
+            echo "Restarting function app..."
             az functionapp restart \
               --name ${{ steps.get_app.outputs.app_name }} \
               --resource-group ${{ env.RESOURCE_GROUP_NAME }}
 
             echo "Waiting for runtime to initialize..."
-            sleep 60
+            sleep 120
 
             echo "Listing deployed functions:"
             az functionapp function list \
               --name ${{ steps.get_app.outputs.app_name }} \
               --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
               --output table || echo "Function listing not available yet"
+
+            echo "Function app status:"
+            az functionapp show \
+              --name ${{ steps.get_app.outputs.app_name }} \
+              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+              --query "{state:state, availabilityState:availabilityState}" \
+              --output table
 
   smoke-test:
     name: Smoke Test

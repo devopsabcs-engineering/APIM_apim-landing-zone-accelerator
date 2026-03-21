@@ -142,17 +142,17 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
   location: location
   kind: 'functionapp,linux'
   identity: {
-    type: 'UserAssigned'
+    type: 'SystemAssigned, UserAssigned'
     userAssignedIdentities: {
       '${managedIdentity.id}': {}
     }
   }
   dependsOn: [
-    storageBlobDataOwnerRole
-    storageAccountContributorRole
-    storageQueueDataContributorRole
-    storageTableDataContributorRole
-    storageFileDataContributorRole
+    uamiStorageBlobDataOwnerRole
+    uamiStorageAccountContributorRole
+    uamiStorageQueueDataContributorRole
+    uamiStorageTableDataContributorRole
+    uamiStorageFileDataContributorRole
   ]
   properties: {
     reserved: true
@@ -238,24 +238,8 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
           value: ''
         }
         {
-          name: 'AzureWebJobsStorage__blobServiceUri'
-          value: 'https://${storageAccountName}.blob.${environment().suffixes.storage}'
-        }
-        {
-          name: 'AzureWebJobsStorage__queueServiceUri'
-          value: 'https://${storageAccountName}.queue.${environment().suffixes.storage}'
-        }
-        {
-          name: 'AzureWebJobsStorage__tableServiceUri'
-          value: 'https://${storageAccountName}.table.${environment().suffixes.storage}'
-        }
-        {
-          name: 'AzureWebJobsStorage__credential'
-          value: 'managedidentity'
-        }
-        {
-          name: 'AzureWebJobsStorage__clientId'
-          value: managedIdentity.properties.clientId
+          name: 'AzureWebJobsStorage__accountName'
+          value: storageAccountName
         }
         {
           name: 'FUNCTIONS_EXTENSION_VERSION'
@@ -286,8 +270,8 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
           value: '1'
         }
         {
-          name: 'WEBSITE_RUN_FROM_PACKAGE'
-          value: '1'
+          name: 'AzureWebJobsFeatureFlags'
+          value: 'EnableWorkerIndexing'
         }
       ]
     }
@@ -303,8 +287,8 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
 }
 
 // RBAC role assignments for the user-assigned managed identity on the storage account
-// Storage Blob Data Owner
-resource storageBlobDataOwnerRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+// Storage Blob Data Owner (UAMI)
+resource uamiStorageBlobDataOwnerRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(storageAccount.id, managedIdentity.id, 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b')
   scope: storageAccount
   properties: {
@@ -314,8 +298,8 @@ resource storageBlobDataOwnerRole 'Microsoft.Authorization/roleAssignments@2022-
   }
 }
 
-// Storage Account Contributor
-resource storageAccountContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+// Storage Account Contributor (UAMI)
+resource uamiStorageAccountContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(storageAccount.id, managedIdentity.id, '17d1049b-9a84-46fb-8f53-869881c3d3ab')
   scope: storageAccount
   properties: {
@@ -325,8 +309,8 @@ resource storageAccountContributorRole 'Microsoft.Authorization/roleAssignments@
   }
 }
 
-// Storage Queue Data Contributor
-resource storageQueueDataContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+// Storage Queue Data Contributor (UAMI)
+resource uamiStorageQueueDataContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(storageAccount.id, managedIdentity.id, '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
   scope: storageAccount
   properties: {
@@ -336,8 +320,8 @@ resource storageQueueDataContributorRole 'Microsoft.Authorization/roleAssignment
   }
 }
 
-// Storage Table Data Contributor
-resource storageTableDataContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+// Storage Table Data Contributor (UAMI)
+resource uamiStorageTableDataContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(storageAccount.id, managedIdentity.id, '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')
   scope: storageAccount
   properties: {
@@ -347,12 +331,68 @@ resource storageTableDataContributorRole 'Microsoft.Authorization/roleAssignment
   }
 }
 
-// Storage File Data Privileged Contributor - required for content share with managed identity
-resource storageFileDataContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+// Storage File Data Privileged Contributor (UAMI)
+resource uamiStorageFileDataContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(storageAccount.id, managedIdentity.id, '69566ab7-960f-475b-8e7c-b3118f30c6bd')
   scope: storageAccount
   properties: {
     principalId: managedIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '69566ab7-960f-475b-8e7c-b3118f30c6bd')
+  }
+}
+
+// RBAC role assignments for the system-assigned managed identity (created after function app)
+// Storage Blob Data Owner (System)
+resource sysStorageBlobDataOwnerRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storageAccount.id, functionApp.id, 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b')
+  scope: storageAccount
+  properties: {
+    principalId: functionApp.identity.principalId
+    principalType: 'ServicePrincipal'
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b')
+  }
+}
+
+// Storage Account Contributor (System)
+resource sysStorageAccountContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storageAccount.id, functionApp.id, '17d1049b-9a84-46fb-8f53-869881c3d3ab')
+  scope: storageAccount
+  properties: {
+    principalId: functionApp.identity.principalId
+    principalType: 'ServicePrincipal'
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '17d1049b-9a84-46fb-8f53-869881c3d3ab')
+  }
+}
+
+// Storage Queue Data Contributor (System)
+resource sysStorageQueueDataContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storageAccount.id, functionApp.id, '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
+  scope: storageAccount
+  properties: {
+    principalId: functionApp.identity.principalId
+    principalType: 'ServicePrincipal'
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
+  }
+}
+
+// Storage Table Data Contributor (System)
+resource sysStorageTableDataContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storageAccount.id, functionApp.id, '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')
+  scope: storageAccount
+  properties: {
+    principalId: functionApp.identity.principalId
+    principalType: 'ServicePrincipal'
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')
+  }
+}
+
+// Storage File Data Privileged Contributor (System)
+resource sysStorageFileDataContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storageAccount.id, functionApp.id, '69566ab7-960f-475b-8e7c-b3118f30c6bd')
+  scope: storageAccount
+  properties: {
+    principalId: functionApp.identity.principalId
     principalType: 'ServicePrincipal'
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '69566ab7-960f-475b-8e7c-b3118f30c6bd')
   }
