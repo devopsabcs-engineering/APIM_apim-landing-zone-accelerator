@@ -69,7 +69,7 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.UseGraphQL();
-app.UseGraphQLAltair();
+app.UseGraphQLPlayground("/ui/playground");
 
 app.MapControllers();
 

@@ -267,7 +267,7 @@ jobs:
           VERSION_RESPONSE=$(curl -s --max-time 30 --retry 2 --retry-delay 5 "${APP_URL}/api/version" || echo "N/A")
           echo "Version: ${VERSION_RESPONSE}"
 
-          # Capture screenshots of Swagger UI and GraphQL Altair UI
+          # Capture screenshots of Swagger UI and GraphQL Playground UI
           npx --yes playwright install chromium --with-deps 2>/dev/null || true
           node -e "
             const { chromium } = require('playwright');
@@ -277,8 +277,8 @@ jobs:
               try { await page.goto('${SWAGGER_URL}', { waitUntil: 'networkidle', timeout: 30000 }); }
               catch (e) { await page.goto('${SWAGGER_URL}', { waitUntil: 'load', timeout: 15000 }).catch(() => {}); }
               await page.screenshot({ path: 'screenshot-swagger.png', fullPage: false });
-              try { await page.goto('${APP_URL}/ui/altair', { waitUntil: 'networkidle', timeout: 30000 }); }
-              catch (e) { await page.goto('${APP_URL}/ui/altair', { waitUntil: 'load', timeout: 15000 }).catch(() => {}); }
+              try { await page.goto('${APP_URL}/ui/playground', { waitUntil: 'networkidle', timeout: 30000 }); }
+              catch (e) { await page.goto('${APP_URL}/ui/playground', { waitUntil: 'load', timeout: 15000 }).catch(() => {}); }
               await page.screenshot({ path: 'screenshot-graphql.png', fullPage: false });
               await browser.close();
             })();
@@ -305,7 +305,7 @@ jobs:
               echo "- Swagger UI screenshot uploaded as artifact: **screenshot-movie-api**"
             fi
             if [ -f screenshot-graphql.png ]; then
-              echo "- GraphQL Altair UI screenshot uploaded as artifact: **screenshot-movie-api**"
+              echo "- GraphQL Playground UI screenshot uploaded as artifact: **screenshot-movie-api**"
             fi
             echo ""
             echo "🔗 **Application URL:** [${APP_URL}](${APP_URL})"
