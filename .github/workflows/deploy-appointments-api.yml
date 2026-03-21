@@ -200,52 +200,6 @@ jobs:
             echo "Waiting for runtime to initialize..."
             sleep 120
 
-            echo "=== Checking deployed files on filesystem ==="
-            az webapp ssh --name ${{ steps.get_app.outputs.app_name }} \
-              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
-              --command "ls -la /home/site/wwwroot/" 2>&1 || echo "SSH not available"
-
-            echo "=== Fetching recent app logs ==="
-            az webapp log download \
-              --name ${{ steps.get_app.outputs.app_name }} \
-              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
-              --log-file /tmp/applogs.zip 2>&1 || echo "Log download failed"
-            python3 -c "
-import zipfile, os
-try:
-    with zipfile.ZipFile('/tmp/applogs.zip', 'r') as z:
-        for name in z.namelist():
-            if any(x in name.lower() for x in ['error', 'host', 'startup', 'worker']):
-                print(f'--- {name} ---')
-                try:
-                    content = z.read(name).decode('utf-8', errors='replace')
-                    lines = content.strip().split('\n')
-                    for line in lines[-50:]:
-                        print(line)
-                except: pass
-        # Also print any log files
-        for name in z.namelist():
-            if name.endswith('.log') or name.endswith('.txt'):
-                print(f'--- {name} ---')
-                try:
-                    content = z.read(name).decode('utf-8', errors='replace')
-                    lines = content.strip().split('\n')
-                    for line in lines[-30:]:
-                        print(line)
-                except: pass
-except Exception as e:
-    print(f'Failed to read logs: {e}')
-" 2>&1 | tail -200 || echo "Log parsing failed"
-
-            echo "=== Checking zip package contents ==="
-            python3 -c "
-import zipfile
-with zipfile.ZipFile('${{ runner.temp }}/deploy.zip', 'r') as z:
-    for name in sorted(z.namelist()):
-        info = z.getinfo(name)
-        print(f'{info.file_size:>10} {name}')
-" 2>&1 | head -30
-
             echo "=== Current linuxFxVersion ==="
             az functionapp config show \
               --name ${{ steps.get_app.outputs.app_name }} \
@@ -258,6 +212,38 @@ with zipfile.ZipFile('${{ runner.temp }}/deploy.zip', 'r') as z:
               --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
               --query "[?name=='AzureWebJobsStorage__accountName' || name=='FUNCTIONS_WORKER_RUNTIME' || name=='FUNCTIONS_EXTENSION_VERSION' || name=='AzureWebJobsFeatureFlags' || name=='SCM_DO_BUILD_DURING_DEPLOYMENT'].{name:name, value:value}" \
               --output table
+
+            echo "=== Fetching app logs ==="
+            az webapp log download \
+              --name ${{ steps.get_app.outputs.app_name }} \
+              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+              --log-file /tmp/applogs.zip 2>&1 || true
+            apt-get update -qq && apt-get install -y -qq unzip > /dev/null 2>&1 || true
+            if [ -f /tmp/applogs.zip ]; then
+              cd /tmp && unzip -o applogs.zip 2>/dev/null || true
+              echo "--- Log files found ---"
+              find /tmp -name "*.log" -o -name "*.txt" 2>/dev/null | head -20
+              for logfile in $(find /tmp -name "*.log" -o -name "*.txt" 2>/dev/null | head -10); do
+                echo "--- $logfile ---"
+                tail -50 "$logfile" 2>/dev/null || true
+              done
+            fi
+
+            echo "=== Listing deployed functions ==="
+            az functionapp function list \
+              --name ${{ steps.get_app.outputs.app_name }} \
+              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+              --output table || echo "Function listing not available yet"
+
+            echo "=== Function app status ==="
+            az functionapp show \
+              --name ${{ steps.get_app.outputs.app_name }} \
+              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+              --query "{state:state, availabilityState:availabilityState}" \
+              --output table
+
+            echo "=== Hitting version endpoint ==="
+            curl -sv --max-time 15 "https://${{ steps.get_app.outputs.app_name }}.azurewebsites.net/api/version" 2>&1 || echo "Version endpoint not responding"
 
             echo "=== Listing deployed functions ==="
             az functionapp function list \
