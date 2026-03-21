@@ -1,4 +1,4 @@
-apimServiceName: apim-prod-006-REPLACE_WITH_ACTUAL_NAME  # Update after first BasicV2 deployment
+apimServiceName: apim-prod-006-xcilqlmt7zdw2  # Update after first BasicV2 deployment
 namedValues:
   - name: environment
     properties:
