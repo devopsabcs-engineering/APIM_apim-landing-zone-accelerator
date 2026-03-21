@@ -285,6 +285,10 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
           name: 'WEBSITE_USE_PLACEHOLDER_DOTNETISOLATED'
           value: '1'
         }
+        {
+          name: 'AzureWebJobsFeatureFlags'
+          value: 'EnableWorkerIndexing'
+        }
       ]
     }
   }

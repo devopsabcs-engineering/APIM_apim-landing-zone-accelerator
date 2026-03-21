@@ -176,6 +176,14 @@ jobs:
         uses: azure/cli@v2
         with:
           inlineScript: |
+            # Get the storage account name and managed identity client ID
+            STORAGE_NAME=$(az deployment group show \
+              --name ${{ env.DEPLOYMENT_NAME }} \
+              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+              --query properties.outputs.storageAccountName.value -o tsv)
+            echo "Storage account: ${STORAGE_NAME}"
+
+            # Deploy using zipdeploy via Kudu API directly
             az webapp deploy \
               --name ${{ steps.get_app.outputs.app_name }} \
               --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
@@ -183,13 +191,20 @@ jobs:
               --type zip \
               --clean true
 
+            # Set app setting to force the runtime to sync functions from filesystem
+            az functionapp config appsettings set \
+              --name ${{ steps.get_app.outputs.app_name }} \
+              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+              --settings "AzureWebJobsFeatureFlags=EnableWorkerIndexing" \
+              --output none
+
             echo "Restarting function app to pick up deployed functions..."
             az functionapp restart \
               --name ${{ steps.get_app.outputs.app_name }} \
               --resource-group ${{ env.RESOURCE_GROUP_NAME }}
 
             echo "Waiting for runtime to initialize..."
-            sleep 90
+            sleep 120
 
             echo "Listing deployed functions:"
             az functionapp function list \
@@ -197,11 +212,12 @@ jobs:
               --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
               --output table || echo "Function listing not available yet"
 
-            echo "Checking runtime logs for errors..."
-            az webapp log tail \
+            echo "Checking function app status..."
+            az functionapp show \
               --name ${{ steps.get_app.outputs.app_name }} \
               --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
-              --timeout 15 2>&1 | head -50 || true
+              --query "{state:state, availabilityState:availabilityState, usageState:usageState}" \
+              --output table
 
   smoke-test:
     name: Smoke Test
