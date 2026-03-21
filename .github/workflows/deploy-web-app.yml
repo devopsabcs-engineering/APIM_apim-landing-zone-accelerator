@@ -145,7 +145,10 @@ jobs:
               --parameters baseName=${{ env.BASE_NAME }} \
               --parameters imageName=${{ env.IMAGE_NAME }} \
               --parameters addAzureAdAppSettings=${{ env.ADD_AZURE_AD_APP_SETTINGS }} \
-              --parameters addStorageAccount=${{ env.ADD_STORAGE_ACCOUNT }}
+              --parameters addStorageAccount=${{ env.ADD_STORAGE_ACCOUNT }} \
+              --parameters azureAdClientId=${{ secrets.AZURE_AD_CLIENT_ID }} \
+              --parameters azureAdDomain=${{ secrets.AZURE_AD_DOMAIN }} \
+              --parameters azureAdClientSecret=${{ secrets.AZURE_AD_CLIENT_SECRET }}
 
   build-and-push:
     name: Build and push Docker image
