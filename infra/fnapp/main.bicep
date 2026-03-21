@@ -97,7 +97,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
       virtualNetworkRules: []
       ipRules: []
     }
-    allowSharedKeyAccess: false
+    allowSharedKeyAccess: true
   }
 
   // add table services
@@ -238,16 +238,8 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
           value: ''
         }
         {
-          name: 'AzureWebJobsStorage__blobServiceUri'
-          value: 'https://${storageAccountName}.blob.${environment().suffixes.storage}'
-        }
-        {
-          name: 'AzureWebJobsStorage__queueServiceUri'
-          value: 'https://${storageAccountName}.queue.${environment().suffixes.storage}'
-        }
-        {
-          name: 'AzureWebJobsStorage__tableServiceUri'
-          value: 'https://${storageAccountName}.table.${environment().suffixes.storage}'
+          name: 'AzureWebJobsStorage'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccountName};EndpointSuffix=${environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}'
         }
         {
           name: 'FUNCTIONS_EXTENSION_VERSION'
