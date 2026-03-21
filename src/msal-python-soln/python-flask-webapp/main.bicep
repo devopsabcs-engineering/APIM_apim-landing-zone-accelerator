@@ -80,11 +80,11 @@ resource webApp 'Microsoft.Web/sites@2024-11-01' = {
           value: 'true'
         }
         {
-          name: 'Logging:LogLevel:Default'
+          name: 'Logging__LogLevel__Default'
           value: 'Information'
         }
         {
-          name: 'Logging:ApplicationInsights:LogLevel:Default'
+          name: 'Logging__ApplicationInsights__LogLevel__Default'
           value: 'Information'
         }
       ]
