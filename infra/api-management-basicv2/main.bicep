@@ -94,14 +94,9 @@ resource namedValueAppInsightsSecret 'Microsoft.ApiManagement/service/namedValue
   properties: {
     tags: []
     secret: true
-    keyVault: {
-      secretIdentifier: secretAppInsights.properties.secretUri
-    }
     displayName: 'instrumentationKey'
+    value: applicationInsights.properties.InstrumentationKey
   }
-  dependsOn: [
-    keyVaultRoleAssignment
-  ]
 }
 
 resource apimLogger 'Microsoft.ApiManagement/service/loggers@2024-06-01-preview' = {
