@@ -200,18 +200,39 @@ jobs:
             echo "Waiting for runtime to initialize..."
             sleep 120
 
-            echo "Listing deployed functions:"
+            echo "=== Checking deployed files on filesystem ==="
+            az webapp ssh --name ${{ steps.get_app.outputs.app_name }} \
+              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+              --command "ls -la /home/site/wwwroot/" 2>&1 || echo "SSH not available"
+
+            echo "=== Fetching recent app logs ==="
+            az webapp log download \
+              --name ${{ steps.get_app.outputs.app_name }} \
+              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+              --log-file /tmp/applogs.zip 2>&1 && unzip -p /tmp/applogs.zip 2>&1 | tail -100 || echo "Log download not available"
+
+            echo "=== Checking app settings ==="
+            az functionapp config appsettings list \
+              --name ${{ steps.get_app.outputs.app_name }} \
+              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+              --query "[?name=='AzureWebJobsStorage__accountName' || name=='FUNCTIONS_WORKER_RUNTIME' || name=='FUNCTIONS_EXTENSION_VERSION' || name=='AzureWebJobsFeatureFlags' || name=='SCM_DO_BUILD_DURING_DEPLOYMENT'].{name:name, value:value}" \
+              --output table
+
+            echo "=== Listing deployed functions ==="
             az functionapp function list \
               --name ${{ steps.get_app.outputs.app_name }} \
               --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
               --output table || echo "Function listing not available yet"
 
-            echo "Function app status:"
+            echo "=== Function app status ==="
             az functionapp show \
               --name ${{ steps.get_app.outputs.app_name }} \
               --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
               --query "{state:state, availabilityState:availabilityState}" \
               --output table
+
+            echo "=== Hitting version endpoint directly ==="
+            curl -s --max-time 15 "https://${{ steps.get_app.outputs.app_name }}.azurewebsites.net/api/version" || echo "Version endpoint not responding"
 
   smoke-test:
     name: Smoke Test
