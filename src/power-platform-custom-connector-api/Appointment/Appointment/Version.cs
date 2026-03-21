@@ -6,13 +6,13 @@ using Microsoft.Extensions.Logging;
 
 namespace Appointments
 {
-    public class Version
+    public class VersionFunction
     {
         private readonly ILogger _logger;
 
-        public Version(ILoggerFactory loggerFactory)
+        public VersionFunction(ILoggerFactory loggerFactory)
         {
-            _logger = loggerFactory.CreateLogger<Version>();
+            _logger = loggerFactory.CreateLogger<VersionFunction>();
         }
 
         [Function("Version")]

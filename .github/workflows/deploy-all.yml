@@ -209,21 +209,28 @@ jobs:
 
           # List available screenshots
           if [ -d screenshots ]; then
+            FOUND_SCREENSHOTS=false
             for SCREENSHOT_DIR in screenshots/screenshot-*/; do
               if [ -d "${SCREENSHOT_DIR}" ]; then
                 DIR_NAME=$(basename "${SCREENSHOT_DIR}")
                 APP_LABEL=$(echo "${DIR_NAME}" | sed 's/screenshot-//; s/-/ /g' | sed 's/\b\(.\)/\u\1/g')
                 for IMG in "${SCREENSHOT_DIR}"*.png; do
                   if [ -f "${IMG}" ]; then
-                    IMG_NAME=$(basename "${IMG}")
-                    echo "### ${APP_LABEL} - ${IMG_NAME}" >> "${WIKI_FILE}"
+                    FOUND_SCREENSHOTS=true
+                    IMG_NAME="${DIR_NAME}-$(basename "${IMG}")"
+                    # Copy to flat name for wiki
+                    cp "${IMG}" "screenshots/${IMG_NAME}"
+                    echo "### ${APP_LABEL}" >> "${WIKI_FILE}"
                     echo "" >> "${WIKI_FILE}"
-                    echo "![${APP_LABEL}](screenshots/${DIR_NAME}/${IMG_NAME})" >> "${WIKI_FILE}"
+                    echo "![${APP_LABEL}](${IMG_NAME})" >> "${WIKI_FILE}"
                     echo "" >> "${WIKI_FILE}"
                   fi
                 done
               fi
             done
+            if [ "${FOUND_SCREENSHOTS}" = "false" ]; then
+              echo "_No screenshots captured in this run._" >> "${WIKI_FILE}"
+            fi
           else
             echo "_No screenshots captured in this run._" >> "${WIKI_FILE}"
           fi
@@ -264,11 +271,14 @@ jobs:
 
           # Create deployment reports directory
           mkdir -p "${WIKI_DIR}/Deployment-Reports"
-          mkdir -p "${WIKI_DIR}/Deployment-Reports/screenshots"
 
-          # Copy screenshots
+          # Copy flat-named screenshots to wiki repo root (GitHub Wiki serves images from root)
           if [ -d screenshots ]; then
-            cp -r screenshots/* "${WIKI_DIR}/Deployment-Reports/screenshots/" 2>/dev/null || true
+            for IMG in screenshots/screenshot-*.png; do
+              if [ -f "${IMG}" ]; then
+                cp "${IMG}" "${WIKI_DIR}/$(basename "${IMG}")"
+              fi
+            done
           fi
 
           # Copy report with timestamped name and as latest

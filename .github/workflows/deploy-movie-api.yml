@@ -268,21 +268,23 @@ jobs:
           echo "Version: ${VERSION_RESPONSE}"
 
           # Capture screenshots of Swagger UI and GraphQL Playground UI
-          npx --yes playwright install chromium --with-deps 2>/dev/null || true
+          npm install puppeteer 2>/dev/null
           node -e "
-            const { chromium } = require('playwright');
+            const puppeteer = require('puppeteer');
             (async () => {
-              const browser = await chromium.launch();
-              const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
-              try { await page.goto('${SWAGGER_URL}', { waitUntil: 'networkidle', timeout: 30000 }); }
-              catch (e) { await page.goto('${SWAGGER_URL}', { waitUntil: 'load', timeout: 15000 }).catch(() => {}); }
-              await page.screenshot({ path: 'screenshot-swagger.png', fullPage: false });
-              try { await page.goto('${APP_URL}/ui/playground', { waitUntil: 'networkidle', timeout: 30000 }); }
-              catch (e) { await page.goto('${APP_URL}/ui/playground', { waitUntil: 'load', timeout: 15000 }).catch(() => {}); }
-              await page.screenshot({ path: 'screenshot-graphql.png', fullPage: false });
+              const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+              const page = await browser.newPage();
+              await page.setViewport({ width: 1280, height: 720 });
+              try { await page.goto('${SWAGGER_URL}', { waitUntil: 'networkidle2', timeout: 30000 }); }
+              catch (e) { console.log('Navigation warning:', e.message); }
+              await page.screenshot({ path: 'screenshot-swagger.png' });
+              try { await page.goto('${APP_URL}/ui/playground', { waitUntil: 'networkidle2', timeout: 30000 }); }
+              catch (e) { console.log('Navigation warning:', e.message); }
+              await page.screenshot({ path: 'screenshot-graphql.png' });
               await browser.close();
-            })();
-          " 2>/dev/null || echo "Screenshot capture skipped"
+              console.log('Screenshots captured');
+            })().catch(e => { console.error('Screenshot failed:', e.message); process.exit(0); });
+          "
 
           {
             echo "## 🔍 Smoke Test Results"

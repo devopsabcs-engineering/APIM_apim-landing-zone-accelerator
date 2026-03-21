@@ -250,18 +250,20 @@ jobs:
           echo "Version: ${VERSION_RESPONSE}"
 
           # Capture screenshot of Swagger UI
-          npx --yes playwright install chromium --with-deps 2>/dev/null || true
+          npm install puppeteer 2>/dev/null
           node -e "
-            const { chromium } = require('playwright');
+            const puppeteer = require('puppeteer');
             (async () => {
-              const browser = await chromium.launch();
-              const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
-              try { await page.goto('${SMOKE_URL}', { waitUntil: 'networkidle', timeout: 30000 }); }
-              catch (e) { await page.goto('${SMOKE_URL}', { waitUntil: 'load', timeout: 15000 }).catch(() => {}); }
-              await page.screenshot({ path: 'screenshot.png', fullPage: false });
+              const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+              const page = await browser.newPage();
+              await page.setViewport({ width: 1280, height: 720 });
+              try { await page.goto('${SMOKE_URL}', { waitUntil: 'networkidle2', timeout: 30000 }); }
+              catch (e) { console.log('Navigation warning:', e.message); }
+              await page.screenshot({ path: 'screenshot.png' });
               await browser.close();
-            })();
-          " 2>/dev/null || echo "Screenshot capture skipped"
+              console.log('Screenshot captured');
+            })().catch(e => { console.error('Screenshot failed:', e.message); process.exit(0); });
+          "
 
           {
             echo "## 🔍 Smoke Test Results"

@@ -261,22 +261,23 @@ jobs:
           APP_NAME: ${{ needs.deploy-app.outputs.app_name }}
         run: |
           APP_URL="https://${APP_NAME}.azurewebsites.net"
-          sudo apt-get update -qq && sudo apt-get install -yqq chromium-browser 2>/dev/null || true
-          npx --yes playwright install chromium --with-deps 2>/dev/null || true
+          npm install puppeteer
           node -e "
-            const { chromium } = require('playwright');
+            const puppeteer = require('puppeteer');
             (async () => {
-              const browser = await chromium.launch();
-              const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+              const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+              const page = await browser.newPage();
+              await page.setViewport({ width: 1280, height: 720 });
               try {
-                await page.goto('${APP_URL}', { waitUntil: 'networkidle', timeout: 30000 });
+                await page.goto('${APP_URL}', { waitUntil: 'networkidle2', timeout: 30000 });
               } catch (e) {
-                await page.goto('${APP_URL}', { waitUntil: 'load', timeout: 15000 }).catch(() => {});
+                console.log('Navigation warning:', e.message);
               }
-              await page.screenshot({ path: 'screenshot.png', fullPage: false });
+              await page.screenshot({ path: 'screenshot.png' });
               await browser.close();
-            })();
-          " 2>/dev/null || echo "Screenshot capture skipped"
+              console.log('Screenshot captured successfully');
+            })().catch(e => { console.error('Screenshot failed:', e.message); process.exit(0); });
+          "
           if [ -f screenshot.png ]; then
             echo "captured=true" >> "$GITHUB_OUTPUT"
           else
