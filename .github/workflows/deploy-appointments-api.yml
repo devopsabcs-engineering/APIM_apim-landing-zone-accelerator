@@ -135,9 +135,6 @@ jobs:
         uses: azure/cli@v2
         with:
           inlineScript: |
-            # Delete existing RG to clear stale plan SKU (EP1->S1 change requires recreation)
-            az group delete --name ${{ env.RESOURCE_GROUP_NAME }} --yes --no-wait 2>/dev/null || true
-            az group wait --name ${{ env.RESOURCE_GROUP_NAME }} --deleted 2>/dev/null || true
             az group create --name ${{ env.RESOURCE_GROUP_NAME }} --location ${{ env.LOCATION }}
             az deployment group create \
               --name ${{ env.DEPLOYMENT_NAME }} \
@@ -176,10 +173,20 @@ jobs:
           cd ${{ runner.temp }}/drop
           zip -r ${{ runner.temp }}/deploy.zip .
       - name: Deploy to Azure Functions
-        uses: azure/functions-action@v1
+        uses: azure/cli@v2
         with:
-          app-name: ${{ steps.get_app.outputs.app_name }}
-          package: ${{ runner.temp }}/deploy.zip
+          inlineScript: |
+            az functionapp deployment source config-zip \
+              --name ${{ steps.get_app.outputs.app_name }} \
+              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+              --src ${{ runner.temp }}/deploy.zip \
+              --build-remote false
+            echo "Waiting for deployment to stabilize..."
+            sleep 30
+            az functionapp list-functions \
+              --name ${{ steps.get_app.outputs.app_name }} \
+              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+              --output table || echo "Function listing not available yet"
 
   smoke-test:
     name: Smoke Test
