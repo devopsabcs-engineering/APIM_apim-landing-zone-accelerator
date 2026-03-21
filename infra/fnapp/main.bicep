@@ -313,6 +313,17 @@ resource storageTableDataContributorRole 'Microsoft.Authorization/roleAssignment
   }
 }
 
+// Storage File Data Privileged Contributor - required for content share with managed identity
+resource storageFileDataContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storageAccount.id, functionApp.id, '69566ab7-960f-4991-ab7a-7c5b17e59d95')
+  scope: storageAccount
+  properties: {
+    principalId: functionApp.identity.principalId
+    principalType: 'ServicePrincipal'
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '69566ab7-960f-4991-ab7a-7c5b17e59d95')
+  }
+}
+
 output functionAppName string = functionApp.name
 output storageAccountName string = storageAccount.name
 output containerRegistryName string = containerRegistry.name
