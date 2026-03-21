@@ -16,10 +16,16 @@ var host = new HostBuilder()
 
         string appointmentsTable = Environment.GetEnvironmentVariable("StorageAccountAppointmentsTable");
         string storageAccountName = Environment.GetEnvironmentVariable("StorageAccountName");
+        string managedIdentityClientId = Environment.GetEnvironmentVariable("MANAGED_IDENTITY_CLIENT_ID");
+
+        var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
+        {
+            ManagedIdentityClientId = managedIdentityClientId
+        });
 
         var tableServiceClient = new TableServiceClient(
             new Uri($"https://{storageAccountName}.table.core.windows.net"),
-            new DefaultAzureCredential());
+            credential);
 
         services.AddSingleton<IAppointmentRepository>(new AppointmentRepository(tableServiceClient, appointmentsTable));
 

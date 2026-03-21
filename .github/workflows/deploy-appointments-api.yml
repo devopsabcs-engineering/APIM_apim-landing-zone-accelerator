@@ -136,17 +136,6 @@ jobs:
         with:
           inlineScript: |
             az group create --name ${{ env.RESOURCE_GROUP_NAME }} --location ${{ env.LOCATION }}
-            # Deploy infrastructure - may partially fail on first run due to RBAC propagation
-            az deployment group create \
-              --name ${{ env.DEPLOYMENT_NAME }} \
-              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
-              --template-file ${{ env.TEMPLATE_FILE }} \
-              --parameters instanceNumber=${{ env.INSTANCE_NUMBER }} || true
-
-            echo "Waiting 60s for RBAC role assignments to propagate..."
-            sleep 60
-
-            # Redeploy to ensure identity-based storage connections resolve
             az deployment group create \
               --name ${{ env.DEPLOYMENT_NAME }} \
               --resource-group ${{ env.RESOURCE_GROUP_NAME }} \

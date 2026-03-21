@@ -75,6 +75,12 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-11-01-pr
   }
 }
 
+@description('User-assigned managed identity for the Function App to access storage without shared keys')
+resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+  name: 'id-appt-${instanceNumber}-${uniqueString(resourceGroup().id)}'
+  location: location
+}
+
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   name: storageAccountName
   location: location
@@ -107,13 +113,14 @@ resource hostingPlan 'Microsoft.Web/serverfarms@2024-04-01' = {
   name: hostingPlanName
   location: location
   sku: {
-    name: 'Y1'
-    tier: 'Dynamic'
-    size: 'Y1'
-    family: 'Y'
+    name: 'EP1'
+    tier: 'ElasticPremium'
+    size: 'EP1'
+    family: 'EP'
   }
   properties: {
     reserved: true
+    maximumElasticWorkerCount: 20
   }
 }
 
@@ -135,8 +142,18 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
   location: location
   kind: 'functionapp,linux'
   identity: {
-    type: 'SystemAssigned'
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${managedIdentity.id}': {}
+    }
   }
+  dependsOn: [
+    storageBlobDataOwnerRole
+    storageAccountContributorRole
+    storageQueueDataContributorRole
+    storageTableDataContributorRole
+    storageFileDataContributorRole
+  ]
   properties: {
     reserved: true
     serverFarmId: hostingPlan.id
@@ -224,8 +241,12 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
           value: storageAccountName
         }
         {
-          name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING__accountName'
-          value: storageAccountName
+          name: 'AzureWebJobsStorage__credential'
+          value: 'managedidentity'
+        }
+        {
+          name: 'AzureWebJobsStorage__clientId'
+          value: managedIdentity.properties.clientId
         }
         {
           name: 'WEBSITE_CONTENTSHARE'
@@ -252,6 +273,10 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
           value: storageAccountName
         }
         {
+          name: 'MANAGED_IDENTITY_CLIENT_ID'
+          value: managedIdentity.properties.clientId
+        }
+        {
           name: 'WEBSITE_USE_PLACEHOLDER_DOTNETISOLATED'
           value: '1'
         }
@@ -268,13 +293,13 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
   }
 }
 
-// RBAC role assignments for the Function App managed identity on the storage account
+// RBAC role assignments for the user-assigned managed identity on the storage account
 // Storage Blob Data Owner
 resource storageBlobDataOwnerRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storageAccount.id, functionApp.id, 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b')
+  name: guid(storageAccount.id, managedIdentity.id, 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b')
   scope: storageAccount
   properties: {
-    principalId: functionApp.identity.principalId
+    principalId: managedIdentity.properties.principalId
     principalType: 'ServicePrincipal'
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b')
   }
@@ -282,10 +307,10 @@ resource storageBlobDataOwnerRole 'Microsoft.Authorization/roleAssignments@2022-
 
 // Storage Account Contributor
 resource storageAccountContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storageAccount.id, functionApp.id, '17d1049b-9a84-46fb-8f53-869881c3d3ab')
+  name: guid(storageAccount.id, managedIdentity.id, '17d1049b-9a84-46fb-8f53-869881c3d3ab')
   scope: storageAccount
   properties: {
-    principalId: functionApp.identity.principalId
+    principalId: managedIdentity.properties.principalId
     principalType: 'ServicePrincipal'
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '17d1049b-9a84-46fb-8f53-869881c3d3ab')
   }
@@ -293,10 +318,10 @@ resource storageAccountContributorRole 'Microsoft.Authorization/roleAssignments@
 
 // Storage Queue Data Contributor
 resource storageQueueDataContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storageAccount.id, functionApp.id, '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
+  name: guid(storageAccount.id, managedIdentity.id, '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
   scope: storageAccount
   properties: {
-    principalId: functionApp.identity.principalId
+    principalId: managedIdentity.properties.principalId
     principalType: 'ServicePrincipal'
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
   }
@@ -304,10 +329,10 @@ resource storageQueueDataContributorRole 'Microsoft.Authorization/roleAssignment
 
 // Storage Table Data Contributor
 resource storageTableDataContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storageAccount.id, functionApp.id, '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')
+  name: guid(storageAccount.id, managedIdentity.id, '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')
   scope: storageAccount
   properties: {
-    principalId: functionApp.identity.principalId
+    principalId: managedIdentity.properties.principalId
     principalType: 'ServicePrincipal'
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')
   }
@@ -315,12 +340,12 @@ resource storageTableDataContributorRole 'Microsoft.Authorization/roleAssignment
 
 // Storage File Data Privileged Contributor - required for content share with managed identity
 resource storageFileDataContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storageAccount.id, functionApp.id, '69566ab7-960f-4991-ab7a-7c5b17e59d95')
+  name: guid(storageAccount.id, managedIdentity.id, '69566ab7-960f-475b-8e7c-b3118f30c6bd')
   scope: storageAccount
   properties: {
-    principalId: functionApp.identity.principalId
+    principalId: managedIdentity.properties.principalId
     principalType: 'ServicePrincipal'
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '69566ab7-960f-4991-ab7a-7c5b17e59d95')
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '69566ab7-960f-475b-8e7c-b3118f30c6bd')
   }
 }
 
@@ -329,3 +354,4 @@ output storageAccountName string = storageAccount.name
 output containerRegistryName string = containerRegistry.name
 output hostingPlanName string = hostingPlan.name
 output applicationInsightsName string = applicationInsight.name
+output managedIdentityClientId string = managedIdentity.properties.clientId
