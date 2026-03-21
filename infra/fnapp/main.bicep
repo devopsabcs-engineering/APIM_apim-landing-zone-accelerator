@@ -157,6 +157,7 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
   properties: {
     reserved: true
     serverFarmId: hostingPlan.id
+    keyVaultReferenceIdentity: managedIdentity.id
     siteConfig: {
       linuxFxVersion: linuxFxVersion
       appSettings: [

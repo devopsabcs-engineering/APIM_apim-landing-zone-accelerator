@@ -181,9 +181,17 @@ jobs:
               --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
               --src ${{ runner.temp }}/deploy.zip \
               --build-remote false
-            echo "Waiting for deployment to stabilize..."
-            sleep 30
-            az functionapp list-functions \
+
+            echo "Restarting function app to pick up deployed functions..."
+            az functionapp restart \
+              --name ${{ steps.get_app.outputs.app_name }} \
+              --resource-group ${{ env.RESOURCE_GROUP_NAME }}
+
+            echo "Waiting for runtime to initialize..."
+            sleep 60
+
+            echo "Listing deployed functions:"
+            az functionapp function list \
               --name ${{ steps.get_app.outputs.app_name }} \
               --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
               --output table || echo "Function listing not available yet"
