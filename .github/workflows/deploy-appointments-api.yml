@@ -142,6 +142,16 @@ jobs:
               --template-file ${{ env.TEMPLATE_FILE }} \
               --parameters instanceNumber=${{ env.INSTANCE_NUMBER }}
 
+            echo "Waiting 60s for system-assigned identity RBAC to propagate..."
+            sleep 60
+
+            echo "Restarting function app after RBAC propagation..."
+            FUNC_NAME=$(az deployment group show \
+              --name ${{ env.DEPLOYMENT_NAME }} \
+              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+              --query properties.outputs.functionAppName.value -o tsv)
+            az functionapp restart --name "$FUNC_NAME" --resource-group ${{ env.RESOURCE_GROUP_NAME }}
+
   deploy-app:
     name: Deploy Application
     needs: [set-version, deploy-infra]
