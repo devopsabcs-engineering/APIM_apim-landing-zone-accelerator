@@ -48,13 +48,21 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build Bicep
         run: az bicep build --file ${{ env.TEMPLATE_FILE }}
+
+  validate-dev:
+    name: Validate Dev Template
+    needs: validate
+    if: ${{ inputs.deploy_dev }}
+    runs-on: ubuntu-latest
+    environment: APIM_BasicV2_Dev
+    steps:
+      - uses: actions/checkout@v4
       - uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.APIM_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.APIM_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.APIM_AZURE_SUBSCRIPTION_ID }}
       - name: Validate Dev template
-        if: ${{ inputs.deploy_dev }}
         uses: azure/cli@v2
         with:
           inlineScript: |
@@ -63,8 +71,21 @@ jobs:
               --resource-group ${{ env.RG_DEV }} \
               --template-file ${{ env.TEMPLATE_FILE }} \
               --parameters ${{ env.PARAMETERS_DIR }}/main.parameters.dev-${{ env.INSTANCE_NUMBER }}.json
+
+  validate-prod:
+    name: Validate Prod Template
+    needs: validate
+    if: ${{ inputs.deploy_prod }}
+    runs-on: ubuntu-latest
+    environment: APIM_BasicV2_Prod
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.APIM_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.APIM_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.APIM_AZURE_SUBSCRIPTION_ID }}
       - name: Validate Prod template
-        if: ${{ inputs.deploy_prod }}
         uses: azure/cli@v2
         with:
           inlineScript: |
@@ -76,7 +97,7 @@ jobs:
 
   deploy-dev:
     name: Deploy Dev APIM
-    needs: validate
+    needs: validate-dev
     if: ${{ inputs.deploy_dev }}
     runs-on: ubuntu-latest
     environment: APIM_BasicV2_Dev
@@ -87,9 +108,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.APIM_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.APIM_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.APIM_AZURE_SUBSCRIPTION_ID }}
       - name: What-If analysis
         uses: azure/cli@v2
         with:
@@ -136,7 +157,7 @@ jobs:
 
   deploy-prod:
     name: Deploy Prod APIM
-    needs: validate
+    needs: validate-prod
     if: ${{ inputs.deploy_prod }}
     runs-on: ubuntu-latest
     environment: APIM_BasicV2_Prod
@@ -147,9 +168,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.APIM_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.APIM_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.APIM_AZURE_SUBSCRIPTION_ID }}
       - name: What-If analysis
         uses: azure/cli@v2
         with:
@@ -203,9 +224,9 @@ jobs:
     steps:
       - uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.APIM_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.APIM_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.APIM_AZURE_SUBSCRIPTION_ID }}
       - name: Delete Dev resource group
         uses: azure/cli@v2
         with:
@@ -232,9 +253,9 @@ jobs:
     steps:
       - uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.APIM_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.APIM_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.APIM_AZURE_SUBSCRIPTION_ID }}
       - name: Delete Prod resource group
         uses: azure/cli@v2
         with:
