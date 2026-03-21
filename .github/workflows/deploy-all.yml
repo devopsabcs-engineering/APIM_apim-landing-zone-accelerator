@@ -272,6 +272,12 @@ jobs:
           # Create deployment reports directory
           mkdir -p "${WIKI_DIR}/Deployment-Reports"
 
+          # Remove all old deployment report files — keep only the current run
+          rm -f "${WIKI_DIR}"/Deployment-Reports/Deployment-Report-*.md
+
+          # Remove old screenshot images from wiki root
+          rm -f "${WIKI_DIR}"/screenshot-*.png
+
           # Copy flat-named screenshots to wiki repo root (GitHub Wiki serves images from root)
           if [ -d screenshots ]; then
             for IMG in screenshots/screenshot-*.png; do
@@ -281,7 +287,7 @@ jobs:
             done
           fi
 
-          # Copy report with timestamped name and as latest
+          # Copy report as latest only (no historical copies)
           DATE_STAMP=$(date -u '+%Y-%m-%d')
           cp wiki-report.md "${WIKI_DIR}/Deployment-Reports/Deployment-Report-${DATE_STAMP}-Run-${GITHUB_RUN_NUMBER}.md"
           cp wiki-report.md "${WIKI_DIR}/Deployment-Reports/Latest-Deployment-Report.md"
@@ -291,13 +297,6 @@ jobs:
             echo "# Deployment Reports"
             echo ""
             echo "**[Latest Deployment Report](Deployment-Reports/Latest-Deployment-Report)**"
-            echo ""
-            echo "## History"
-            echo ""
-            ls -1t "${WIKI_DIR}"/Deployment-Reports/Deployment-Report-*.md 2>/dev/null | head -20 | while read -r f; do
-              BASENAME=$(basename "$f" .md)
-              echo "- [${BASENAME}](Deployment-Reports/${BASENAME})"
-            done
           } > "${WIKI_DIR}/Deployment-Reports.md"
 
           # Commit and push
