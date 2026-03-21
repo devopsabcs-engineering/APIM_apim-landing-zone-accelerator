@@ -1,0 +1,107 @@
+name: Run - Extractor - 005 - API Team 002
+
+on:
+  workflow_dispatch:
+    inputs:
+      API_SPECIFICATION_FORMAT:
+        description: 'API Specification Format'
+        required: true
+        type: choice
+        options:
+          - OpenAPIV3Yaml
+          - OpenAPIV3Json
+          - OpenAPIV2Yaml
+          - OpenAPIV2Json
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  apiops_release_version: v6.0.2
+  Logging__LogLevel__Default: Debug
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run extractor
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_RESOURCE_GROUP_NAME: ${{ vars.AZURE_RESOURCE_GROUP_NAME }}
+          API_MANAGEMENT_SERVICE_NAME: ${{ vars.API_MANAGEMENT_SERVICE_NAME }}
+          API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH: ${{ github.workspace }}/artifacts.dev-005.api-team-002
+          API_SPECIFICATION_FORMAT: ${{ github.event.inputs.API_SPECIFICATION_FORMAT }}
+          CONFIGURATION_YAML_PATH: ${{ github.workspace }}/configuration.extractor.dev-005.api-team-002.yaml
+        run: |
+          Set-StrictMode -Version Latest
+          $ErrorActionPreference = "Stop"
+          $VerbosePreference = "Continue"
+          $InformationPreference = "Continue"
+
+          Write-Information "Downloading extractor..."
+          $releaseFileName = "extractor-linux-x64.zip"
+          $executableFileName = "extractor"
+          if ("${{ runner.os }}" -like "*win*") {
+            $releaseFileName = "extractor-win-x64.zip"
+            $executableFileName = "extractor.exe"
+          }
+          $uri = "https://github.com/Azure/apiops/releases/download/${{ env.apiops_release_version }}/$releaseFileName"
+          $downloadFilePath = Join-Path "${{ runner.temp }}" $releaseFileName
+          Invoke-WebRequest -Uri "$uri" -OutFile "$downloadFilePath"
+          $executableFolderPath = Join-Path "${{ runner.temp }}" "extractor"
+          Expand-Archive -Path "$downloadFilePath" -DestinationPath "$executableFolderPath"
+          $destinationFilePath = Join-Path "$executableFolderPath" $executableFileName
+
+          if ("${{ runner.os }}" -like "*linux*")
+          {
+            Write-Information "Setting file permissions..."
+            & chmod +x "$destinationFilePath"
+            if ($LASTEXITCODE -ne 0) { throw "Setting file permissions failed."}
+          }
+
+          & "$destinationFilePath"
+          if ($LASTEXITCODE -ne 0) { throw "Running extractor failed."}
+
+          Write-Information "Execution complete."
+        shell: pwsh
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Spectral
+        run: npm install -g @stoplight/spectral-cli
+
+      - name: Run Spectral Linting
+        run: |
+          spectral lint "${{ github.workspace }}/artifacts.dev-005.api-team-002/apis/**/specification.{json,yaml,yml}" \
+            -r https://raw.githubusercontent.com/connectedcircuits/devops-api-linter/main/rules.yaml \
+            --format stylish || true
+        shell: bash
+        continue-on-error: true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-from-portal
+          path: ${{ github.workspace }}/artifacts.dev-005.api-team-002
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+          commit-message: "Update artifacts.dev-005.api-team-002 artifacts from APIM"
+          title: "Update APIM artifacts - artifacts.dev-005.api-team-002"
+          body: "Automated extraction of APIM artifacts from dev environment for API Team 002"
+          branch: "artifacts-from-portal-team-002-${{ github.run_id }}"
+          base: main
+          add-paths: |
+            artifacts.dev-005.api-team-002/**

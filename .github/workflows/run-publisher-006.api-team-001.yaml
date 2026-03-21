@@ -1,0 +1,69 @@
+name: Run - Publisher - 006 - API Team 001
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'artifacts.dev-006.api-team-001/**'
+
+  workflow_dispatch:
+    inputs:
+      COMMIT_ID_CHOICE:
+        description: 'Choose "publish-all-artifacts-in-repo" only when you want to force republishing all artifacts (e.g. after build failure). Otherwise stick with the default behavior of "publish-artifacts-in-last-commit"'
+        required: true
+        type: choice
+        default: "publish-artifacts-in-last-commit"
+        options:
+          - "publish-artifacts-in-last-commit"
+          - "publish-all-artifacts-in-repo"
+
+jobs:
+  get-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set the Commit Id
+        id: commit
+        run: |
+          echo "commit_id=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+    outputs:
+      commit_id: ${{ steps.commit.outputs.commit_id }}
+
+  Push-Changes-To-APIM-Dev-With-Commit-ID:
+    if: (github.event.inputs.COMMIT_ID_CHOICE == 'publish-artifacts-in-last-commit' || github.event.inputs.COMMIT_ID_CHOICE == '')
+    needs: get-commit
+    uses: ./.github/workflows/run-publisher-with-env-006.yaml
+    with:
+      API_MANAGEMENT_ENVIRONMENT: dev-006
+      COMMIT_ID: ${{ needs.get-commit.outputs.commit_id }}
+      API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH: artifacts.dev-006.api-team-001
+    secrets: inherit
+
+  Push-Changes-To-APIM-Dev-Without-Commit-ID:
+    if: (github.event.inputs.COMMIT_ID_CHOICE == 'publish-all-artifacts-in-repo')
+    needs: get-commit
+    uses: ./.github/workflows/run-publisher-with-env-006.yaml
+    with:
+      API_MANAGEMENT_ENVIRONMENT: dev-006
+      API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH: artifacts.dev-006.api-team-001
+    secrets: inherit
+
+  Push-Changes-To-APIM-Prod-With-Commit-ID:
+    if: (github.event.inputs.COMMIT_ID_CHOICE == 'publish-artifacts-in-last-commit' || github.event.inputs.COMMIT_ID_CHOICE == '')
+    needs: [get-commit, Push-Changes-To-APIM-Dev-With-Commit-ID]
+    uses: ./.github/workflows/run-publisher-with-env-006.yaml
+    with:
+      API_MANAGEMENT_ENVIRONMENT: prod-006
+      CONFIGURATION_YAML_PATH: configuration.prod-006.yaml
+      API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH: artifacts.dev-006.api-team-001
+      COMMIT_ID: ${{ needs.get-commit.outputs.commit_id }}
+    secrets: inherit
+
+  Push-Changes-To-APIM-Prod-Without-Commit-ID:
+    if: (github.event.inputs.COMMIT_ID_CHOICE == 'publish-all-artifacts-in-repo')
+    needs: [get-commit, Push-Changes-To-APIM-Dev-Without-Commit-ID]
+    uses: ./.github/workflows/run-publisher-with-env-006.yaml
+    with:
+      API_MANAGEMENT_ENVIRONMENT: prod-006
+      CONFIGURATION_YAML_PATH: configuration.prod-006.yaml
+      API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH: artifacts.dev-006.api-team-001
+    secrets: inherit

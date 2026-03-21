@@ -1,0 +1,20 @@
+{
+  "properties": {
+    "path": "calc",
+    "apiRevision": "1",
+    "authenticationSettings": {},
+    "description": "Arithmetics is just a call away!",
+    "isCurrent": true,
+    "displayName": "Basic Calculator",
+    "protocols": [
+      "http",
+      "https"
+    ],
+    "serviceUrl": "http://calcapi.cloudapp.net/api",
+    "subscriptionKeyParameterNames": {
+      "header": "Ocp-Apim-Subscription-Key",
+      "query": "subscription-key"
+    },
+    "subscriptionRequired": true
+  }
+}

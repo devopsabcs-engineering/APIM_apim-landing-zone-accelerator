@@ -1,0 +1,121 @@
+openapi: 3.0.1
+info:
+  title: WeatherApi
+  description: This is an api to fetch random weather data! And also make spectral linter happy! team 002 change
+  version: '1.0'
+servers:
+  - url: https://apim-dev-005-3snpbfdd5kffc.azure-api.net/weather
+paths:
+  /WeatherForecast:
+    get:
+      tags:
+        - WeatherForecast
+      summary: GetWeatherForecast
+      description: GetWeatherForecast
+      operationId: GetWeatherForecast
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WeatherForecast'
+              example: ''
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WeatherForecast'
+              example:
+                - date:
+                    year: 0
+                    month: 0
+                    day: 0
+                    dayOfWeek: 0
+                    dayOfYear: 0
+                    dayNumber: 0
+                  temperatureC: 0
+                  temperatureF: 0
+                  summary: string
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WeatherForecast'
+              example:
+                - date:
+                    year: 0
+                    month: 0
+                    day: 0
+                    dayOfWeek: 0
+                    dayOfYear: 0
+                    dayNumber: 0
+                  temperatureC: 0
+                  temperatureF: 0
+                  summary: string
+components:
+  schemas:
+    DateOnly:
+      type: object
+      properties:
+        year:
+          type: integer
+          format: int32
+        month:
+          type: integer
+          format: int32
+        day:
+          type: integer
+          format: int32
+        dayOfWeek:
+          $ref: '#/components/schemas/DayOfWeek'
+        dayOfYear:
+          type: integer
+          format: int32
+          readOnly: true
+        dayNumber:
+          type: integer
+          format: int32
+          readOnly: true
+      additionalProperties: false
+    DayOfWeek:
+      enum:
+        - 0
+        - 1
+        - 2
+        - 3
+        - 4
+        - 5
+        - 6
+      type: integer
+      format: int32
+    WeatherForecast:
+      type: object
+      properties:
+        date:
+          $ref: '#/components/schemas/DateOnly'
+        temperatureC:
+          type: integer
+          format: int32
+        temperatureF:
+          type: integer
+          format: int32
+          readOnly: true
+        summary:
+          type: string
+          nullable: true
+      additionalProperties: false
+  securitySchemes:
+    apiKeyHeader:
+      type: apiKey
+      name: Ocp-Apim-Subscription-Key
+      in: header
+    apiKeyQuery:
+      type: apiKey
+      name: subscription-key
+      in: query
+security:
+  - apiKeyHeader: [ ]
+  - apiKeyQuery: [ ]

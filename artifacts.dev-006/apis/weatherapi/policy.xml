@@ -1,0 +1,31 @@
+<policies>
+	<inbound>
+		<base />
+		<set-backend-service id="apim-generated-policy" backend-id="backend-weather-api" />
+		<!-- some comment -->
+		<validate-jwt header-name="Authorization" failed-validation-httpcode="401" failed-validation-error-message="DEMO FHA: Manny and MS says Unauthorized {{sqlDatabaseConnectionString}}. Access token is missing or invalid.">
+			<openid-config url="https://login.microsoftonline.com/aa93b9d9-037d-4f08-a26d-783cff0e2369/v2.0/.well-known/openid-configuration" />
+			<audiences>
+				<audience>{{weatherApiAudience}}</audience>
+			</audiences>
+			<issuers>
+				<issuer>https://sts.windows.net/aa93b9d9-037d-4f08-a26d-783cff0e2369/</issuer>
+			</issuers>
+			<required-claims>
+				<claim name="aud">
+					<value>{{weatherApiAudience}}</value>
+				</claim>
+			</required-claims>
+		</validate-jwt>
+		<rate-limit-by-key calls="5" renewal-period="60" counter-key="@(context.Request.IpAddress)" />
+	</inbound>
+	<backend>
+		<base />
+	</backend>
+	<outbound>
+		<base />
+	</outbound>
+	<on-error>
+		<base />
+	</on-error>
+</policies>

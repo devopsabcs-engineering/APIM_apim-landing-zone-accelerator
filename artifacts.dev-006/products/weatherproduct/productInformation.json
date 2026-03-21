@@ -1,0 +1,10 @@
+{
+  "properties": {
+    "displayName": "WeatherProduct (DEV)",
+    "description": "product for the weather",
+    "approvalRequired": false,
+    "state": "published",
+    "subscriptionRequired": true,
+    "terms": "legal terms weather"
+  }
+}

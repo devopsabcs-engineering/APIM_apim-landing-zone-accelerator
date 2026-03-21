@@ -1,0 +1,12 @@
+{
+  "properties": {
+    "displayName": "sqlDatabaseConnectionString",
+    "keyVault": {
+      "secretIdentifier": "https://kv-apim-dev-005-3snpbfdd.vault.azure.net/secrets/sqldbconnstring"
+    },
+    "secret": true,
+    "tags": [
+      "dev"
+    ]
+  }
+}

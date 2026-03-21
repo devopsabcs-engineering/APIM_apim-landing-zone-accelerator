@@ -1,0 +1,19 @@
+{
+  "properties": {
+    "path": "odataapi",
+    "apiRevision": "1",
+    "authenticationSettings": {},
+    "isCurrent": true,
+    "displayName": "OData Api",
+    "protocols": [
+      "http",
+      "https"
+    ],
+    "subscriptionKeyParameterNames": {
+      "header": "Ocp-Apim-Subscription-Key",
+      "query": "subscription-key"
+    },
+    "subscriptionRequired": false,
+    "type": "odata"
+  }
+}

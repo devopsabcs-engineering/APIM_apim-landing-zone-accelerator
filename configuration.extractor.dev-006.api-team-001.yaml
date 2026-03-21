@@ -1,0 +1,68 @@
+# Note: With the introduction of workspaces we recommend using workspaces with APIOps when possible to limit what can be extracted whenever possible.
+# More information about workspaces can be found here https://learn.microsoft.com/en-us/azure/api-management/workspaces-overview
+
+apiNames:
+  #- basic-calculator
+  #- colors-api
+  - demo-conference-api
+  - demo-conference-api-versioned
+  - demo-conference-api-versioned-v2
+  - echo-api
+  - fastapi-application-insights-demo
+  #- ipersonprofileservice
+  #- isoftwareversionservice
+  #- movie-reviews
+  #- star-wars
+  #- starwarsapinet
+  #- swagger-petstore-openapi-3-0
+  #- weatherapi
+  #- wrkshp-simplewebapiwithcontainers
+
+tagNames:
+  # - Colors
+  # - Demo
+  # - Films
+  # - Health
+  # - People
+  # - Performance
+  # - pet
+  # - Planets
+  - sampleapitag
+  # - Species
+  # - Starships
+  # - store
+  # - Testing
+  # - Tracing
+  # - Transports
+  # - user
+  # - Vehicles
+  # - WeatherForecast
+
+loggerNames:
+  - apimlogger
+  - azuremonitor
+
+namedValueNames:
+  - developerPortalUrl
+  - instrumentationKey
+  #- mysecretvalue
+  #- sqlDatabaseConnectionString
+  #- weatherApiAudience
+
+productNames:
+  - conference
+  # - graphql-product-dev
+  # - odataproduct
+  # - prodnosub
+  # - soapproduct
+  # - star-wars
+  - starter
+  - unlimited
+  # - weatherproduct
+
+backendNames:  
+  #- backend-weather-api
+  - WebApp_fast-api-app-insights-001
+
+policyFragmentNames:
+  - SampleEmptyPolicyFragment

@@ -1,0 +1,9 @@
+{
+  "properties": {
+    "displayName": "Star Wars Product (DEV)",
+    "description": "for star wars product DEV",
+    "approvalRequired": false,
+    "state": "published",
+    "subscriptionRequired": true
+  }
+}

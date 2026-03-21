@@ -1,0 +1,20 @@
+{
+  "properties": {
+    "path": "soapsoftwareversion",
+    "apiRevision": "1",
+    "authenticationSettings": {},
+    "description": "another soap service",
+    "isCurrent": true,
+    "displayName": "ISoftwareVersionService",
+    "protocols": [
+      "https"
+    ],
+    "serviceUrl": "https://app-soap-api-l6isc4zatv5ny.azurewebsites.net/SoftwareVersionService.asmx",
+    "subscriptionKeyParameterNames": {
+      "header": "Ocp-Apim-Subscription-Key",
+      "query": "subscription-key"
+    },
+    "subscriptionRequired": false,
+    "type": "soap"
+  }
+}

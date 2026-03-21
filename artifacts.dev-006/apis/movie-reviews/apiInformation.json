@@ -1,0 +1,20 @@
+{
+  "properties": {
+    "path": "moviereviews",
+    "apiRevision": "1",
+    "authenticationSettings": {},
+    "isCurrent": true,
+    "displayName": "Movie Reviews",
+    "protocols": [
+      "http",
+      "https"
+    ],
+    "serviceUrl": "https://app-movie-reviews-api-cknbss3bmafei.azurewebsites.net/graphql",
+    "subscriptionKeyParameterNames": {
+      "header": "Ocp-Apim-Subscription-Key",
+      "query": "subscription-key"
+    },
+    "subscriptionRequired": true,
+    "type": "graphql"
+  }
+}

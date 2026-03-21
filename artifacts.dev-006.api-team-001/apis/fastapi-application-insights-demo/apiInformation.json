@@ -1,0 +1,27 @@
+{
+  "properties": {
+    "path": "fastapi001",
+    "apiRevision": "1",
+    "authenticationSettings": {},
+    "contact": {
+      "email": "support@example.com",
+      "name": "API Support"
+    },
+    "description": "DEMO MAPAQ\n    A demonstration FastAPI application instrumented with Azure Application Insights\n    using OpenTelemetry for distributed tracing, metrics, and logging.\n    \n    ## Features\n    \n    * **Distributed Tracing**: All endpoints automatically traced with OpenTelemetry\n    * **Live Metrics**: Real-time monitoring via Azure Application Insights\n    * **Custom Spans**: Detailed operation tracking with attributes and events\n    * **Exception Tracking**: Automatic error reporting and correlation\n    * **External Dependencies**: HTTP calls tracked with full context propagation\n    \n    ## Endpoints Overview\n    \n    * **Root (/)**: Basic endpoint with external API call\n    * **Health (/healthz)**: Simple health check probe\n    * **Slow (/slow)**: Demonstrates multi-step processing with delays\n    * **Chain (/chain)**: Shows sequential API call tracing\n    * **Error (/error)**: Tests exception tracking and error spans\n    ",
+    "isCurrent": true,
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    },
+    "displayName": "FastAPI \u002B Application Insights Demo",
+    "protocols": [
+      "https"
+    ],
+    "serviceUrl": "https://fast-api-app-insights-001.azurewebsites.net/",
+    "subscriptionKeyParameterNames": {
+      "header": "Ocp-Apim-Subscription-Key",
+      "query": "subscription-key"
+    },
+    "subscriptionRequired": false
+  }
+}

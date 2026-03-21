@@ -1,0 +1,23 @@
+{
+  "properties": {
+    "path": "weather",
+    "apiRevision": "1",
+    "authenticationSettings": {
+      "oAuth2": {
+        "authorizationServerId": "weatherappoauth"
+      }
+    },
+    "description": "This is an api to fetch random weather data! And also make spectral linter happy! team 002 change",
+    "isCurrent": true,
+    "displayName": "WeatherApi",
+    "protocols": [
+      "https"
+    ],
+    "serviceUrl": "https://apim-dev-005-3snpbfdd5kffc.azure-api.net/weather",
+    "subscriptionKeyParameterNames": {
+      "header": "Ocp-Apim-Subscription-Key",
+      "query": "subscription-key"
+    },
+    "subscriptionRequired": false
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "properties": {
+    "path": "weatherdemo001",
+    "apiRevision": "1",
+    "authenticationSettings": {},
+    "isCurrent": true,
+    "displayName": "WRKSHP_SimpleWebApiWithContainers",
+    "protocols": [
+      "https"
+    ],
+    "serviceUrl": "https://wrkshpsimplewebapiwithcontainers-demo-001.azurewebsites.net/",
+    "subscriptionKeyParameterNames": {
+      "header": "Ocp-Apim-Subscription-Key",
+      "query": "subscription-key"
+    },
+    "subscriptionRequired": false
+  }
+}

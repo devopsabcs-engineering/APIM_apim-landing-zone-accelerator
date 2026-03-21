@@ -1,0 +1,2279 @@
+openapi: 3.0.1
+info:
+  title: StarWarsApiNet
+  description: Détruit le death star -- DEMO MTQ
+  version: '1.0'
+servers:
+  - url: https://apim-dev-005-3snpbfdd5kffc.azure-api.net/sw
+paths:
+  /api/Films:
+    get:
+      tags:
+        - Films
+      summary: /api/Films - GET
+      description: /api/Films - GET
+      operationId: get-api-films
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Film'
+              example: ''
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Film'
+              example:
+                - id: 0
+                  title: string
+                  episodeId: 0
+                  openingCrawl: string
+                  director: string
+                  producer: string
+                  releaseDate: string
+                  created: string
+                  edited: string
+                  characters:
+                    - 0
+                  planets:
+                    - 0
+                  starships:
+                    - 0
+                  vehicles:
+                    - 0
+                  species:
+                    - 0
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Film'
+              example:
+                - id: 0
+                  title: string
+                  episodeId: 0
+                  openingCrawl: string
+                  director: string
+                  producer: string
+                  releaseDate: string
+                  created: string
+                  edited: string
+                  characters:
+                    - 0
+                  planets:
+                    - 0
+                  starships:
+                    - 0
+                  vehicles:
+                    - 0
+                  species:
+                    - 0
+    post:
+      tags:
+        - Films
+      summary: /api/Films - POST
+      description: /api/Films - POST
+      operationId: post-api-films
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Film'
+            example:
+              id: 0
+              title: string
+              episodeId: 0
+              openingCrawl: string
+              director: string
+              producer: string
+              releaseDate: string
+              created: string
+              edited: string
+              characters:
+                - 0
+              planets:
+                - 0
+              starships:
+                - 0
+              vehicles:
+                - 0
+              species:
+                - 0
+          text/json:
+            schema:
+              $ref: '#/components/schemas/Film'
+            example:
+              id: 0
+              title: string
+              episodeId: 0
+              openingCrawl: string
+              director: string
+              producer: string
+              releaseDate: string
+              created: string
+              edited: string
+              characters:
+                - 0
+              planets:
+                - 0
+              starships:
+                - 0
+              vehicles:
+                - 0
+              species:
+                - 0
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/Film'
+            example:
+              id: 0
+              title: string
+              episodeId: 0
+              openingCrawl: string
+              director: string
+              producer: string
+              releaseDate: string
+              created: string
+              edited: string
+              characters:
+                - 0
+              planets:
+                - 0
+              starships:
+                - 0
+              vehicles:
+                - 0
+              species:
+                - 0
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/Film'
+              example: ''
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Film'
+              example:
+                id: 0
+                title: string
+                episodeId: 0
+                openingCrawl: string
+                director: string
+                producer: string
+                releaseDate: string
+                created: string
+                edited: string
+                characters:
+                  - 0
+                planets:
+                  - 0
+                starships:
+                  - 0
+                vehicles:
+                  - 0
+                species:
+                  - 0
+            text/json:
+              schema:
+                $ref: '#/components/schemas/Film'
+              example:
+                id: 0
+                title: string
+                episodeId: 0
+                openingCrawl: string
+                director: string
+                producer: string
+                releaseDate: string
+                created: string
+                edited: string
+                characters:
+                  - 0
+                planets:
+                  - 0
+                starships:
+                  - 0
+                vehicles:
+                  - 0
+                species:
+                  - 0
+  '/api/Films/{id}':
+    get:
+      tags:
+        - Films
+      summary: '/api/Films/{id} - GET'
+      description: '/api/Films/{id} - GET'
+      operationId: get-api-films-id
+      parameters:
+        - name: id
+          in: path
+          description: Format - int32.
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/Film'
+              example: ''
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Film'
+              example:
+                id: 0
+                title: string
+                episodeId: 0
+                openingCrawl: string
+                director: string
+                producer: string
+                releaseDate: string
+                created: string
+                edited: string
+                characters:
+                  - 0
+                planets:
+                  - 0
+                starships:
+                  - 0
+                vehicles:
+                  - 0
+                species:
+                  - 0
+            text/json:
+              schema:
+                $ref: '#/components/schemas/Film'
+              example:
+                id: 0
+                title: string
+                episodeId: 0
+                openingCrawl: string
+                director: string
+                producer: string
+                releaseDate: string
+                created: string
+                edited: string
+                characters:
+                  - 0
+                planets:
+                  - 0
+                starships:
+                  - 0
+                vehicles:
+                  - 0
+                species:
+                  - 0
+    put:
+      tags:
+        - Films
+      summary: '/api/Films/{id} - PUT'
+      description: '/api/Films/{id} - PUT'
+      operationId: put-api-films-id
+      parameters:
+        - name: id
+          in: path
+          description: Format - int32.
+          required: true
+          schema:
+            type: integer
+            format: int32
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Film'
+            example:
+              id: 0
+              title: string
+              episodeId: 0
+              openingCrawl: string
+              director: string
+              producer: string
+              releaseDate: string
+              created: string
+              edited: string
+              characters:
+                - 0
+              planets:
+                - 0
+              starships:
+                - 0
+              vehicles:
+                - 0
+              species:
+                - 0
+          text/json:
+            schema:
+              $ref: '#/components/schemas/Film'
+            example:
+              id: 0
+              title: string
+              episodeId: 0
+              openingCrawl: string
+              director: string
+              producer: string
+              releaseDate: string
+              created: string
+              edited: string
+              characters:
+                - 0
+              planets:
+                - 0
+              starships:
+                - 0
+              vehicles:
+                - 0
+              species:
+                - 0
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/Film'
+            example:
+              id: 0
+              title: string
+              episodeId: 0
+              openingCrawl: string
+              director: string
+              producer: string
+              releaseDate: string
+              created: string
+              edited: string
+              characters:
+                - 0
+              planets:
+                - 0
+              starships:
+                - 0
+              vehicles:
+                - 0
+              species:
+                - 0
+      responses:
+        '200':
+          description: OK
+    delete:
+      tags:
+        - Films
+      summary: '/api/Films/{id} - DELETE'
+      description: '/api/Films/{id} - DELETE'
+      operationId: delete-api-films-id
+      parameters:
+        - name: id
+          in: path
+          description: Format - int32.
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: OK
+  /api/People:
+    get:
+      tags:
+        - People
+      summary: /api/People - GET
+      description: /api/People - GET
+      operationId: get-api-people
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Person'
+              example: ''
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Person'
+              example:
+                - id: 0
+                  name: string
+                  created: string
+                  edited: string
+                  gender: string
+                  skinColor: string
+                  hairColor: string
+                  height: string
+                  eyeColor: string
+                  mass: string
+                  homeworld: 0
+                  birthYear: string
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Person'
+              example:
+                - id: 0
+                  name: string
+                  created: string
+                  edited: string
+                  gender: string
+                  skinColor: string
+                  hairColor: string
+                  height: string
+                  eyeColor: string
+                  mass: string
+                  homeworld: 0
+                  birthYear: string
+    post:
+      tags:
+        - People
+      summary: /api/People - POST
+      description: /api/People - POST
+      operationId: post-api-people
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Person'
+            example:
+              id: 0
+              name: string
+              created: string
+              edited: string
+              gender: string
+              skinColor: string
+              hairColor: string
+              height: string
+              eyeColor: string
+              mass: string
+              homeworld: 0
+              birthYear: string
+          text/json:
+            schema:
+              $ref: '#/components/schemas/Person'
+            example:
+              id: 0
+              name: string
+              created: string
+              edited: string
+              gender: string
+              skinColor: string
+              hairColor: string
+              height: string
+              eyeColor: string
+              mass: string
+              homeworld: 0
+              birthYear: string
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/Person'
+            example:
+              id: 0
+              name: string
+              created: string
+              edited: string
+              gender: string
+              skinColor: string
+              hairColor: string
+              height: string
+              eyeColor: string
+              mass: string
+              homeworld: 0
+              birthYear: string
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/Person'
+              example: ''
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Person'
+              example:
+                id: 0
+                name: string
+                created: string
+                edited: string
+                gender: string
+                skinColor: string
+                hairColor: string
+                height: string
+                eyeColor: string
+                mass: string
+                homeworld: 0
+                birthYear: string
+            text/json:
+              schema:
+                $ref: '#/components/schemas/Person'
+              example:
+                id: 0
+                name: string
+                created: string
+                edited: string
+                gender: string
+                skinColor: string
+                hairColor: string
+                height: string
+                eyeColor: string
+                mass: string
+                homeworld: 0
+                birthYear: string
+  '/api/People/{id}':
+    get:
+      tags:
+        - People
+      summary: '/api/People/{id} - GET'
+      description: '/api/People/{id} - GET'
+      operationId: get-api-people-id
+      parameters:
+        - name: id
+          in: path
+          description: Format - int32.
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/Person'
+              example: ''
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Person'
+              example:
+                id: 0
+                name: string
+                created: string
+                edited: string
+                gender: string
+                skinColor: string
+                hairColor: string
+                height: string
+                eyeColor: string
+                mass: string
+                homeworld: 0
+                birthYear: string
+            text/json:
+              schema:
+                $ref: '#/components/schemas/Person'
+              example:
+                id: 0
+                name: string
+                created: string
+                edited: string
+                gender: string
+                skinColor: string
+                hairColor: string
+                height: string
+                eyeColor: string
+                mass: string
+                homeworld: 0
+                birthYear: string
+    put:
+      tags:
+        - People
+      summary: '/api/People/{id} - PUT'
+      description: '/api/People/{id} - PUT'
+      operationId: put-api-people-id
+      parameters:
+        - name: id
+          in: path
+          description: Format - int32.
+          required: true
+          schema:
+            type: integer
+            format: int32
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Person'
+            example:
+              id: 0
+              name: string
+              created: string
+              edited: string
+              gender: string
+              skinColor: string
+              hairColor: string
+              height: string
+              eyeColor: string
+              mass: string
+              homeworld: 0
+              birthYear: string
+          text/json:
+            schema:
+              $ref: '#/components/schemas/Person'
+            example:
+              id: 0
+              name: string
+              created: string
+              edited: string
+              gender: string
+              skinColor: string
+              hairColor: string
+              height: string
+              eyeColor: string
+              mass: string
+              homeworld: 0
+              birthYear: string
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/Person'
+            example:
+              id: 0
+              name: string
+              created: string
+              edited: string
+              gender: string
+              skinColor: string
+              hairColor: string
+              height: string
+              eyeColor: string
+              mass: string
+              homeworld: 0
+              birthYear: string
+      responses:
+        '200':
+          description: OK
+    delete:
+      tags:
+        - People
+      summary: '/api/People/{id} - DELETE'
+      description: '/api/People/{id} - DELETE'
+      operationId: delete-api-people-id
+      parameters:
+        - name: id
+          in: path
+          description: Format - int32.
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: OK
+  /api/Planets:
+    get:
+      tags:
+        - Planets
+      summary: /api/Planets - GET
+      description: /api/Planets - GET
+      operationId: get-api-planets
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Planet'
+              example: ''
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Planet'
+              example:
+                - id: 0
+                  name: string
+                  climate: string
+                  terrain: string
+                  gravity: string
+                  diameter: string
+                  rotationPeriod: string
+                  orbitalPeriod: string
+                  population: string
+                  surfaceWater: string
+                  created: string
+                  edited: string
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Planet'
+              example:
+                - id: 0
+                  name: string
+                  climate: string
+                  terrain: string
+                  gravity: string
+                  diameter: string
+                  rotationPeriod: string
+                  orbitalPeriod: string
+                  population: string
+                  surfaceWater: string
+                  created: string
+                  edited: string
+    post:
+      tags:
+        - Planets
+      summary: /api/Planets - POST
+      description: /api/Planets - POST
+      operationId: post-api-planets
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Planet'
+            example:
+              id: 0
+              name: string
+              climate: string
+              terrain: string
+              gravity: string
+              diameter: string
+              rotationPeriod: string
+              orbitalPeriod: string
+              population: string
+              surfaceWater: string
+              created: string
+              edited: string
+          text/json:
+            schema:
+              $ref: '#/components/schemas/Planet'
+            example:
+              id: 0
+              name: string
+              climate: string
+              terrain: string
+              gravity: string
+              diameter: string
+              rotationPeriod: string
+              orbitalPeriod: string
+              population: string
+              surfaceWater: string
+              created: string
+              edited: string
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/Planet'
+            example:
+              id: 0
+              name: string
+              climate: string
+              terrain: string
+              gravity: string
+              diameter: string
+              rotationPeriod: string
+              orbitalPeriod: string
+              population: string
+              surfaceWater: string
+              created: string
+              edited: string
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/Planet'
+              example: ''
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Planet'
+              example:
+                id: 0
+                name: string
+                climate: string
+                terrain: string
+                gravity: string
+                diameter: string
+                rotationPeriod: string
+                orbitalPeriod: string
+                population: string
+                surfaceWater: string
+                created: string
+                edited: string
+            text/json:
+              schema:
+                $ref: '#/components/schemas/Planet'
+              example:
+                id: 0
+                name: string
+                climate: string
+                terrain: string
+                gravity: string
+                diameter: string
+                rotationPeriod: string
+                orbitalPeriod: string
+                population: string
+                surfaceWater: string
+                created: string
+                edited: string
+  '/api/Planets/{id}':
+    get:
+      tags:
+        - Planets
+      summary: '/api/Planets/{id} - GET'
+      description: '/api/Planets/{id} - GET'
+      operationId: get-api-planets-id
+      parameters:
+        - name: id
+          in: path
+          description: Format - int32.
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/Planet'
+              example: ''
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Planet'
+              example:
+                id: 0
+                name: string
+                climate: string
+                terrain: string
+                gravity: string
+                diameter: string
+                rotationPeriod: string
+                orbitalPeriod: string
+                population: string
+                surfaceWater: string
+                created: string
+                edited: string
+            text/json:
+              schema:
+                $ref: '#/components/schemas/Planet'
+              example:
+                id: 0
+                name: string
+                climate: string
+                terrain: string
+                gravity: string
+                diameter: string
+                rotationPeriod: string
+                orbitalPeriod: string
+                population: string
+                surfaceWater: string
+                created: string
+                edited: string
+    put:
+      tags:
+        - Planets
+      summary: '/api/Planets/{id} - PUT'
+      description: '/api/Planets/{id} - PUT'
+      operationId: put-api-planets-id
+      parameters:
+        - name: id
+          in: path
+          description: Format - int32.
+          required: true
+          schema:
+            type: integer
+            format: int32
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Planet'
+            example:
+              id: 0
+              name: string
+              climate: string
+              terrain: string
+              gravity: string
+              diameter: string
+              rotationPeriod: string
+              orbitalPeriod: string
+              population: string
+              surfaceWater: string
+              created: string
+              edited: string
+          text/json:
+            schema:
+              $ref: '#/components/schemas/Planet'
+            example:
+              id: 0
+              name: string
+              climate: string
+              terrain: string
+              gravity: string
+              diameter: string
+              rotationPeriod: string
+              orbitalPeriod: string
+              population: string
+              surfaceWater: string
+              created: string
+              edited: string
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/Planet'
+            example:
+              id: 0
+              name: string
+              climate: string
+              terrain: string
+              gravity: string
+              diameter: string
+              rotationPeriod: string
+              orbitalPeriod: string
+              population: string
+              surfaceWater: string
+              created: string
+              edited: string
+      responses:
+        '200':
+          description: OK
+    delete:
+      tags:
+        - Planets
+      summary: '/api/Planets/{id} - DELETE'
+      description: '/api/Planets/{id} - DELETE'
+      operationId: delete-api-planets-id
+      parameters:
+        - name: id
+          in: path
+          description: Format - int32.
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: OK
+  /api/Species:
+    get:
+      tags:
+        - Species
+      summary: /api/Species - GET
+      description: /api/Species - GET
+      operationId: get-api-species
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Species'
+              example: ''
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Species'
+              example:
+                - id: 0
+                  name: string
+                  classification: string
+                  designation: string
+                  averageHeight: string
+                  skinColors: string
+                  hairColors: string
+                  eyeColors: string
+                  averageLifespan: string
+                  homeworld: 0
+                  language: string
+                  people:
+                    - 0
+                  created: string
+                  edited: string
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Species'
+              example:
+                - id: 0
+                  name: string
+                  classification: string
+                  designation: string
+                  averageHeight: string
+                  skinColors: string
+                  hairColors: string
+                  eyeColors: string
+                  averageLifespan: string
+                  homeworld: 0
+                  language: string
+                  people:
+                    - 0
+                  created: string
+                  edited: string
+    post:
+      tags:
+        - Species
+      summary: /api/Species - POST
+      description: /api/Species - POST
+      operationId: post-api-species
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Species'
+            example:
+              id: 0
+              name: string
+              classification: string
+              designation: string
+              averageHeight: string
+              skinColors: string
+              hairColors: string
+              eyeColors: string
+              averageLifespan: string
+              homeworld: 0
+              language: string
+              people:
+                - 0
+              created: string
+              edited: string
+          text/json:
+            schema:
+              $ref: '#/components/schemas/Species'
+            example:
+              id: 0
+              name: string
+              classification: string
+              designation: string
+              averageHeight: string
+              skinColors: string
+              hairColors: string
+              eyeColors: string
+              averageLifespan: string
+              homeworld: 0
+              language: string
+              people:
+                - 0
+              created: string
+              edited: string
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/Species'
+            example:
+              id: 0
+              name: string
+              classification: string
+              designation: string
+              averageHeight: string
+              skinColors: string
+              hairColors: string
+              eyeColors: string
+              averageLifespan: string
+              homeworld: 0
+              language: string
+              people:
+                - 0
+              created: string
+              edited: string
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/Species'
+              example: ''
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Species'
+              example:
+                id: 0
+                name: string
+                classification: string
+                designation: string
+                averageHeight: string
+                skinColors: string
+                hairColors: string
+                eyeColors: string
+                averageLifespan: string
+                homeworld: 0
+                language: string
+                people:
+                  - 0
+                created: string
+                edited: string
+            text/json:
+              schema:
+                $ref: '#/components/schemas/Species'
+              example:
+                id: 0
+                name: string
+                classification: string
+                designation: string
+                averageHeight: string
+                skinColors: string
+                hairColors: string
+                eyeColors: string
+                averageLifespan: string
+                homeworld: 0
+                language: string
+                people:
+                  - 0
+                created: string
+                edited: string
+  '/api/Species/{id}':
+    get:
+      tags:
+        - Species
+      summary: '/api/Species/{id} - GET'
+      description: '/api/Species/{id} - GET'
+      operationId: get-api-species-id
+      parameters:
+        - name: id
+          in: path
+          description: Format - int32.
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/Species'
+              example: ''
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Species'
+              example:
+                id: 0
+                name: string
+                classification: string
+                designation: string
+                averageHeight: string
+                skinColors: string
+                hairColors: string
+                eyeColors: string
+                averageLifespan: string
+                homeworld: 0
+                language: string
+                people:
+                  - 0
+                created: string
+                edited: string
+            text/json:
+              schema:
+                $ref: '#/components/schemas/Species'
+              example:
+                id: 0
+                name: string
+                classification: string
+                designation: string
+                averageHeight: string
+                skinColors: string
+                hairColors: string
+                eyeColors: string
+                averageLifespan: string
+                homeworld: 0
+                language: string
+                people:
+                  - 0
+                created: string
+                edited: string
+    put:
+      tags:
+        - Species
+      summary: '/api/Species/{id} - PUT'
+      description: '/api/Species/{id} - PUT'
+      operationId: put-api-species-id
+      parameters:
+        - name: id
+          in: path
+          description: Format - int32.
+          required: true
+          schema:
+            type: integer
+            format: int32
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Species'
+            example:
+              id: 0
+              name: string
+              classification: string
+              designation: string
+              averageHeight: string
+              skinColors: string
+              hairColors: string
+              eyeColors: string
+              averageLifespan: string
+              homeworld: 0
+              language: string
+              people:
+                - 0
+              created: string
+              edited: string
+          text/json:
+            schema:
+              $ref: '#/components/schemas/Species'
+            example:
+              id: 0
+              name: string
+              classification: string
+              designation: string
+              averageHeight: string
+              skinColors: string
+              hairColors: string
+              eyeColors: string
+              averageLifespan: string
+              homeworld: 0
+              language: string
+              people:
+                - 0
+              created: string
+              edited: string
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/Species'
+            example:
+              id: 0
+              name: string
+              classification: string
+              designation: string
+              averageHeight: string
+              skinColors: string
+              hairColors: string
+              eyeColors: string
+              averageLifespan: string
+              homeworld: 0
+              language: string
+              people:
+                - 0
+              created: string
+              edited: string
+      responses:
+        '200':
+          description: OK
+    delete:
+      tags:
+        - Species
+      summary: '/api/Species/{id} - DELETE'
+      description: '/api/Species/{id} - DELETE'
+      operationId: delete-api-species-id
+      parameters:
+        - name: id
+          in: path
+          description: Format - int32.
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: OK
+  /api/Starships:
+    get:
+      tags:
+        - Starships
+      summary: /api/Starships - GET
+      description: /api/Starships - GET
+      operationId: get-api-starships
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Starship'
+              example: ''
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Starship'
+              example:
+                - id: 0
+                  starshipClass: string
+                  hyperdriveRating: string
+                  mglt: string
+                  pilots:
+                    - 0
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Starship'
+              example:
+                - id: 0
+                  starshipClass: string
+                  hyperdriveRating: string
+                  mglt: string
+                  pilots:
+                    - 0
+    post:
+      tags:
+        - Starships
+      summary: /api/Starships - POST
+      description: /api/Starships - POST
+      operationId: post-api-starships
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Starship'
+            example:
+              id: 0
+              starshipClass: string
+              hyperdriveRating: string
+              mglt: string
+              pilots:
+                - 0
+          text/json:
+            schema:
+              $ref: '#/components/schemas/Starship'
+            example:
+              id: 0
+              starshipClass: string
+              hyperdriveRating: string
+              mglt: string
+              pilots:
+                - 0
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/Starship'
+            example:
+              id: 0
+              starshipClass: string
+              hyperdriveRating: string
+              mglt: string
+              pilots:
+                - 0
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/Starship'
+              example: ''
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Starship'
+              example:
+                id: 0
+                starshipClass: string
+                hyperdriveRating: string
+                mglt: string
+                pilots:
+                  - 0
+            text/json:
+              schema:
+                $ref: '#/components/schemas/Starship'
+              example:
+                id: 0
+                starshipClass: string
+                hyperdriveRating: string
+                mglt: string
+                pilots:
+                  - 0
+  '/api/Starships/{id}':
+    get:
+      tags:
+        - Starships
+      summary: '/api/Starships/{id} - GET'
+      description: '/api/Starships/{id} - GET'
+      operationId: get-api-starships-id
+      parameters:
+        - name: id
+          in: path
+          description: Format - int32.
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/Starship'
+              example: ''
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Starship'
+              example:
+                id: 0
+                starshipClass: string
+                hyperdriveRating: string
+                mglt: string
+                pilots:
+                  - 0
+            text/json:
+              schema:
+                $ref: '#/components/schemas/Starship'
+              example:
+                id: 0
+                starshipClass: string
+                hyperdriveRating: string
+                mglt: string
+                pilots:
+                  - 0
+    put:
+      tags:
+        - Starships
+      summary: '/api/Starships/{id} - PUT'
+      description: '/api/Starships/{id} - PUT'
+      operationId: put-api-starships-id
+      parameters:
+        - name: id
+          in: path
+          description: Format - int32.
+          required: true
+          schema:
+            type: integer
+            format: int32
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Starship'
+            example:
+              id: 0
+              starshipClass: string
+              hyperdriveRating: string
+              mglt: string
+              pilots:
+                - 0
+          text/json:
+            schema:
+              $ref: '#/components/schemas/Starship'
+            example:
+              id: 0
+              starshipClass: string
+              hyperdriveRating: string
+              mglt: string
+              pilots:
+                - 0
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/Starship'
+            example:
+              id: 0
+              starshipClass: string
+              hyperdriveRating: string
+              mglt: string
+              pilots:
+                - 0
+      responses:
+        '200':
+          description: OK
+    delete:
+      tags:
+        - Starships
+      summary: '/api/Starships/{id} - DELETE'
+      description: '/api/Starships/{id} - DELETE'
+      operationId: delete-api-starships-id
+      parameters:
+        - name: id
+          in: path
+          description: Format - int32.
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: OK
+  /api/Transports:
+    get:
+      tags:
+        - Transports
+      summary: /api/Transports - GET
+      description: /api/Transports - GET
+      operationId: get-api-transports
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transport'
+              example: ''
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transport'
+              example:
+                - id: 0
+                  name: string
+                  model: string
+                  manufacturer: string
+                  costInCredits: string
+                  length: string
+                  maxAtmospheringSpeed: string
+                  crew: string
+                  passengers: string
+                  cargoCapacity: string
+                  consumables: string
+                  created: string
+                  edited: string
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transport'
+              example:
+                - id: 0
+                  name: string
+                  model: string
+                  manufacturer: string
+                  costInCredits: string
+                  length: string
+                  maxAtmospheringSpeed: string
+                  crew: string
+                  passengers: string
+                  cargoCapacity: string
+                  consumables: string
+                  created: string
+                  edited: string
+    post:
+      tags:
+        - Transports
+      summary: /api/Transports - POST
+      description: /api/Transports - POST
+      operationId: post-api-transports
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Transport'
+            example:
+              id: 0
+              name: string
+              model: string
+              manufacturer: string
+              costInCredits: string
+              length: string
+              maxAtmospheringSpeed: string
+              crew: string
+              passengers: string
+              cargoCapacity: string
+              consumables: string
+              created: string
+              edited: string
+          text/json:
+            schema:
+              $ref: '#/components/schemas/Transport'
+            example:
+              id: 0
+              name: string
+              model: string
+              manufacturer: string
+              costInCredits: string
+              length: string
+              maxAtmospheringSpeed: string
+              crew: string
+              passengers: string
+              cargoCapacity: string
+              consumables: string
+              created: string
+              edited: string
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/Transport'
+            example:
+              id: 0
+              name: string
+              model: string
+              manufacturer: string
+              costInCredits: string
+              length: string
+              maxAtmospheringSpeed: string
+              crew: string
+              passengers: string
+              cargoCapacity: string
+              consumables: string
+              created: string
+              edited: string
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/Transport'
+              example: ''
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transport'
+              example:
+                id: 0
+                name: string
+                model: string
+                manufacturer: string
+                costInCredits: string
+                length: string
+                maxAtmospheringSpeed: string
+                crew: string
+                passengers: string
+                cargoCapacity: string
+                consumables: string
+                created: string
+                edited: string
+            text/json:
+              schema:
+                $ref: '#/components/schemas/Transport'
+              example:
+                id: 0
+                name: string
+                model: string
+                manufacturer: string
+                costInCredits: string
+                length: string
+                maxAtmospheringSpeed: string
+                crew: string
+                passengers: string
+                cargoCapacity: string
+                consumables: string
+                created: string
+                edited: string
+  '/api/Transports/{id}':
+    get:
+      tags:
+        - Transports
+      summary: '/api/Transports/{id} - GET'
+      description: '/api/Transports/{id} - GET'
+      operationId: get-api-transports-id
+      parameters:
+        - name: id
+          in: path
+          description: Format - int32.
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/Transport'
+              example: ''
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transport'
+              example:
+                id: 0
+                name: string
+                model: string
+                manufacturer: string
+                costInCredits: string
+                length: string
+                maxAtmospheringSpeed: string
+                crew: string
+                passengers: string
+                cargoCapacity: string
+                consumables: string
+                created: string
+                edited: string
+            text/json:
+              schema:
+                $ref: '#/components/schemas/Transport'
+              example:
+                id: 0
+                name: string
+                model: string
+                manufacturer: string
+                costInCredits: string
+                length: string
+                maxAtmospheringSpeed: string
+                crew: string
+                passengers: string
+                cargoCapacity: string
+                consumables: string
+                created: string
+                edited: string
+    put:
+      tags:
+        - Transports
+      summary: '/api/Transports/{id} - PUT'
+      description: '/api/Transports/{id} - PUT'
+      operationId: put-api-transports-id
+      parameters:
+        - name: id
+          in: path
+          description: Format - int32.
+          required: true
+          schema:
+            type: integer
+            format: int32
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Transport'
+            example:
+              id: 0
+              name: string
+              model: string
+              manufacturer: string
+              costInCredits: string
+              length: string
+              maxAtmospheringSpeed: string
+              crew: string
+              passengers: string
+              cargoCapacity: string
+              consumables: string
+              created: string
+              edited: string
+          text/json:
+            schema:
+              $ref: '#/components/schemas/Transport'
+            example:
+              id: 0
+              name: string
+              model: string
+              manufacturer: string
+              costInCredits: string
+              length: string
+              maxAtmospheringSpeed: string
+              crew: string
+              passengers: string
+              cargoCapacity: string
+              consumables: string
+              created: string
+              edited: string
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/Transport'
+            example:
+              id: 0
+              name: string
+              model: string
+              manufacturer: string
+              costInCredits: string
+              length: string
+              maxAtmospheringSpeed: string
+              crew: string
+              passengers: string
+              cargoCapacity: string
+              consumables: string
+              created: string
+              edited: string
+      responses:
+        '200':
+          description: OK
+    delete:
+      tags:
+        - Transports
+      summary: '/api/Transports/{id} - DELETE'
+      description: '/api/Transports/{id} - DELETE'
+      operationId: delete-api-transports-id
+      parameters:
+        - name: id
+          in: path
+          description: Format - int32.
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: OK
+  /api/Vehicles:
+    get:
+      tags:
+        - Vehicles
+      summary: /api/Vehicles - GET
+      description: /api/Vehicles - GET
+      operationId: get-api-vehicles
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Vehicle'
+              example: ''
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Vehicle'
+              example:
+                - id: 0
+                  vehicleClass: string
+                  pilots:
+                    - 0
+            text/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Vehicle'
+              example:
+                - id: 0
+                  vehicleClass: string
+                  pilots:
+                    - 0
+    post:
+      tags:
+        - Vehicles
+      summary: /api/Vehicles - POST
+      description: /api/Vehicles - POST
+      operationId: post-api-vehicles
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Vehicle'
+            example:
+              id: 0
+              vehicleClass: string
+              pilots:
+                - 0
+          text/json:
+            schema:
+              $ref: '#/components/schemas/Vehicle'
+            example:
+              id: 0
+              vehicleClass: string
+              pilots:
+                - 0
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/Vehicle'
+            example:
+              id: 0
+              vehicleClass: string
+              pilots:
+                - 0
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/Vehicle'
+              example: ''
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vehicle'
+              example:
+                id: 0
+                vehicleClass: string
+                pilots:
+                  - 0
+            text/json:
+              schema:
+                $ref: '#/components/schemas/Vehicle'
+              example:
+                id: 0
+                vehicleClass: string
+                pilots:
+                  - 0
+  '/api/Vehicles/{id}':
+    get:
+      tags:
+        - Vehicles
+      summary: '/api/Vehicles/{id} - GET'
+      description: '/api/Vehicles/{id} - GET'
+      operationId: get-api-vehicles-id
+      parameters:
+        - name: id
+          in: path
+          description: Format - int32.
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/Vehicle'
+              example: ''
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vehicle'
+              example:
+                id: 0
+                vehicleClass: string
+                pilots:
+                  - 0
+            text/json:
+              schema:
+                $ref: '#/components/schemas/Vehicle'
+              example:
+                id: 0
+                vehicleClass: string
+                pilots:
+                  - 0
+    put:
+      tags:
+        - Vehicles
+      summary: '/api/Vehicles/{id} - PUT'
+      description: '/api/Vehicles/{id} - PUT'
+      operationId: put-api-vehicles-id
+      parameters:
+        - name: id
+          in: path
+          description: Format - int32.
+          required: true
+          schema:
+            type: integer
+            format: int32
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Vehicle'
+            example:
+              id: 0
+              vehicleClass: string
+              pilots:
+                - 0
+          text/json:
+            schema:
+              $ref: '#/components/schemas/Vehicle'
+            example:
+              id: 0
+              vehicleClass: string
+              pilots:
+                - 0
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/Vehicle'
+            example:
+              id: 0
+              vehicleClass: string
+              pilots:
+                - 0
+      responses:
+        '200':
+          description: OK
+    delete:
+      tags:
+        - Vehicles
+      summary: '/api/Vehicles/{id} - DELETE'
+      description: '/api/Vehicles/{id} - DELETE'
+      operationId: delete-api-vehicles-id
+      parameters:
+        - name: id
+          in: path
+          description: Format - int32.
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: OK
+components:
+  schemas:
+    Film:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        title:
+          type: string
+          nullable: true
+        episodeId:
+          type: integer
+          format: int32
+        openingCrawl:
+          type: string
+          nullable: true
+        director:
+          type: string
+          nullable: true
+        producer:
+          type: string
+          nullable: true
+        releaseDate:
+          type: string
+          format: date-time
+        created:
+          type: string
+          format: date-time
+        edited:
+          type: string
+          format: date-time
+        characters:
+          type: array
+          items:
+            type: integer
+            format: int32
+          nullable: true
+        planets:
+          type: array
+          items:
+            type: integer
+            format: int32
+          nullable: true
+        starships:
+          type: array
+          items:
+            type: integer
+            format: int32
+          nullable: true
+        vehicles:
+          type: array
+          items:
+            type: integer
+            format: int32
+          nullable: true
+        species:
+          type: array
+          items:
+            type: integer
+            format: int32
+          nullable: true
+      additionalProperties: false
+    Person:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        name:
+          type: string
+          nullable: true
+        created:
+          type: string
+          format: date-time
+        edited:
+          type: string
+          format: date-time
+        gender:
+          type: string
+          nullable: true
+        skinColor:
+          type: string
+          nullable: true
+        hairColor:
+          type: string
+          nullable: true
+        height:
+          type: string
+          nullable: true
+        eyeColor:
+          type: string
+          nullable: true
+        mass:
+          type: string
+          nullable: true
+        homeworld:
+          type: integer
+          format: int32
+        birthYear:
+          type: string
+          nullable: true
+      additionalProperties: false
+    Planet:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        name:
+          type: string
+          nullable: true
+        climate:
+          type: string
+          nullable: true
+        terrain:
+          type: string
+          nullable: true
+        gravity:
+          type: string
+          nullable: true
+        diameter:
+          type: string
+          nullable: true
+        rotationPeriod:
+          type: string
+          nullable: true
+        orbitalPeriod:
+          type: string
+          nullable: true
+        population:
+          type: string
+          nullable: true
+        surfaceWater:
+          type: string
+          nullable: true
+        created:
+          type: string
+          format: date-time
+        edited:
+          type: string
+          format: date-time
+      additionalProperties: false
+    Species:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        name:
+          type: string
+          nullable: true
+        classification:
+          type: string
+          nullable: true
+        designation:
+          type: string
+          nullable: true
+        averageHeight:
+          type: string
+          nullable: true
+        skinColors:
+          type: string
+          nullable: true
+        hairColors:
+          type: string
+          nullable: true
+        eyeColors:
+          type: string
+          nullable: true
+        averageLifespan:
+          type: string
+          nullable: true
+        homeworld:
+          type: integer
+          format: int32
+          nullable: true
+        language:
+          type: string
+          nullable: true
+        people:
+          type: array
+          items:
+            type: integer
+            format: int32
+          nullable: true
+        created:
+          type: string
+          format: date-time
+        edited:
+          type: string
+          format: date-time
+      additionalProperties: false
+    Starship:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        starshipClass:
+          type: string
+          nullable: true
+        hyperdriveRating:
+          type: string
+          nullable: true
+        mglt:
+          type: string
+          nullable: true
+        pilots:
+          type: array
+          items:
+            type: integer
+            format: int32
+          nullable: true
+      additionalProperties: false
+    Transport:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        name:
+          type: string
+          nullable: true
+        model:
+          type: string
+          nullable: true
+        manufacturer:
+          type: string
+          nullable: true
+        costInCredits:
+          type: string
+          nullable: true
+        length:
+          type: string
+          nullable: true
+        maxAtmospheringSpeed:
+          type: string
+          nullable: true
+        crew:
+          type: string
+          nullable: true
+        passengers:
+          type: string
+          nullable: true
+        cargoCapacity:
+          type: string
+          nullable: true
+        consumables:
+          type: string
+          nullable: true
+        created:
+          type: string
+          format: date-time
+        edited:
+          type: string
+          format: date-time
+      additionalProperties: false
+    Vehicle:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        vehicleClass:
+          type: string
+          nullable: true
+        pilots:
+          type: array
+          items:
+            type: integer
+            format: int32
+          nullable: true
+      additionalProperties: false
+  securitySchemes:
+    apiKeyHeader:
+      type: apiKey
+      name: Ocp-Apim-Subscription-Key
+      in: header
+    apiKeyQuery:
+      type: apiKey
+      name: subscription-key
+      in: query
+security:
+  - apiKeyHeader: [ ]
+  - apiKeyQuery: [ ]

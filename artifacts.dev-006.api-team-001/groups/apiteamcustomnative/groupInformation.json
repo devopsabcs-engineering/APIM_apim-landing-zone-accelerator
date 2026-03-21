@@ -1,0 +1,7 @@
+{
+  "properties": {
+    "displayName": "ApiTeamCustomNative",
+    "description": "Native to APIM group (i.e. NOT part of Entra ID)",
+    "type": "custom"
+  }
+}

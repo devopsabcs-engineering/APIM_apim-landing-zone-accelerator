@@ -1,0 +1,11 @@
+{
+  "properties": {
+    "loggerType": "applicationInsights",
+    "credentials": {
+      "instrumentationKey": "{{instrumentationKey}}"
+    },
+    "description": "PROD application insights",
+    "isBuffered": true,
+    "resourceId": "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-prod-005-eu2/providers/Microsoft.Insights/components/appi-apim-prod-005-cs4jyj6wprtye"
+  }
+}
