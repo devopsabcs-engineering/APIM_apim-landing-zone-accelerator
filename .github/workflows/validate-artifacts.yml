@@ -1,0 +1,123 @@
+name: Validate APIops Artifacts
+
+on:
+  workflow_dispatch:
+    inputs:
+      ARTIFACT_PATH:
+        description: "Artifact folder to validate (relative to repo root)"
+        required: false
+        default: "artifacts.dev-006"
+        type: string
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate artifacts for v1 references
+        env:
+          ARTIFACT_PATH: ${{ github.workspace }}/${{ inputs.ARTIFACT_PATH }}
+        run: |
+          set -euo pipefail
+
+          ARTIFACT_DIR="${ARTIFACT_PATH}"
+          if [ ! -d "$ARTIFACT_DIR" ]; then
+            echo "::error::Artifact directory not found: $ARTIFACT_DIR"
+            exit 1
+          fi
+
+          echo "## Artifact Validation Report" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Scanned folder:** \`${{ inputs.ARTIFACT_PATH }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          FINDINGS=""
+          FINDING_COUNT=0
+
+          add_finding() {
+            local category="$1"
+            local file="$2"
+            local detail="$3"
+            FINDING_COUNT=$((FINDING_COUNT + 1))
+            FINDINGS="${FINDINGS}| ${FINDING_COUNT} | ${category} | ${file} | ${detail} |"$'\n'
+          }
+
+          # --- Check 1: Hardcoded 005 instance name patterns ---
+          while IFS= read -r -d '' file; do
+            rel_path="${file#${ARTIFACT_DIR}/}"
+            matches=$(jq -r '.. | strings | select(test("005"; "i"))' "$file" 2>/dev/null | head -5 || true)
+            if [ -n "$matches" ]; then
+              sample=$(echo "$matches" | head -1 | cut -c1-80)
+              add_finding "Hardcoded 005 reference" "$rel_path" "$sample"
+            fi
+          done < <(find "$ARTIFACT_DIR" -name '*.json' -print0)
+
+          # --- Check 2: Key Vault references ---
+          while IFS= read -r -d '' file; do
+            rel_path="${file#${ARTIFACT_DIR}/}"
+            kv_refs=$(jq -r '.. | strings | select(test("vault\\.azure\\.net"; "i"))' "$file" 2>/dev/null | head -3 || true)
+            if [ -n "$kv_refs" ]; then
+              sample=$(echo "$kv_refs" | head -1 | cut -c1-80)
+              add_finding "Key Vault reference" "$rel_path" "$sample"
+            fi
+          done < <(find "$ARTIFACT_DIR" -name '*.json' -print0)
+
+          # --- Check 3: External group references ---
+          while IFS= read -r -d '' file; do
+            rel_path="${file#${ARTIFACT_DIR}/}"
+            group_type=$(jq -r '.properties.type // empty' "$file" 2>/dev/null || true)
+            if [ "$group_type" = "external" ]; then
+              add_finding "External group" "$rel_path" "type=external (AAD group not supported on BasicV2)"
+            fi
+          done < <(find "$ARTIFACT_DIR" -path '*/groups/*/groupInformation.json' -print0)
+
+          # --- Check 4: Subscription ownerId references ---
+          while IFS= read -r -d '' file; do
+            rel_path="${file#${ARTIFACT_DIR}/}"
+            owner_refs=$(jq -r '.properties.ownerId // empty' "$file" 2>/dev/null || true)
+            if [ -n "$owner_refs" ] && echo "$owner_refs" | grep -qi "/users/"; then
+              sample=$(echo "$owner_refs" | cut -c1-80)
+              add_finding "Subscription ownerId" "$rel_path" "$sample"
+            fi
+          done < <(find "$ARTIFACT_DIR" -path '*/subscriptions/*/subscriptionInformation.json' -print0)
+
+          # --- Check 5: OAuth2 authorizationServerId references ---
+          while IFS= read -r -d '' file; do
+            rel_path="${file#${ARTIFACT_DIR}/}"
+            oauth_refs=$(jq -r '.. | objects | select(.authorizationServerId) | .authorizationServerId' "$file" 2>/dev/null | head -3 || true)
+            if [ -n "$oauth_refs" ]; then
+              sample=$(echo "$oauth_refs" | head -1 | cut -c1-80)
+              add_finding "OAuth2 authorizationServerId" "$rel_path" "$sample"
+            fi
+          done < <(find "$ARTIFACT_DIR" -name '*.json' -print0)
+
+          # --- Check 6: Workspace artifacts ---
+          if [ -d "$ARTIFACT_DIR/workspaces" ]; then
+            ws_count=$(find "$ARTIFACT_DIR/workspaces" -name '*.json' | wc -l)
+            if [ "$ws_count" -gt 0 ]; then
+              add_finding "Workspace artifacts" "workspaces/" "${ws_count} file(s) — not supported on BasicV2"
+            fi
+          fi
+
+          # --- Write summary table ---
+          if [ "$FINDING_COUNT" -gt 0 ]; then
+            echo "### :warning: Found ${FINDING_COUNT} v1-specific reference(s)" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "| # | Category | File | Detail |" >> "$GITHUB_STEP_SUMMARY"
+            echo "|---|----------|------|--------|" >> "$GITHUB_STEP_SUMMARY"
+            echo "$FINDINGS" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "> These references will be handled by the sanitizer script during publish." >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning::Artifact validation found ${FINDING_COUNT} v1-specific reference(s) in ${{ inputs.ARTIFACT_PATH }}. See workflow summary for details."
+          else
+            echo "### :white_check_mark: No v1-specific references found" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "All artifacts are clean for BasicV2 publishing." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "---" >> "$GITHUB_STEP_SUMMARY"
+          echo "*Validation checks: hardcoded 005 refs, Key Vault refs, external groups, subscription ownerIds, OAuth2 authorizationServerIds, workspace artifacts*" >> "$GITHUB_STEP_SUMMARY"
+        shell: bash

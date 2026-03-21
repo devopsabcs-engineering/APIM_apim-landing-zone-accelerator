@@ -29,6 +29,12 @@ param environmentName string
 
 param instanceNumber string
 
+@description('Whether to create an OAuth2 authorization server for the developer portal')
+param createOAuth2Server bool = false
+
+@description('The client ID of the AAD app registration for OAuth2 authorization')
+param oAuth2ClientId string = ''
+
 var applicationInsightsLoggerName = 'apimlogger'
 var baseName = 'apim-${environmentName}-${instanceNumber}-${uniqueString(resourceGroup().id)}'
 var apiManagementName = baseName
@@ -153,6 +159,25 @@ resource secretAppInsights 'Microsoft.KeyVault/vaults/secrets@2024-04-01-preview
   parent: keyVault
   properties: {
     value: applicationInsights.properties.InstrumentationKey
+  }
+}
+
+resource oAuth2Server 'Microsoft.ApiManagement/service/authorizationServers@2024-06-01-preview' = if (createOAuth2Server && oAuth2ClientId != '') {
+  parent: apiManagement
+  name: 'weatherappoauth'
+  properties: {
+    displayName: 'Weather App OAuth'
+    clientRegistrationEndpoint: environment().authentication.loginEndpoint
+    authorizationEndpoint: '${environment().authentication.loginEndpoint}${tenant().tenantId}/oauth2/v2.0/authorize'
+    tokenEndpoint: '${environment().authentication.loginEndpoint}${tenant().tenantId}/oauth2/v2.0/token'
+    clientId: oAuth2ClientId
+    grantTypes: [
+      'authorizationCode'
+    ]
+    authorizationMethods: [
+      'GET'
+      'POST'
+    ]
   }
 }
 

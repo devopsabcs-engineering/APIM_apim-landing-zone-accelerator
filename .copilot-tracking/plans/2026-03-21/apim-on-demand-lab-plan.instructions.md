@@ -45,48 +45,48 @@ Implement migration automation (Phase 2) and single-click lab provisioning (Phas
 
 ## Implementation Checklist
 
-### [ ] Implementation Phase 1: Artifact Sanitizer Script
+### [x] Implementation Phase 1: Artifact Sanitizer Script
 
 <!-- parallelizable: true -->
 
-* [ ] Step 1.1: Create PowerShell script `scripts/sanitize-artifacts-for-v2.ps1`
+* [x] Step 1.1: Create PowerShell script `scripts/sanitize-artifacts-for-v2.ps1`
   * Details: .copilot-tracking/details/2026-03-21/apim-on-demand-lab-details.md (Lines 10-45)
-* [ ] Step 1.2: Integrate sanitizer into publisher-with-env-006.yaml as pre-publish step
+* [x] Step 1.2: Integrate sanitizer into publisher-with-env-006.yaml as pre-publish step
   * Details: .copilot-tracking/details/2026-03-21/apim-on-demand-lab-details.md (Lines 47-65)
-* [ ] Step 1.3: Validate by running publisher 006 workflow
+* [x] Step 1.3: Validate by running publisher 006 workflow
   * Skip if validation conflicts with parallel phases
 
-### [ ] Implementation Phase 2: APIM Post-Deployment Configuration
+### [x] Implementation Phase 2: APIM Post-Deployment Configuration
 
 <!-- parallelizable: true -->
 
-* [ ] Step 2.1: Add OAuth2 authorization server to BasicV2 Bicep template
+* [x] Step 2.1: Add OAuth2 authorization server to BasicV2 Bicep template
   * Details: .copilot-tracking/details/2026-03-21/apim-on-demand-lab-details.md (Lines 70-100)
-* [ ] Step 2.2: Add Azure CLI post-deploy step for AAD identity provider
+* [x] Step 2.2: Add Azure CLI post-deploy step for AAD identity provider
   * Details: .copilot-tracking/details/2026-03-21/apim-on-demand-lab-details.md (Lines 102-125)
-* [ ] Step 2.3: Create demo user and subscription seeding script
+* [x] Step 2.3: Create demo user and subscription seeding script
   * Details: .copilot-tracking/details/2026-03-21/apim-on-demand-lab-details.md (Lines 127-160)
-* [ ] Step 2.4: Integrate into deploy-apim-basicv2.yml as post-deploy steps
+* [x] Step 2.4: Integrate into deploy-apim-basicv2.yml as post-deploy steps
   * Details: .copilot-tracking/details/2026-03-21/apim-on-demand-lab-details.md (Lines 162-180)
 
-### [ ] Implementation Phase 3: Master Orchestrator Workflow
+### [x] Implementation Phase 3: Master Orchestrator Workflow
 
 <!-- parallelizable: false -->
 
-* [ ] Step 3.1: Create `create-lab.yml` workflow that chains APIM + APIs + APIops
+* [x] Step 3.1: Create `create-lab.yml` workflow that chains APIM + APIs + APIops
   * Details: .copilot-tracking/details/2026-03-21/apim-on-demand-lab-details.md (Lines 185-230)
-* [ ] Step 3.2: Create `teardown-lab.yml` workflow with confirmation gate
+* [x] Step 3.2: Create `teardown-lab.yml` workflow with confirmation gate
   * Details: .copilot-tracking/details/2026-03-21/apim-on-demand-lab-details.md (Lines 232-260)
-* [ ] Step 3.3: Add deployment time tracking and cost estimation to summaries
+* [x] Step 3.3: Add deployment time tracking and cost estimation to summaries
   * Details: .copilot-tracking/details/2026-03-21/apim-on-demand-lab-details.md (Lines 262-285)
 
-### [ ] Implementation Phase 4: Migration Validation Workflow
+### [x] Implementation Phase 4: Migration Validation Workflow
 
 <!-- parallelizable: true -->
 
-* [ ] Step 4.1: Create `validate-artifacts.yml` pre-publish check workflow
+* [x] Step 4.1: Create `validate-artifacts.yml` pre-publish check workflow
   * Details: .copilot-tracking/details/2026-03-21/apim-on-demand-lab-details.md (Lines 290-320)
-* [ ] Step 4.2: Add validation step to publisher 006 workflow before actual publish
+* [x] Step 4.2: Add validation step to publisher 006 workflow before actual publish
   * Details: .copilot-tracking/details/2026-03-21/apim-on-demand-lab-details.md (Lines 322-340)
 
 ### [ ] Implementation Phase 5: Validation

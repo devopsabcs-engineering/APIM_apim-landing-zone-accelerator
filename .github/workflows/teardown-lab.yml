@@ -1,0 +1,203 @@
+name: Teardown APIM Lab Environment
+
+on:
+  workflow_dispatch:
+    inputs:
+      instance_number:
+        description: 'APIM instance number'
+        type: string
+        default: '006'
+      teardown_apis:
+        description: 'Tear down backend API resource groups'
+        type: boolean
+        default: true
+      teardown_apim:
+        description: 'Tear down APIM dev and prod resource groups'
+        type: boolean
+        default: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  # ── Teardown backend API resource groups ───────────────────────────────
+  teardown-apis:
+    name: Teardown Backend APIs
+    if: ${{ inputs.teardown_apis }}
+    runs-on: ubuntu-latest
+    environment: APIM_Lab_Teardown
+    steps:
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Delete API resource groups
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            set -euo pipefail
+
+            RESOURCE_GROUPS=(
+              "rg-web-appservice-linux-005"
+              "rg-weather-appservice-linux-005"
+              "rg-star-wars-appservice-linux-003"
+              "rg-soap-appservice-linux-007"
+              "rg-odata-appservice-linux-002"
+              "rg-movies-appservice-linux-006"
+              "rg-msal-python-soln"
+              "rg-fast-api-app-insights-001"
+              "rg-appointments-fnapp-linux-003"
+            )
+
+            DELETED=()
+            SKIPPED=()
+
+            for RG in "${RESOURCE_GROUPS[@]}"; do
+              if az group exists --name "$RG" | grep -q true; then
+                echo "Deleting resource group $RG (async)..."
+                az group delete --name "$RG" --yes --no-wait
+                DELETED+=("$RG")
+              else
+                echo "Resource group $RG does not exist, skipping."
+                SKIPPED+=("$RG")
+              fi
+            done
+
+            echo "api_deleted=${#DELETED[@]}" >> "$GITHUB_OUTPUT"
+            echo "api_skipped=${#SKIPPED[@]}" >> "$GITHUB_OUTPUT"
+        id: delete-apis
+
+      - name: Write job summary
+        run: |
+          {
+            echo "## 🗑️ Backend API Teardown"
+            echo ""
+            echo "| Resource Group | Application | Status |"
+            echo "|----------------|-------------|--------|"
+            echo "| rg-web-appservice-linux-005 | Web App | 🔄 Deleting |"
+            echo "| rg-weather-appservice-linux-005 | Weather API | 🔄 Deleting |"
+            echo "| rg-star-wars-appservice-linux-003 | Star Wars API | 🔄 Deleting |"
+            echo "| rg-soap-appservice-linux-007 | SOAP API | 🔄 Deleting |"
+            echo "| rg-odata-appservice-linux-002 | OData API | 🔄 Deleting |"
+            echo "| rg-movies-appservice-linux-006 | Movie API | 🔄 Deleting |"
+            echo "| rg-msal-python-soln | Flask App | 🔄 Deleting |"
+            echo "| rg-fast-api-app-insights-001 | Fast API | 🔄 Deleting |"
+            echo "| rg-appointments-fnapp-linux-003 | Appointments API | 🔄 Deleting |"
+            echo ""
+            echo "> Resource groups are being deleted asynchronously."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ── Teardown APIM Dev resource group ───────────────────────────────────
+  teardown-apim-dev:
+    name: Teardown APIM Dev
+    if: ${{ inputs.teardown_apim }}
+    runs-on: ubuntu-latest
+    environment: APIM_Lab_Teardown
+    env:
+      RG_DEV: rg-apim-basicv2-dev-${{ inputs.instance_number }}
+    steps:
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.APIM_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.APIM_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.APIM_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Delete Dev APIM resource group
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            RG="${{ env.RG_DEV }}"
+            if az group exists --name "$RG" | grep -q true; then
+              echo "Deleting resource group $RG (async)..."
+              az group delete --name "$RG" --yes --no-wait
+            else
+              echo "Resource group $RG does not exist, skipping."
+            fi
+
+      - name: Write job summary
+        run: |
+          {
+            echo "## 🗑️ APIM Dev Teardown"
+            echo ""
+            echo "| Resource Group | Status |"
+            echo "|----------------|--------|"
+            echo "| ${{ env.RG_DEV }} | 🔄 Deleting (async) |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ── Teardown APIM Prod resource group ──────────────────────────────────
+  teardown-apim-prod:
+    name: Teardown APIM Prod
+    if: ${{ inputs.teardown_apim }}
+    runs-on: ubuntu-latest
+    environment: APIM_Lab_Teardown
+    env:
+      RG_PROD: rg-apim-basicv2-prod-${{ inputs.instance_number }}
+    steps:
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.APIM_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.APIM_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.APIM_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Delete Prod APIM resource group
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            RG="${{ env.RG_PROD }}"
+            if az group exists --name "$RG" | grep -q true; then
+              echo "Deleting resource group $RG (async)..."
+              az group delete --name "$RG" --yes --no-wait
+            else
+              echo "Resource group $RG does not exist, skipping."
+            fi
+
+      - name: Write job summary
+        run: |
+          {
+            echo "## 🗑️ APIM Prod Teardown"
+            echo ""
+            echo "| Resource Group | Status |"
+            echo "|----------------|--------|"
+            echo "| ${{ env.RG_PROD }} | 🔄 Deleting (async) |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ── Final summary ─────────────────────────────────────────────────────
+  teardown-summary:
+    name: Teardown Summary
+    needs: [teardown-apis, teardown-apim-dev, teardown-apim-prod]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write comprehensive summary
+        env:
+          INSTANCE: ${{ inputs.instance_number }}
+          APIS_RESULT: ${{ needs.teardown-apis.result }}
+          DEV_RESULT: ${{ needs.teardown-apim-dev.result }}
+          PROD_RESULT: ${{ needs.teardown-apim-prod.result }}
+        run: |
+          status_icon() {
+            case "$1" in
+              success)  echo "✅" ;;
+              failure)  echo "❌" ;;
+              skipped)  echo "⏭️" ;;
+              cancelled) echo "🚫" ;;
+              *)        echo "❓" ;;
+            esac
+          }
+
+          {
+            echo "# 🧹 APIM Lab Teardown Summary"
+            echo ""
+            echo "| Job | Status |"
+            echo "|-----|--------|"
+            echo "| Backend APIs (9 resource groups) | $(status_icon "${APIS_RESULT}") ${APIS_RESULT} |"
+            echo "| APIM Dev (\`rg-apim-basicv2-dev-${INSTANCE}\`) | $(status_icon "${DEV_RESULT}") ${DEV_RESULT} |"
+            echo "| APIM Prod (\`rg-apim-basicv2-prod-${INSTANCE}\`) | $(status_icon "${PROD_RESULT}") ${PROD_RESULT} |"
+            echo ""
+            echo "> All resource group deletions are asynchronous. Full deletion may take several minutes."
+            echo ""
+            echo "To recreate the lab environment, run the **Create APIM Lab Environment** workflow."
+          } >> "$GITHUB_STEP_SUMMARY"

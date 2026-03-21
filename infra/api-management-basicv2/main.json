@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "4651099485279296015"
+      "templateHash": "17506728366524228288"
     }
   },
   "parameters": {
@@ -63,6 +63,20 @@
     },
     "instanceNumber": {
       "type": "string"
+    },
+    "createOAuth2Server": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Whether to create an OAuth2 authorization server for the developer portal"
+      }
+    },
+    "oAuth2ClientId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "The client ID of the AAD app registration for OAuth2 authorization"
+      }
     }
   },
   "variables": {
@@ -211,6 +225,29 @@
       "dependsOn": [
         "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]",
         "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+      ]
+    },
+    {
+      "condition": "[and(parameters('createOAuth2Server'), not(equals(parameters('oAuth2ClientId'), '')))]",
+      "type": "Microsoft.ApiManagement/service/authorizationServers",
+      "apiVersion": "2024-06-01-preview",
+      "name": "[format('{0}/{1}', variables('apiManagementName'), 'weatherappoauth')]",
+      "properties": {
+        "displayName": "Weather App OAuth",
+        "clientRegistrationEndpoint": "[environment().authentication.loginEndpoint]",
+        "authorizationEndpoint": "[format('{0}{1}/oauth2/v2.0/authorize', environment().authentication.loginEndpoint, tenant().tenantId)]",
+        "tokenEndpoint": "[format('{0}{1}/oauth2/v2.0/token', environment().authentication.loginEndpoint, tenant().tenantId)]",
+        "clientId": "[parameters('oAuth2ClientId')]",
+        "grantTypes": [
+          "authorizationCode"
+        ],
+        "authorizationMethods": [
+          "GET",
+          "POST"
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ApiManagement/service', variables('apiManagementName'))]"
       ]
     }
   ],

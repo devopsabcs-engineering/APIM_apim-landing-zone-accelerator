@@ -27,6 +27,40 @@ on:
         description: 'Tear down Prod environment after deployment'
         type: boolean
         default: false
+      seed_demo_data:
+        description: 'Seed demo users and subscriptions after deployment'
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      instance_number:
+        required: false
+        type: string
+        default: '006'
+      location:
+        required: false
+        type: string
+        default: 'canadacentral'
+      deploy_dev:
+        required: false
+        type: boolean
+        default: true
+      deploy_prod:
+        required: false
+        type: boolean
+        default: true
+      teardown_dev:
+        required: false
+        type: boolean
+        default: false
+      teardown_prod:
+        required: false
+        type: boolean
+        default: false
+      seed_demo_data:
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   id-token: write
@@ -138,6 +172,28 @@ jobs:
             GATEWAY_URL=$(echo "$RESULT" | jq -r '.url')
             echo "apim_name=$APIM_NAME" >> "$GITHUB_OUTPUT"
             echo "gateway_url=$GATEWAY_URL" >> "$GITHUB_OUTPUT"
+      - name: Configure AAD identity provider
+        if: ${{ secrets.AAD_PROVIDER_CLIENT_ID != '' }}
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            APIM_NAME="${{ steps.deploy.outputs.apim_name }}"
+            TENANT_ID="${{ secrets.APIM_AZURE_TENANT_ID }}"
+            RG="${{ env.RG_DEV }}"
+            API_VERSION="2024-06-01-preview"
+            RESOURCE_URL="https://management.azure.com/subscriptions/${{ secrets.APIM_AZURE_SUBSCRIPTION_ID }}/resourceGroups/${RG}/providers/Microsoft.ApiManagement/service/${APIM_NAME}/identityProviders/aad?api-version=${API_VERSION}"
+            az rest --method put --url "$RESOURCE_URL" \
+              --body "{\"properties\":{\"clientId\":\"${{ secrets.AAD_PROVIDER_CLIENT_ID }}\",\"clientSecret\":\"${{ secrets.AAD_PROVIDER_CLIENT_SECRET }}\",\"allowedTenants\":[\"${TENANT_ID}\"],\"type\":\"aad\"}}" \
+              --headers 'Content-Type=application/json'
+            echo "AAD identity provider configured for ${APIM_NAME}"
+      - name: Seed demo data
+        if: ${{ inputs.seed_demo_data }}
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            pwsh scripts/seed-apim-demo-data.ps1 \
+              -ResourceGroup "${{ env.RG_DEV }}" \
+              -ApimName "${{ steps.deploy.outputs.apim_name }}"
       - name: Write job summary
         env:
           APIM_NAME: ${{ steps.deploy.outputs.apim_name }}
@@ -198,6 +254,28 @@ jobs:
             GATEWAY_URL=$(echo "$RESULT" | jq -r '.url')
             echo "apim_name=$APIM_NAME" >> "$GITHUB_OUTPUT"
             echo "gateway_url=$GATEWAY_URL" >> "$GITHUB_OUTPUT"
+      - name: Configure AAD identity provider
+        if: ${{ secrets.AAD_PROVIDER_CLIENT_ID != '' }}
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            APIM_NAME="${{ steps.deploy.outputs.apim_name }}"
+            TENANT_ID="${{ secrets.APIM_AZURE_TENANT_ID }}"
+            RG="${{ env.RG_PROD }}"
+            API_VERSION="2024-06-01-preview"
+            RESOURCE_URL="https://management.azure.com/subscriptions/${{ secrets.APIM_AZURE_SUBSCRIPTION_ID }}/resourceGroups/${RG}/providers/Microsoft.ApiManagement/service/${APIM_NAME}/identityProviders/aad?api-version=${API_VERSION}"
+            az rest --method put --url "$RESOURCE_URL" \
+              --body "{\"properties\":{\"clientId\":\"${{ secrets.AAD_PROVIDER_CLIENT_ID }}\",\"clientSecret\":\"${{ secrets.AAD_PROVIDER_CLIENT_SECRET }}\",\"allowedTenants\":[\"${TENANT_ID}\"],\"type\":\"aad\"}}" \
+              --headers 'Content-Type=application/json'
+            echo "AAD identity provider configured for ${APIM_NAME}"
+      - name: Seed demo data
+        if: ${{ inputs.seed_demo_data }}
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            pwsh scripts/seed-apim-demo-data.ps1 \
+              -ResourceGroup "${{ env.RG_PROD }}" \
+              -ApimName "${{ steps.deploy.outputs.apim_name }}"
       - name: Write job summary
         env:
           APIM_NAME: ${{ steps.deploy.outputs.apim_name }}

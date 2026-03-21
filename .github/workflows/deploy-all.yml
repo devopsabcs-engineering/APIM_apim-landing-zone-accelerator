@@ -39,6 +39,44 @@ on:
         description: 'Appointments API instance number'
         type: string
         default: '003'
+  workflow_call:
+    inputs:
+      deploy_infra:
+        required: false
+        type: boolean
+        default: true
+      teardown:
+        required: false
+        type: boolean
+        default: false
+      web_app_instance:
+        required: false
+        type: string
+        default: '005'
+      weather_api_instance:
+        required: false
+        type: string
+        default: '005'
+      star_wars_api_instance:
+        required: false
+        type: string
+        default: '003'
+      soap_api_instance:
+        required: false
+        type: string
+        default: '007'
+      odata_api_instance:
+        required: false
+        type: string
+        default: '002'
+      movie_api_instance:
+        required: false
+        type: string
+        default: '006'
+      appointments_api_instance:
+        required: false
+        type: string
+        default: '003'
 
 permissions:
   id-token: write

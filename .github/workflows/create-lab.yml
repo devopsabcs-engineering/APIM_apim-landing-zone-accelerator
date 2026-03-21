@@ -1,0 +1,198 @@
+name: Create APIM Lab Environment
+
+on:
+  workflow_dispatch:
+    inputs:
+      instance_number:
+        description: 'APIM instance number'
+        type: string
+        default: '006'
+      location:
+        description: 'Azure region'
+        type: string
+        default: 'canadacentral'
+      deploy_apis:
+        description: 'Deploy backend APIs'
+        type: boolean
+        default: true
+
+permissions:
+  id-token: write
+  contents: write
+  pages: write
+
+jobs:
+  # ── Record start time for wall-clock duration ──────────────────────────
+  record-start-time:
+    name: Record Start Time
+    runs-on: ubuntu-latest
+    outputs:
+      start_time: ${{ steps.start.outputs.time }}
+    steps:
+      - name: Capture start timestamp
+        id: start
+        run: echo "time=$(date -u +%s)" >> "$GITHUB_OUTPUT"
+
+  # ── Job 1: Deploy APIM BasicV2 (dev + prod) ───────────────────────────
+  deploy-apim:
+    name: Deploy APIM Infrastructure
+    needs: record-start-time
+    uses: ./.github/workflows/deploy-apim-basicv2.yml
+    with:
+      instance_number: ${{ inputs.instance_number }}
+      location: ${{ inputs.location }}
+      deploy_dev: true
+      deploy_prod: true
+      seed_demo_data: true
+    secrets: inherit
+
+  # ── Job 2: Deploy all 9 backend APIs (parallel with APIM) ─────────────
+  deploy-apis:
+    name: Deploy Backend APIs
+    needs: record-start-time
+    if: ${{ inputs.deploy_apis }}
+    uses: ./.github/workflows/deploy-all.yml
+    with:
+      deploy_infra: true
+      teardown: false
+    secrets: inherit
+
+  # ── Job 3a: Publish APIops artifacts to Dev ────────────────────────────
+  publish-apiops-dev:
+    name: Publish APIops to Dev
+    needs: [deploy-apim, deploy-apis]
+    if: ${{ !cancelled() && needs.deploy-apim.result == 'success' }}
+    uses: ./.github/workflows/run-publisher-with-env-006.yaml
+    with:
+      API_MANAGEMENT_ENVIRONMENT: dev-006
+      API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH: artifacts.dev-006
+    secrets: inherit
+
+  # ── Job 3b: Publish APIops artifacts to Prod ───────────────────────────
+  publish-apiops-prod:
+    name: Publish APIops to Prod
+    needs: publish-apiops-dev
+    if: ${{ !cancelled() && needs.publish-apiops-dev.result == 'success' }}
+    uses: ./.github/workflows/run-publisher-with-env-006.yaml
+    with:
+      API_MANAGEMENT_ENVIRONMENT: prod-006
+      CONFIGURATION_YAML_PATH: configuration.prod-006.yaml
+      API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH: artifacts.dev-006
+    secrets: inherit
+
+  # ── Final: Comprehensive lab summary ───────────────────────────────────
+  lab-summary:
+    name: Lab Deployment Summary
+    needs: [record-start-time, deploy-apim, deploy-apis, publish-apiops-dev, publish-apiops-prod]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Calculate deployment time
+        id: timing
+        run: |
+          START=${{ needs.record-start-time.outputs.start_time }}
+          END=$(date -u +%s)
+          DURATION=$((END - START))
+          HOURS=$((DURATION / 3600))
+          MINUTES=$(( (DURATION % 3600) / 60 ))
+          SECONDS=$((DURATION % 60))
+
+          if [ "$HOURS" -gt 0 ]; then
+            FORMATTED="${HOURS}h ${MINUTES}m ${SECONDS}s"
+          else
+            FORMATTED="${MINUTES}m ${SECONDS}s"
+          fi
+
+          echo "duration_formatted=${FORMATTED}" >> "$GITHUB_OUTPUT"
+          echo "duration_seconds=${DURATION}" >> "$GITHUB_OUTPUT"
+
+      - name: Write comprehensive summary
+        env:
+          INSTANCE: ${{ inputs.instance_number }}
+          LOCATION: ${{ inputs.location }}
+          DEPLOY_APIS: ${{ inputs.deploy_apis }}
+          APIM_RESULT: ${{ needs.deploy-apim.result }}
+          APIS_RESULT: ${{ needs.deploy-apis.result }}
+          PUB_DEV_RESULT: ${{ needs.publish-apiops-dev.result }}
+          PUB_PROD_RESULT: ${{ needs.publish-apiops-prod.result }}
+          DURATION: ${{ steps.timing.outputs.duration_formatted }}
+        run: |
+          # Map result to status icon
+          status_icon() {
+            case "$1" in
+              success)  echo "✅" ;;
+              failure)  echo "❌" ;;
+              skipped)  echo "⏭️" ;;
+              cancelled) echo "🚫" ;;
+              *)        echo "❓" ;;
+            esac
+          }
+
+          {
+            echo "# 🧪 APIM Lab Environment — Deployment Summary"
+            echo ""
+            echo "## Overview"
+            echo ""
+            echo "| Property | Value |"
+            echo "|----------|-------|"
+            echo "| Instance | \`${INSTANCE}\` |"
+            echo "| Location | \`${LOCATION}\` |"
+            echo "| Wall-Clock Time | \`${DURATION}\` |"
+            echo "| Run | [#${GITHUB_RUN_NUMBER}](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}) |"
+            echo "| Triggered By | ${GITHUB_ACTOR} |"
+            echo ""
+            echo "## Job Results"
+            echo ""
+            echo "| Job | Status |"
+            echo "|-----|--------|"
+            echo "| Deploy APIM (dev + prod) | $(status_icon "${APIM_RESULT}") ${APIM_RESULT} |"
+            echo "| Deploy Backend APIs | $(status_icon "${APIS_RESULT}") ${APIS_RESULT} |"
+            echo "| Publish APIops to Dev | $(status_icon "${PUB_DEV_RESULT}") ${PUB_DEV_RESULT} |"
+            echo "| Publish APIops to Prod | $(status_icon "${PUB_PROD_RESULT}") ${PUB_PROD_RESULT} |"
+            echo ""
+            echo "## Resource Groups"
+            echo ""
+            echo "### APIM"
+            echo ""
+            echo "| Resource Group | Environment |"
+            echo "|----------------|-------------|"
+            echo "| \`rg-apim-basicv2-dev-${INSTANCE}\` | Dev |"
+            echo "| \`rg-apim-basicv2-prod-${INSTANCE}\` | Prod |"
+            echo ""
+
+            if [ "${DEPLOY_APIS}" = "true" ]; then
+              echo "### Backend APIs"
+              echo ""
+              echo "| Resource Group | Application |"
+              echo "|----------------|-------------|"
+              echo "| \`rg-web-appservice-linux-005\` | Web App |"
+              echo "| \`rg-weather-appservice-linux-005\` | Weather API |"
+              echo "| \`rg-star-wars-appservice-linux-003\` | Star Wars API |"
+              echo "| \`rg-soap-appservice-linux-007\` | SOAP API |"
+              echo "| \`rg-odata-appservice-linux-002\` | OData API |"
+              echo "| \`rg-movies-appservice-linux-006\` | Movie API |"
+              echo "| \`rg-msal-python-soln\` | Flask App |"
+              echo "| \`rg-fast-api-app-insights-001\` | Fast API |"
+              echo "| \`rg-appointments-fnapp-linux-003\` | Appointments API |"
+              echo ""
+            fi
+
+            echo "## Estimated Monthly Cost"
+            echo ""
+            echo "| Component | SKU | Estimated Cost |"
+            echo "|-----------|-----|----------------|"
+            echo "| APIM Dev (BasicV2) | BasicV2 | ~\$150/month |"
+            echo "| APIM Prod (BasicV2) | BasicV2 | ~\$150/month |"
+            echo "| 9 Backend APIs (App Service) | B1 | ~\$90/month |"
+            echo "| **Total (always-on)** | | **~\$390/month** |"
+            echo "| **On-demand (8 hrs/week)** | | **~\$40/month** |"
+            echo ""
+            echo "> **Cost savings tip:** Use the \`teardown-lab.yml\` workflow to destroy the"
+            echo "> environment when not in use. Recreate it with this workflow before demos."
+            echo ""
+            echo "## Next Steps"
+            echo ""
+            echo "1. Open the APIM Developer Portal to verify all APIs are published"
+            echo "2. Run the deployment report workflow (\`deploy-all.yml\`) to generate the wiki report"
+            echo "3. When finished, run \`teardown-lab.yml\` to destroy all resources"
+          } >> "$GITHUB_STEP_SUMMARY"
