@@ -6,7 +6,7 @@ on:
       instance_number:
         description: 'Instance number'
         type: string
-        default: '005'
+        default: '006'
       location:
         description: 'Azure region'
         type: string
@@ -35,10 +35,10 @@ permissions:
 env:
   TEMPLATE_FILE: infra/api-management-basicv2/main.bicep
   PARAMETERS_DIR: infra/api-management-basicv2
-  INSTANCE_NUMBER: ${{ inputs.instance_number || '005' }}
+  INSTANCE_NUMBER: ${{ inputs.instance_number || '006' }}
   LOCATION: ${{ inputs.location || 'canadacentral' }}
-  RG_DEV: rg-apim-basicv2-dev-${{ inputs.instance_number || '005' }}
-  RG_PROD: rg-apim-basicv2-prod-${{ inputs.instance_number || '005' }}
+  RG_DEV: rg-apim-basicv2-dev-${{ inputs.instance_number || '006' }}
+  RG_PROD: rg-apim-basicv2-prod-${{ inputs.instance_number || '006' }}
 
 jobs:
   validate:
