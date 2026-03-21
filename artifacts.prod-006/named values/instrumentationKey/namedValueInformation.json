@@ -1,9 +1,7 @@
 {
   "properties": {
     "displayName": "instrumentationKey",
-    "keyVault": {
-      "secretIdentifier": "https://kv-apim-prod-005-cs4jyj6.vault.azure.net/secrets/AppInsightsKeyApim"
-    },
+    "value": "placeholder-update-after-keyvault-setup",
     "secret": true,
     "tags": [
       "prod",
