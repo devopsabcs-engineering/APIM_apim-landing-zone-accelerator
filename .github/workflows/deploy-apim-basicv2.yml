@@ -173,17 +173,24 @@ jobs:
             echo "apim_name=$APIM_NAME" >> "$GITHUB_OUTPUT"
             echo "gateway_url=$GATEWAY_URL" >> "$GITHUB_OUTPUT"
       - name: Configure AAD identity provider
-        if: ${{ secrets.AAD_PROVIDER_CLIENT_ID != '' }}
+        env:
+          AAD_CLIENT_ID: ${{ secrets.AAD_PROVIDER_CLIENT_ID }}
+          AAD_CLIENT_SECRET: ${{ secrets.AAD_PROVIDER_CLIENT_SECRET }}
+          APIM_SUB_ID: ${{ secrets.APIM_AZURE_SUBSCRIPTION_ID }}
+          APIM_TENANT: ${{ secrets.APIM_AZURE_TENANT_ID }}
         uses: azure/cli@v2
         with:
           inlineScript: |
+            if [ -z "$AAD_CLIENT_ID" ]; then
+              echo "AAD_PROVIDER_CLIENT_ID not set, skipping identity provider configuration"
+              exit 0
+            fi
             APIM_NAME="${{ steps.deploy.outputs.apim_name }}"
-            TENANT_ID="${{ secrets.APIM_AZURE_TENANT_ID }}"
             RG="${{ env.RG_DEV }}"
             API_VERSION="2024-06-01-preview"
-            RESOURCE_URL="https://management.azure.com/subscriptions/${{ secrets.APIM_AZURE_SUBSCRIPTION_ID }}/resourceGroups/${RG}/providers/Microsoft.ApiManagement/service/${APIM_NAME}/identityProviders/aad?api-version=${API_VERSION}"
+            RESOURCE_URL="https://management.azure.com/subscriptions/${APIM_SUB_ID}/resourceGroups/${RG}/providers/Microsoft.ApiManagement/service/${APIM_NAME}/identityProviders/aad?api-version=${API_VERSION}"
             az rest --method put --url "$RESOURCE_URL" \
-              --body "{\"properties\":{\"clientId\":\"${{ secrets.AAD_PROVIDER_CLIENT_ID }}\",\"clientSecret\":\"${{ secrets.AAD_PROVIDER_CLIENT_SECRET }}\",\"allowedTenants\":[\"${TENANT_ID}\"],\"type\":\"aad\"}}" \
+              --body "{\"properties\":{\"clientId\":\"${AAD_CLIENT_ID}\",\"clientSecret\":\"${AAD_CLIENT_SECRET}\",\"allowedTenants\":[\"${APIM_TENANT}\"],\"type\":\"aad\"}}" \
               --headers 'Content-Type=application/json'
             echo "AAD identity provider configured for ${APIM_NAME}"
       - name: Seed demo data
@@ -255,17 +262,24 @@ jobs:
             echo "apim_name=$APIM_NAME" >> "$GITHUB_OUTPUT"
             echo "gateway_url=$GATEWAY_URL" >> "$GITHUB_OUTPUT"
       - name: Configure AAD identity provider
-        if: ${{ secrets.AAD_PROVIDER_CLIENT_ID != '' }}
+        env:
+          AAD_CLIENT_ID: ${{ secrets.AAD_PROVIDER_CLIENT_ID }}
+          AAD_CLIENT_SECRET: ${{ secrets.AAD_PROVIDER_CLIENT_SECRET }}
+          APIM_SUB_ID: ${{ secrets.APIM_AZURE_SUBSCRIPTION_ID }}
+          APIM_TENANT: ${{ secrets.APIM_AZURE_TENANT_ID }}
         uses: azure/cli@v2
         with:
           inlineScript: |
+            if [ -z "$AAD_CLIENT_ID" ]; then
+              echo "AAD_PROVIDER_CLIENT_ID not set, skipping identity provider configuration"
+              exit 0
+            fi
             APIM_NAME="${{ steps.deploy.outputs.apim_name }}"
-            TENANT_ID="${{ secrets.APIM_AZURE_TENANT_ID }}"
             RG="${{ env.RG_PROD }}"
             API_VERSION="2024-06-01-preview"
-            RESOURCE_URL="https://management.azure.com/subscriptions/${{ secrets.APIM_AZURE_SUBSCRIPTION_ID }}/resourceGroups/${RG}/providers/Microsoft.ApiManagement/service/${APIM_NAME}/identityProviders/aad?api-version=${API_VERSION}"
+            RESOURCE_URL="https://management.azure.com/subscriptions/${APIM_SUB_ID}/resourceGroups/${RG}/providers/Microsoft.ApiManagement/service/${APIM_NAME}/identityProviders/aad?api-version=${API_VERSION}"
             az rest --method put --url "$RESOURCE_URL" \
-              --body "{\"properties\":{\"clientId\":\"${{ secrets.AAD_PROVIDER_CLIENT_ID }}\",\"clientSecret\":\"${{ secrets.AAD_PROVIDER_CLIENT_SECRET }}\",\"allowedTenants\":[\"${TENANT_ID}\"],\"type\":\"aad\"}}" \
+              --body "{\"properties\":{\"clientId\":\"${AAD_CLIENT_ID}\",\"clientSecret\":\"${AAD_CLIENT_SECRET}\",\"allowedTenants\":[\"${APIM_TENANT}\"],\"type\":\"aad\"}}" \
               --headers 'Content-Type=application/json'
             echo "AAD identity provider configured for ${APIM_NAME}"
       - name: Seed demo data
