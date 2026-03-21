@@ -1,8 +1,0 @@
-{
-  "properties": {
-    "displayName": "instrumentationKey",
-    "value": "placeholder-update-after-keyvault-setup",
-    "secret": true,
-    "tags": []
-  }
-}

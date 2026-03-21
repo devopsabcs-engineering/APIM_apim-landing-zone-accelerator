@@ -44,7 +44,7 @@ loggerNames:
 
 namedValueNames:
   - developerPortalUrl
-  - instrumentationKey
+  #- instrumentationKey  # managed by Bicep template
   #- mysecretvalue
   #- sqlDatabaseConnectionString
   #- weatherApiAudience
