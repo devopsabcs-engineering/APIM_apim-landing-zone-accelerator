@@ -135,6 +135,9 @@ jobs:
         uses: azure/cli@v2
         with:
           inlineScript: |
+            # Delete existing RG to clear stale plan SKU (EP1->S1 change requires recreation)
+            az group delete --name ${{ env.RESOURCE_GROUP_NAME }} --yes --no-wait 2>/dev/null || true
+            az group wait --name ${{ env.RESOURCE_GROUP_NAME }} --deleted 2>/dev/null || true
             az group create --name ${{ env.RESOURCE_GROUP_NAME }} --location ${{ env.LOCATION }}
             az deployment group create \
               --name ${{ env.DEPLOYMENT_NAME }} \
