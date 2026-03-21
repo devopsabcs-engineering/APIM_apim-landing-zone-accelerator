@@ -176,29 +176,13 @@ jobs:
         uses: azure/cli@v2
         with:
           inlineScript: |
-            # Get the storage account name and managed identity client ID
-            STORAGE_NAME=$(az deployment group show \
-              --name ${{ env.DEPLOYMENT_NAME }} \
-              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
-              --query properties.outputs.storageAccountName.value -o tsv)
-            echo "Storage account: ${STORAGE_NAME}"
-
-            # Deploy using zipdeploy via Kudu API directly
-            az webapp deploy \
+            az functionapp deployment source config-zip \
               --name ${{ steps.get_app.outputs.app_name }} \
               --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
-              --src-path ${{ runner.temp }}/deploy.zip \
-              --type zip \
-              --clean true
+              --src ${{ runner.temp }}/deploy.zip \
+              --build-remote false
 
-            # Set app setting to force the runtime to sync functions from filesystem
-            az functionapp config appsettings set \
-              --name ${{ steps.get_app.outputs.app_name }} \
-              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
-              --settings "AzureWebJobsFeatureFlags=EnableWorkerIndexing" \
-              --output none
-
-            echo "Restarting function app to pick up deployed functions..."
+            echo "Restarting function app..."
             az functionapp restart \
               --name ${{ steps.get_app.outputs.app_name }} \
               --resource-group ${{ env.RESOURCE_GROUP_NAME }}
@@ -212,11 +196,11 @@ jobs:
               --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
               --output table || echo "Function listing not available yet"
 
-            echo "Checking function app status..."
+            echo "Function app status:"
             az functionapp show \
               --name ${{ steps.get_app.outputs.app_name }} \
               --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
-              --query "{state:state, availabilityState:availabilityState, usageState:usageState}" \
+              --query "{state:state, availabilityState:availabilityState}" \
               --output table
 
   smoke-test:

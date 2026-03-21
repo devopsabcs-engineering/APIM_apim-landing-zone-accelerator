@@ -40,6 +40,7 @@ param linuxFxVersion string = 'dotnet-isolated|8.0'
 var hostingPlanName = 'asp-appt-${instanceNumber}-${uniqueString(resourceGroup().id)}'
 var applicationInsightsName = 'appi-appt-${instanceNumber}-${uniqueString(resourceGroup().id)}'
 var storageAccountName = 'stappt${instanceNumber}${uniqueString(resourceGroup().id)}'
+var runtimeStorageAccountName = 'strt${instanceNumber}${uniqueString(resourceGroup().id)}'
 var containerRegistryName = 'crappt${instanceNumber}${uniqueString(resourceGroup().id)}'
 var logAnalyticsName = 'log-appt-${instanceNumber}-${uniqueString(resourceGroup().id)}'
 
@@ -106,6 +107,23 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
     resource table 'tables@2023-05-01' = {
       name: appointmentTableName
     }
+  }
+}
+
+@description('Storage account for the Functions runtime (requires shared key access for host state management)')
+resource runtimeStorageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
+  name: runtimeStorageAccountName
+  location: location
+  sku: {
+    name: 'Standard_LRS'
+  }
+  kind: 'StorageV2'
+  properties: {
+    networkAcls: {
+      defaultAction: 'Allow'
+      bypass: 'AzureServices'
+    }
+    allowSharedKeyAccess: true
   }
 }
 
@@ -238,24 +256,8 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
           value: ''
         }
         {
-          name: 'AzureWebJobsStorage__blobServiceUri'
-          value: 'https://${storageAccountName}.blob.${environment().suffixes.storage}'
-        }
-        {
-          name: 'AzureWebJobsStorage__queueServiceUri'
-          value: 'https://${storageAccountName}.queue.${environment().suffixes.storage}'
-        }
-        {
-          name: 'AzureWebJobsStorage__tableServiceUri'
-          value: 'https://${storageAccountName}.table.${environment().suffixes.storage}'
-        }
-        {
-          name: 'AzureWebJobsStorage__credential'
-          value: 'managedidentity'
-        }
-        {
-          name: 'AzureWebJobsStorage__clientId'
-          value: managedIdentity.properties.clientId
+          name: 'AzureWebJobsStorage'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${runtimeStorageAccountName};EndpointSuffix=${environment().suffixes.storage};AccountKey=${runtimeStorageAccount.listKeys().keys[0].value}'
         }
         {
           name: 'FUNCTIONS_EXTENSION_VERSION'
