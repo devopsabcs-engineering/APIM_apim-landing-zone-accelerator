@@ -185,6 +185,12 @@ jobs:
       - name: Create zip package
         run: |
           cd ${{ runner.temp }}/drop
+          echo "=== Published files ==="
+          find . -maxdepth 2 -type f | sort | head -30
+          echo "=== Checking for function metadata ==="
+          ls -la *.json 2>/dev/null || echo "No JSON files at root"
+          ls -la *.deps.json 2>/dev/null || echo "No deps files"
+          cat host.json 2>/dev/null || echo "No host.json found"
           zip -r ${{ runner.temp }}/deploy.zip .
       - name: Deploy to Azure Functions
         uses: azure/cli@v2
