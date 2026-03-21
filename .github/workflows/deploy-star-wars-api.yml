@@ -257,8 +257,9 @@ jobs:
               const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox', '--disable-setuid-sandbox'] });
               const page = await browser.newPage();
               await page.setViewport({ width: 1280, height: 720 });
-              try { await page.goto('${SMOKE_URL}', { waitUntil: 'networkidle2', timeout: 30000 }); }
-              catch (e) { console.log('Navigation warning:', e.message); }
+              await page.goto('${APP_URL}/swagger/index.html', { waitUntil: 'networkidle2', timeout: 30000 }).catch(() => {});
+              await page.waitForSelector('.swagger-ui', { timeout: 10000 }).catch(() => {});
+              await new Promise(r => setTimeout(r, 3000));
               await page.screenshot({ path: 'screenshot.png' });
               await browser.close();
               console.log('Screenshot captured');
