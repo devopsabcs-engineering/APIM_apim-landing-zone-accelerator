@@ -249,20 +249,8 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
           value: managedIdentity.properties.clientId
         }
         {
-          name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'
-          value: ''
-        }
-        {
-          name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING__accountName'
-          value: storageAccountName
-        }
-        {
-          name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING__credential'
-          value: 'managedidentity'
-        }
-        {
-          name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING__clientId'
-          value: managedIdentity.properties.clientId
+          name: 'WEBSITE_SKIP_CONTENTSHARE_VALIDATION'
+          value: '1'
         }
         {
           name: 'WEBSITE_CONTENTSHARE'
