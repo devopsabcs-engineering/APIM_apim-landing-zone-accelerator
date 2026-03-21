@@ -256,6 +256,24 @@ jobs:
           DOCS_URL: ${{ steps.smoke_docs.outputs.smoke_url }}
           DOCS_RESULT: ${{ steps.smoke_docs.outputs.result }}
         run: |
+          # Fetch version
+          VERSION_RESPONSE=$(curl -s --max-time 30 --retry 2 --retry-delay 5 "${APP_URL}/version" || echo "N/A")
+          echo "Version: ${VERSION_RESPONSE}"
+
+          # Capture screenshot of API docs
+          npx --yes playwright install chromium --with-deps 2>/dev/null || true
+          node -e "
+            const { chromium } = require('playwright');
+            (async () => {
+              const browser = await chromium.launch();
+              const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+              try { await page.goto('${DOCS_URL}', { waitUntil: 'networkidle', timeout: 30000 }); }
+              catch (e) { await page.goto('${DOCS_URL}', { waitUntil: 'load', timeout: 15000 }).catch(() => {}); }
+              await page.screenshot({ path: 'screenshot.png', fullPage: false });
+              await browser.close();
+            })();
+          " 2>/dev/null || echo "Screenshot capture skipped"
+
           {
             echo "## 🔍 Smoke Test Results"
             echo ""
@@ -264,8 +282,28 @@ jobs:
             echo "| Health Check | [${HEALTH_URL}](${HEALTH_URL}) | ${HEALTH_RESULT} |"
             echo "| API Docs | [${DOCS_URL}](${DOCS_URL}) | ${DOCS_RESULT} |"
             echo ""
+            echo "### 📦 Version Information"
+            echo ""
+            echo "\`\`\`json"
+            echo "${VERSION_RESPONSE}"
+            echo "\`\`\`"
+            echo ""
+            if [ -f screenshot.png ]; then
+              echo "### 📸 API Docs Screenshot"
+              echo ""
+              echo "Screenshot uploaded as workflow artifact: **screenshot-fast-api**"
+              echo ""
+            fi
             echo "🔗 **Application URL:** [${APP_URL}](${APP_URL})"
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload screenshot artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshot-fast-api
+          path: screenshot.png
+          if-no-files-found: ignore
+          retention-days: 30
 
   teardown:
     name: Teardown Infrastructure

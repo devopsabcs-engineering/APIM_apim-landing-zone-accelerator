@@ -43,6 +43,7 @@ on:
 permissions:
   id-token: write
   contents: write
+  pages: write
 
 jobs:
   deploy-web-app:
@@ -122,9 +123,195 @@ jobs:
       teardown: false
     secrets: inherit
 
+  publish-wiki:
+    name: Publish Deployment Report to Wiki
+    needs:
+      - deploy-web-app
+      - deploy-weather-api
+      - deploy-star-wars-api
+      - deploy-soap-api
+      - deploy-odata-api
+      - deploy-movie-api
+      - deploy-flask-app
+      - deploy-fast-api
+      - deploy-appointments-api
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download all screenshot artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: screenshot-*
+          path: screenshots
+          merge-multiple: false
+      - name: Collect version and smoke test data
+        id: collect
+        run: |
+          TIMESTAMP=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+          # Define all apps with their version endpoints
+          declare -A APPS
+          APPS=(
+            ["Web App"]="https://app-web-app-jqlzyrm7hw4ou.azurewebsites.net|/api/version|/"
+            ["Weather API"]="https://app-weather-api-wvwg5gngtozli.azurewebsites.net|/api/version|/swagger"
+            ["Star Wars API"]="https://app-star-wars-api-o3swnbq56q5wi.azurewebsites.net|/api/version|/swagger"
+            ["SOAP API"]="https://app-soap-api-eck3siixea55c.azurewebsites.net|/api/version|/PersonProfileService.asmx?wsdl"
+            ["OData API"]="https://app-odata-api-y3va2idmk57mg.azurewebsites.net|/api/version|/odata/\$metadata"
+            ["Movie API"]="https://app-movie-reviews-api-cknbss3bmafei.azurewebsites.net|/api/version|/swagger"
+            ["Flask App"]="https://app-flask-iru5pc6fcyhre.azurewebsites.net|/version|/"
+            ["Fast API"]="https://fast-api-app-insights-001.azurewebsites.net|/version|/healthz"
+            ["Appointments API"]="https://func-appt-003-ooykm4ncakrlc.azurewebsites.net|/api/version|/api/Appointment"
+          )
+
+          # Build wiki page
+          WIKI_FILE="wiki-report.md"
+          {
+            echo "# Deployment Report"
+            echo ""
+            echo "_Generated: ${TIMESTAMP}_"
+            echo ""
+            echo "**Workflow Run:** [#${GITHUB_RUN_NUMBER}](${RUN_URL})"
+            echo "**Branch:** \`${GITHUB_REF_NAME}\`"
+            echo "**Triggered by:** ${GITHUB_ACTOR}"
+            echo ""
+            echo "---"
+            echo ""
+            echo "## Application Status"
+            echo ""
+            echo "| Application | URL | Version | Smoke Test | Version Endpoint |"
+            echo "|-------------|-----|---------|------------|------------------|"
+          } > "${WIKI_FILE}"
+
+          ORDER=("Web App" "Weather API" "Star Wars API" "SOAP API" "OData API" "Movie API" "Flask App" "Fast API" "Appointments API")
+          for APP_NAME in "${ORDER[@]}"; do
+            IFS='|' read -r BASE_URL VERSION_PATH SMOKE_PATH <<< "${APPS[$APP_NAME]}"
+            VERSION=$(curl -s --max-time 15 --retry 1 "${BASE_URL}${VERSION_PATH}" 2>/dev/null || echo "N/A")
+            SMOKE_STATUS=$(curl -o /dev/null -s -w "%{http_code}" --max-time 15 --retry 1 "${BASE_URL}${SMOKE_PATH}" 2>/dev/null || echo "000")
+            if [[ "${SMOKE_STATUS}" -ge 200 && "${SMOKE_STATUS}" -lt 400 ]]; then
+              SMOKE_ICON="✅"
+            elif [[ "${SMOKE_STATUS}" -ge 400 && "${SMOKE_STATUS}" -lt 500 ]]; then
+              SMOKE_ICON="⚠️"
+            else
+              SMOKE_ICON="❌"
+            fi
+            echo "| ${APP_NAME} | [${BASE_URL}](${BASE_URL}) | \`${VERSION}\` | ${SMOKE_ICON} HTTP ${SMOKE_STATUS} | [version](${BASE_URL}${VERSION_PATH}) |" >> "${WIKI_FILE}"
+          done
+
+          {
+            echo ""
+            echo "---"
+            echo ""
+            echo "## Screenshots"
+            echo ""
+          } >> "${WIKI_FILE}"
+
+          # List available screenshots
+          if [ -d screenshots ]; then
+            for SCREENSHOT_DIR in screenshots/screenshot-*/; do
+              if [ -d "${SCREENSHOT_DIR}" ]; then
+                DIR_NAME=$(basename "${SCREENSHOT_DIR}")
+                APP_LABEL=$(echo "${DIR_NAME}" | sed 's/screenshot-//; s/-/ /g' | sed 's/\b\(.\)/\u\1/g')
+                for IMG in "${SCREENSHOT_DIR}"*.png; do
+                  if [ -f "${IMG}" ]; then
+                    IMG_NAME=$(basename "${IMG}")
+                    echo "### ${APP_LABEL} - ${IMG_NAME}" >> "${WIKI_FILE}"
+                    echo "" >> "${WIKI_FILE}"
+                    echo "![${APP_LABEL}](screenshots/${DIR_NAME}/${IMG_NAME})" >> "${WIKI_FILE}"
+                    echo "" >> "${WIKI_FILE}"
+                  fi
+                done
+              fi
+            done
+          else
+            echo "_No screenshots captured in this run._" >> "${WIKI_FILE}"
+          fi
+
+          {
+            echo ""
+            echo "---"
+            echo ""
+            echo "## Deployment Details"
+            echo ""
+            echo "| Property | Value |"
+            echo "|----------|-------|"
+            echo "| Run ID | ${GITHUB_RUN_ID} |"
+            echo "| Run Number | ${GITHUB_RUN_NUMBER} |"
+            echo "| Commit | \`${GITHUB_SHA:0:7}\` |"
+            echo "| Timestamp | ${TIMESTAMP} |"
+          } >> "${WIKI_FILE}"
+
+          echo "wiki_file=${WIKI_FILE}" >> "$GITHUB_OUTPUT"
+          echo "timestamp=${TIMESTAMP}" >> "$GITHUB_OUTPUT"
+      - name: Publish to GitHub Wiki
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          WIKI_REPO="${GITHUB_REPOSITORY}.wiki"
+          WIKI_DIR="wiki-checkout"
+
+          # Clone wiki repository
+          git clone "https://x-access-token:${GITHUB_TOKEN}@github.com/${WIKI_REPO}.git" "${WIKI_DIR}" 2>/dev/null || {
+            echo "Wiki not initialized. Creating initial wiki page..."
+            mkdir -p "${WIKI_DIR}"
+            cd "${WIKI_DIR}"
+            git init
+            git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${WIKI_REPO}.git"
+            echo "# APIM Landing Zone Accelerator Wiki" > Home.md
+            cd ..
+          }
+
+          # Create deployment reports directory
+          mkdir -p "${WIKI_DIR}/Deployment-Reports"
+          mkdir -p "${WIKI_DIR}/Deployment-Reports/screenshots"
+
+          # Copy screenshots
+          if [ -d screenshots ]; then
+            cp -r screenshots/* "${WIKI_DIR}/Deployment-Reports/screenshots/" 2>/dev/null || true
+          fi
+
+          # Copy report with timestamped name and as latest
+          DATE_STAMP=$(date -u '+%Y-%m-%d')
+          cp wiki-report.md "${WIKI_DIR}/Deployment-Reports/Deployment-Report-${DATE_STAMP}-Run-${GITHUB_RUN_NUMBER}.md"
+          cp wiki-report.md "${WIKI_DIR}/Deployment-Reports/Latest-Deployment-Report.md"
+
+          # Update wiki index page for deployment reports
+          {
+            echo "# Deployment Reports"
+            echo ""
+            echo "**[Latest Deployment Report](Deployment-Reports/Latest-Deployment-Report)**"
+            echo ""
+            echo "## History"
+            echo ""
+            ls -1t "${WIKI_DIR}"/Deployment-Reports/Deployment-Report-*.md 2>/dev/null | head -20 | while read -r f; do
+              BASENAME=$(basename "$f" .md)
+              echo "- [${BASENAME}](Deployment-Reports/${BASENAME})"
+            done
+          } > "${WIKI_DIR}/Deployment-Reports.md"
+
+          # Commit and push
+          cd "${WIKI_DIR}"
+          git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+          git config user.name "${GITHUB_ACTOR}"
+          git add -A
+          git diff --cached --quiet && echo "No wiki changes to commit" && exit 0
+          git commit -m "Deployment report for run #${GITHUB_RUN_NUMBER} on $(date -u '+%Y-%m-%d')"
+          git push origin master 2>/dev/null || git push origin main 2>/dev/null || echo "Wiki push failed - wiki may not be enabled"
+      - name: Write deploy-all summary
+        run: |
+          {
+            echo "## 📋 Deployment Report Published"
+            echo ""
+            echo "The full deployment report with screenshots has been published to the [GitHub Wiki](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/wiki/Deployment-Reports)."
+            echo ""
+            cat wiki-report.md
+          } >> "$GITHUB_STEP_SUMMARY"
+
   teardown-all:
     name: Teardown All Infrastructure
     needs:
+      - publish-wiki
       - deploy-web-app
       - deploy-weather-api
       - deploy-star-wars-api

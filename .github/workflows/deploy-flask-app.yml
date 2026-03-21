@@ -183,6 +183,24 @@ jobs:
           APP_URL: ${{ steps.smoke.outputs.app_url }}
           SMOKE_RESULT: ${{ steps.smoke.outputs.result }}
         run: |
+          # Fetch version
+          VERSION_RESPONSE=$(curl -s --max-time 30 --retry 2 --retry-delay 5 "${APP_URL}/version" || echo "N/A")
+          echo "Version: ${VERSION_RESPONSE}"
+
+          # Capture screenshot of home page
+          npx --yes playwright install chromium --with-deps 2>/dev/null || true
+          node -e "
+            const { chromium } = require('playwright');
+            (async () => {
+              const browser = await chromium.launch();
+              const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+              try { await page.goto('${APP_URL}', { waitUntil: 'networkidle', timeout: 30000 }); }
+              catch (e) { await page.goto('${APP_URL}', { waitUntil: 'load', timeout: 15000 }).catch(() => {}); }
+              await page.screenshot({ path: 'screenshot.png', fullPage: false });
+              await browser.close();
+            })();
+          " 2>/dev/null || echo "Screenshot capture skipped"
+
           {
             echo "## 🔍 Smoke Test Results"
             echo ""
@@ -190,8 +208,28 @@ jobs:
             echo "|-------|-----|--------|"
             echo "| Home Page | [${APP_URL}](${APP_URL}) | ${SMOKE_RESULT} |"
             echo ""
+            echo "### 📦 Version Information"
+            echo ""
+            echo "\`\`\`json"
+            echo "${VERSION_RESPONSE}"
+            echo "\`\`\`"
+            echo ""
+            if [ -f screenshot.png ]; then
+              echo "### 📸 Home Screen Screenshot"
+              echo ""
+              echo "Screenshot uploaded as workflow artifact: **screenshot-flask-app**"
+              echo ""
+            fi
             echo "🔗 **Application URL:** [${APP_URL}](${APP_URL})"
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload screenshot artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshot-flask-app
+          path: screenshot.png
+          if-no-files-found: ignore
+          retention-days: 30
 
   teardown:
     name: Teardown Infrastructure

@@ -246,10 +246,55 @@ jobs:
           else
             echo "result=⚠️ Warning (HTTP ${HTTP_STATUS})" >> "$GITHUB_OUTPUT"
           fi
+      - name: Get API version
+        id: version
+        env:
+          APP_NAME: ${{ needs.deploy-app.outputs.app_name }}
+        run: |
+          VERSION_URL="https://${APP_NAME}.azurewebsites.net/api/version"
+          VERSION_RESPONSE=$(curl -s --max-time 30 --retry 2 --retry-delay 5 "${VERSION_URL}" || echo "N/A")
+          echo "Version response: ${VERSION_RESPONSE}"
+          echo "version=${VERSION_RESPONSE}" >> "$GITHUB_OUTPUT"
+      - name: Capture screenshot
+        id: screenshot
+        env:
+          APP_NAME: ${{ needs.deploy-app.outputs.app_name }}
+        run: |
+          APP_URL="https://${APP_NAME}.azurewebsites.net"
+          sudo apt-get update -qq && sudo apt-get install -yqq chromium-browser 2>/dev/null || true
+          npx --yes playwright install chromium --with-deps 2>/dev/null || true
+          node -e "
+            const { chromium } = require('playwright');
+            (async () => {
+              const browser = await chromium.launch();
+              const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+              try {
+                await page.goto('${APP_URL}', { waitUntil: 'networkidle', timeout: 30000 });
+              } catch (e) {
+                await page.goto('${APP_URL}', { waitUntil: 'load', timeout: 15000 }).catch(() => {});
+              }
+              await page.screenshot({ path: 'screenshot.png', fullPage: false });
+              await browser.close();
+            })();
+          " 2>/dev/null || echo "Screenshot capture skipped"
+          if [ -f screenshot.png ]; then
+            echo "captured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "captured=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Upload screenshot artifact
+        if: steps.screenshot.outputs.captured == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshot-web-app
+          path: screenshot.png
+          retention-days: 30
       - name: Write job summary
         env:
           APP_URL: ${{ steps.smoke.outputs.app_url }}
           SMOKE_RESULT: ${{ steps.smoke.outputs.result }}
+          APP_VERSION: ${{ steps.version.outputs.version }}
+          SCREENSHOT_CAPTURED: ${{ steps.screenshot.outputs.captured }}
         run: |
           {
             echo "## 🔍 Smoke Test Results"
@@ -258,6 +303,19 @@ jobs:
             echo "|-------|-----|--------|"
             echo "| Home Page | [${APP_URL}](${APP_URL}) | ${SMOKE_RESULT} |"
             echo ""
+            echo "### 📦 Version Information"
+            echo ""
+            echo "| Property | Value |"
+            echo "|----------|-------|"
+            echo "| Version | \`${APP_VERSION}\` |"
+            echo "| Version URL | [${APP_URL}/api/version](${APP_URL}/api/version) |"
+            echo ""
+            if [ "${SCREENSHOT_CAPTURED}" = "true" ]; then
+              echo "### 📸 Home Screen Screenshot"
+              echo ""
+              echo "Screenshot uploaded as workflow artifact: **screenshot-web-app**"
+              echo ""
+            fi
             echo "🔗 **Application URL:** [${APP_URL}](${APP_URL})"
           } >> "$GITHUB_STEP_SUMMARY"
 

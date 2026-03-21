@@ -48,6 +48,11 @@ namespace AddressBook.Service.SOAP
             app.UseRouting();
             app.UseAuthorization();
 
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapControllers();
+            });
+
             app.UseSoapEndpoint<PersonProfileService>(options =>
             {
                 options.Path = "/PersonProfileService.asmx";

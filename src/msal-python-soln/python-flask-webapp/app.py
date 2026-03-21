@@ -140,6 +140,11 @@ auth = MsalAuth(
 )
 
 
+@app.route("/version")
+def version():
+    return {"version": __version__, "python_version": __python_version__}
+
+
 @app.route("/login")
 def login():
     login_attempt_counter.add(1, {"auth.flow": "interactive"})

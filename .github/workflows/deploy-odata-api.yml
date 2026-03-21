@@ -245,12 +245,24 @@ jobs:
         run: |
           APP_URL="https://${APP_NAME}.azurewebsites.net"
           SMOKE_URL="${APP_URL}/odata/\$metadata"
+
+          # Fetch version
+          VERSION_RESPONSE=$(curl -s --max-time 30 --retry 2 --retry-delay 5 "${APP_URL}/api/version" || echo "N/A")
+          echo "Version: ${VERSION_RESPONSE}"
+
           {
             echo "## 🔍 Smoke Test Results"
             echo ""
             echo "| Check | URL | Status |"
             echo "|-------|-----|--------|"
             echo "| OData Metadata | [${SMOKE_URL}](${SMOKE_URL}) | ${SMOKE_RESULT} |"
+            echo ""
+            echo "### 📦 Version Information"
+            echo ""
+            echo "| Property | Value |"
+            echo "|----------|-------|"
+            echo "| Version | \`${VERSION_RESPONSE}\` |"
+            echo "| Version URL | [${APP_URL}/api/version](${APP_URL}/api/version) |"
             echo ""
             echo "🔗 **Application URL:** [${APP_URL}](${APP_URL})"
           } >> "$GITHUB_STEP_SUMMARY"
