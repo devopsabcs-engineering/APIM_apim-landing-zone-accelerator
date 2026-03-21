@@ -209,7 +209,48 @@ jobs:
             az webapp log download \
               --name ${{ steps.get_app.outputs.app_name }} \
               --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
-              --log-file /tmp/applogs.zip 2>&1 && unzip -p /tmp/applogs.zip 2>&1 | tail -100 || echo "Log download not available"
+              --log-file /tmp/applogs.zip 2>&1 || echo "Log download failed"
+            python3 -c "
+import zipfile, os
+try:
+    with zipfile.ZipFile('/tmp/applogs.zip', 'r') as z:
+        for name in z.namelist():
+            if any(x in name.lower() for x in ['error', 'host', 'startup', 'worker']):
+                print(f'--- {name} ---')
+                try:
+                    content = z.read(name).decode('utf-8', errors='replace')
+                    lines = content.strip().split('\n')
+                    for line in lines[-50:]:
+                        print(line)
+                except: pass
+        # Also print any log files
+        for name in z.namelist():
+            if name.endswith('.log') or name.endswith('.txt'):
+                print(f'--- {name} ---')
+                try:
+                    content = z.read(name).decode('utf-8', errors='replace')
+                    lines = content.strip().split('\n')
+                    for line in lines[-30:]:
+                        print(line)
+                except: pass
+except Exception as e:
+    print(f'Failed to read logs: {e}')
+" 2>&1 | tail -200 || echo "Log parsing failed"
+
+            echo "=== Checking zip package contents ==="
+            python3 -c "
+import zipfile
+with zipfile.ZipFile('${{ runner.temp }}/deploy.zip', 'r') as z:
+    for name in sorted(z.namelist()):
+        info = z.getinfo(name)
+        print(f'{info.file_size:>10} {name}')
+" 2>&1 | head -30
+
+            echo "=== Current linuxFxVersion ==="
+            az functionapp config show \
+              --name ${{ steps.get_app.outputs.app_name }} \
+              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+              --query "linuxFxVersion" -o tsv
 
             echo "=== Checking app settings ==="
             az functionapp config appsettings list \
