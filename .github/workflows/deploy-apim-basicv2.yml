@@ -195,12 +195,11 @@ jobs:
             echo "AAD identity provider configured for ${APIM_NAME}"
       - name: Seed demo data
         if: ${{ inputs.seed_demo_data }}
-        uses: azure/cli@v2
-        with:
-          inlineScript: |
-            pwsh scripts/seed-apim-demo-data.ps1 \
-              -ResourceGroup "${{ env.RG_DEV }}" \
-              -ApimName "${{ steps.deploy.outputs.apim_name }}"
+        run: |
+          pwsh scripts/seed-apim-demo-data.ps1 \
+            -ResourceGroup "${{ env.RG_DEV }}" \
+            -ApimName "${{ steps.deploy.outputs.apim_name }}"
+        shell: bash
       - name: Write job summary
         env:
           APIM_NAME: ${{ steps.deploy.outputs.apim_name }}
@@ -284,12 +283,11 @@ jobs:
             echo "AAD identity provider configured for ${APIM_NAME}"
       - name: Seed demo data
         if: ${{ inputs.seed_demo_data }}
-        uses: azure/cli@v2
-        with:
-          inlineScript: |
-            pwsh scripts/seed-apim-demo-data.ps1 \
-              -ResourceGroup "${{ env.RG_PROD }}" \
-              -ApimName "${{ steps.deploy.outputs.apim_name }}"
+        run: |
+          pwsh scripts/seed-apim-demo-data.ps1 \
+            -ResourceGroup "${{ env.RG_PROD }}" \
+            -ApimName "${{ steps.deploy.outputs.apim_name }}"
+        shell: bash
       - name: Write job summary
         env:
           APIM_NAME: ${{ steps.deploy.outputs.apim_name }}
