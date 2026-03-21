@@ -1,9 +1,0 @@
-{
-  "properties": {
-    "displayName": "Sub to All APIs (DEV)",
-    "scope": "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-dev-005-eu2/providers/Microsoft.ApiManagement/service/apim-dev-005-3snpbfdd5kffc/apis",
-    "allowTracing": false,
-    "ownerId": "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-dev-005-eu2/providers/Microsoft.ApiManagement/service/apim-dev-005-3snpbfdd5kffc/users/66f2dc49da09a30f80cf2e50",
-    "state": "active"
-  }
-}
