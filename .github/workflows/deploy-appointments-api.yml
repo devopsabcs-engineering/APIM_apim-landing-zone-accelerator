@@ -201,10 +201,9 @@ jobs:
             SCM_URL="https://${APP_NAME}.scm.azurewebsites.net"
 
             echo "=== Deploying zip package ==="
-            az functionapp deploy \
+            az functionapp deployment source config-zip \
               --name "$APP_NAME" --resource-group "$RG" \
-              --src-path ${{ runner.temp }}/deploy.zip \
-              --type zip --clean true --restart true
+              --src ${{ runner.temp }}/deploy.zip --build-remote false
 
             echo "=== Triggering function sync ==="
             az rest --method post \
@@ -231,6 +230,12 @@ jobs:
             echo "worker.config.json:"
             curl -s -u "${KUDU_USER}:${KUDU_PASS}" "${SCM_URL}/api/vfs/site/wwwroot/worker.config.json" || echo "No worker.config.json"
             echo ""
+
+            echo "=== Checking Kudu process list ==="
+            curl -s -u "${KUDU_USER}:${KUDU_PASS}" "${SCM_URL}/api/processes" | jq '.[].name' 2>/dev/null || echo "Could not list processes"
+
+            echo "=== Checking Kudu environment ==="
+            curl -s -u "${KUDU_USER}:${KUDU_PASS}" "${SCM_URL}/api/environment" | jq '{version, osName}' 2>/dev/null || echo "Could not get env"
 
             echo "=== Restarting function app ==="
             az functionapp restart --name "$APP_NAME" --resource-group "$RG"
