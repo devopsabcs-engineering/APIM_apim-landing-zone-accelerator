@@ -4,7 +4,7 @@ info:
   description: ''
   version: '1.0'
 servers:
-  - url: https://apim-dev-005-3snpbfdd5kffc.azure-api.net/swdev
+  - url: https://apim-dev-006-cxfqm7rkx4ppi.azure-api.net/swdev
 paths:
   /people/:
     get:

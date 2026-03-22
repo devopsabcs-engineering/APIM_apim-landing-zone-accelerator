@@ -4,7 +4,7 @@ info:
   description: Détruit le death star -- DEMO MTQ
   version: '1.0'
 servers:
-  - url: https://apim-dev-005-3snpbfdd5kffc.azure-api.net/sw
+  - url: https://apim-dev-006-cxfqm7rkx4ppi.azure-api.net/sw
 paths:
   /api/Films:
     get:

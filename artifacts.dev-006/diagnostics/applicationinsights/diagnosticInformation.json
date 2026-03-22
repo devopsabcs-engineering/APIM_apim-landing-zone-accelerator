@@ -1,6 +1,6 @@
 {
   "properties": {
-    "loggerId": "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-dev-005-eu2/providers/Microsoft.ApiManagement/service/apim-dev-005-3snpbfdd5kffc/loggers/apimlogger",
+    "loggerId": "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-basicv2-dev-006/providers/Microsoft.ApiManagement/service/apim-dev-006-cxfqm7rkx4ppi/loggers/apimlogger",
     "alwaysLog": "allErrors",
     "backend": {
       "request": {

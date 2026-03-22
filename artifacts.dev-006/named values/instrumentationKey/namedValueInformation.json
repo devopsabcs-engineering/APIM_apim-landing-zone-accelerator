@@ -1,6 +1,6 @@
 {
   "properties": {
-    "displayName": "mysecretvalue",
+    "displayName": "instrumentationKey",
     "secret": true,
     "tags": []
   }

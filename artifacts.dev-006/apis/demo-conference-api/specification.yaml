@@ -1,11 +1,11 @@
 openapi: 3.0.1
 info:
   title: Demo Conference API
-  description: 'A sample API with information related to a technical conference.  The available resources  include *Speakers*, *Sessions* and *Topics*.  A single write operation is available to provide  feedback on a session. (Team 001 is making a change)'
+  description: 'A sample API with information related to a technical conference.  The available resources  include *Speakers*, *Sessions* and *Topics*.  A single write operation is available to provide  feedback on a session. (Team 001 is making a change) -- FIRST GITHUB e2e APIOps flow'
   version: '1.0'
 servers:
-  - url: http://apim-dev-005-3snpbfdd5kffc.azure-api.net/conference
-  - url: https://apim-dev-005-3snpbfdd5kffc.azure-api.net/conference
+  - url: http://apim-dev-006-cxfqm7rkx4ppi.azure-api.net/conference
+  - url: https://apim-dev-006-cxfqm7rkx4ppi.azure-api.net/conference
 paths:
   /sessions:
     get:

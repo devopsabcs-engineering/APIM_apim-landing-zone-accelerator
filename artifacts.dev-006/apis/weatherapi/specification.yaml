@@ -4,7 +4,7 @@ info:
   description: This is an api to fetch random weather data! And also make spectral linter happy! team 002 change
   version: '1.0'
 servers:
-  - url: https://apim-dev-005-3snpbfdd5kffc.azure-api.net/weather
+  - url: https://apim-dev-006-cxfqm7rkx4ppi.azure-api.net/weather
 paths:
   /WeatherForecast:
     get:

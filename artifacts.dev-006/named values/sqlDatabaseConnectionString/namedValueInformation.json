@@ -2,7 +2,6 @@
   "properties": {
     "displayName": "sqlDatabaseConnectionString",
     "secret": true,
-    "value": "placeholder-update-after-keyvault-setup",
     "tags": [
       "dev"
     ]
