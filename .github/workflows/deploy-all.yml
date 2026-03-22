@@ -10,7 +10,7 @@ on:
       teardown:
         description: 'Tear down all infrastructure after deployment'
         type: boolean
-        default: false
+        default: true
       web_app_instance:
         description: 'Web App instance number'
         type: string
