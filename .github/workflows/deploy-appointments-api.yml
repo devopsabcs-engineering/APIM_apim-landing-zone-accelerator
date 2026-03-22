@@ -136,38 +136,28 @@ jobs:
     name: Build and Push Container Image
     needs: [set-version, deploy-infra]
     runs-on: ubuntu-latest
-    environment: APIM_Appointments_Api_app_production
-    outputs:
-      image_tag: ${{ needs.set-version.outputs.semver }}
-      app_name: ${{ needs.deploy-infra.outputs.app_name }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      - name: Log in to ACR
-        run: az acr login --name ${{ needs.deploy-infra.outputs.acr_name }}
-      - name: Build and push container image
-        run: |
-          ACR_LOGIN="${{ needs.deploy-infra.outputs.acr_login_server }}"
-          IMAGE="${ACR_LOGIN}/${{ env.IMAGE_NAME }}"
-          TAG="${{ needs.set-version.outputs.semver }}"
-
-          docker build \
-            --build-arg GitVersion_SemVer="${TAG}" \
-            --build-arg GitVersion_AssemblySemFileVer="${{ needs.set-version.outputs.assembly_sem_file_ver }}" \
-            --build-arg GitVersion_AssemblySemVer="${{ needs.set-version.outputs.assembly_sem_ver }}" \
-            -t "${IMAGE}:${TAG}" \
-            -t "${IMAGE}:latest" \
-            -f ${{ env.DOCKERFILE_PATH }} \
-            ${{ env.BUILD_CONTEXT }}
-
-          docker push "${IMAGE}:${TAG}"
-          docker push "${IMAGE}:latest"
-
-          echo "Pushed: ${IMAGE}:${TAG}"
+      - name: Build and push image via ACR
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            az acr build \
+              --registry ${{ needs.deploy-infra.outputs.acr_name }} \
+              --image ${{ env.IMAGE_NAME }}:${{ needs.set-version.outputs.semver }} \
+              --image ${{ env.IMAGE_NAME }}:latest \
+              --file ${{ env.DOCKERFILE_PATH }} \
+              --build-arg GitVersion_SemVer=${{ needs.set-version.outputs.semver }} \
+              --build-arg GitVersion_AssemblySemFileVer=${{ needs.set-version.outputs.assembly_sem_file_ver }} \
+              --build-arg GitVersion_AssemblySemVer=${{ needs.set-version.outputs.assembly_sem_ver }} \
+              ${{ env.BUILD_CONTEXT }}
 
   deploy-app:
     name: Deploy Application
@@ -182,7 +172,7 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      - name: Update container image on Function App
+      - name: Configure function app for container and restart
         uses: azure/cli@v2
         with:
           inlineScript: |
@@ -192,17 +182,32 @@ jobs:
             TAG="${{ needs.set-version.outputs.semver }}"
             IMAGE="${ACR_LOGIN}/${{ env.IMAGE_NAME }}:${TAG}"
 
-            echo "=== Setting container image to ${IMAGE} ==="
-            az functionapp config container set \
+            echo "=== Setting linuxFxVersion to container image ==="
+            az functionapp config set \
               --name "$APP_NAME" \
               --resource-group "$RG" \
-              --image "$IMAGE"
+              --linux-fx-version "DOCKER|${IMAGE}"
+
+            echo "=== Ensuring ACR managed identity pull is configured ==="
+            az functionapp config set \
+              --name "$APP_NAME" \
+              --resource-group "$RG" \
+              --generic-configurations '{"acrUseManagedIdentityCreds": true}'
+
+            echo "=== Setting WEBSITES_ENABLE_APP_SERVICE_STORAGE=false ==="
+            az functionapp config appsettings set \
+              --name "$APP_NAME" \
+              --resource-group "$RG" \
+              --settings WEBSITES_ENABLE_APP_SERVICE_STORAGE=false
 
             echo "=== Restarting function app ==="
             az functionapp restart --name "$APP_NAME" --resource-group "$RG"
 
             echo "=== Waiting 120s for container to pull and start ==="
             sleep 120
+
+            echo "=== Checking container logs ==="
+            az webapp log tail --name "$APP_NAME" --resource-group "$RG" --timeout 10 2>/dev/null || true
 
             echo "=== Function list ==="
             az functionapp function list --name "$APP_NAME" --resource-group "$RG" --output table || echo "No functions listed yet"
@@ -212,7 +217,7 @@ jobs:
 
             echo "=== Function app status ==="
             az functionapp show --name "$APP_NAME" --resource-group "$RG" \
-              --query "{state:state, availabilityState:availabilityState}" --output table
+              --query "{state:state, availabilityState:availabilityState, linuxFxVersion:siteConfig.linuxFxVersion}" --output table
 
   smoke-test:
     name: Smoke Test

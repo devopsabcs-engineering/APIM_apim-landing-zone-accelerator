@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "11520575701253768536"
+      "templateHash": "12833038089271442262"
     }
   },
   "parameters": {
@@ -68,13 +68,6 @@
       ],
       "metadata": {
         "description": "The language worker runtime to load in the function app."
-      }
-    },
-    "containerImageTag": {
-      "type": "string",
-      "defaultValue": "latest",
-      "metadata": {
-        "description": "Container image tag for the Function App. Set during deployment."
       }
     }
   },
@@ -336,7 +329,7 @@
       "apiVersion": "2024-04-01",
       "name": "[parameters('functionAppName')]",
       "location": "[parameters('location')]",
-      "kind": "functionapp,linux,container",
+      "kind": "functionapp,linux",
       "identity": {
         "type": "SystemAssigned, UserAssigned",
         "userAssignedIdentities": {
@@ -349,7 +342,7 @@
         "virtualNetworkSubnetId": "[reference(resourceId('Microsoft.Network/virtualNetworks', variables('vnetName')), '2024-01-01').subnets[0].id]",
         "keyVaultReferenceIdentity": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id)))]",
         "siteConfig": {
-          "linuxFxVersion": "[format('DOCKER|{0}/appointmentsapi:{1}', reference(resourceId('Microsoft.ContainerRegistry/registries', variables('containerRegistryName')), '2023-11-01-preview').loginServer, parameters('containerImageTag'))]",
+          "linuxFxVersion": "DOTNET-ISOLATED|8.0",
           "acrUseManagedIdentityCreds": true,
           "acrUserManagedIdentityID": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id))), '2023-01-31').clientId]",
           "vnetRouteAllEnabled": true,
@@ -423,7 +416,6 @@
       },
       "dependsOn": [
         "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]",
-        "[resourceId('Microsoft.ContainerRegistry/registries', variables('containerRegistryName'))]",
         "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]",
         "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id)))]",
         "privateEndpointDnsGroups",

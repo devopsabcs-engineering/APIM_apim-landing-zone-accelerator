@@ -31,9 +31,6 @@ param appInsightsLocation string = resourceGroup().location
 ])
 param functionWorkerRuntime string = 'dotnet-isolated'
 
-@description('Container image tag for the Function App. Set during deployment.')
-param containerImageTag string = 'latest'
-
 var hostingPlanName = 'asp-appt-${instanceNumber}-${uniqueString(resourceGroup().id)}'
 var applicationInsightsName = 'appi-appt-${instanceNumber}-${uniqueString(resourceGroup().id)}'
 var storageAccountName = 'stappt${instanceNumber}${uniqueString(resourceGroup().id)}'
@@ -260,7 +257,7 @@ resource applicationInsight 'Microsoft.Insights/components@2020-02-02' = {
 resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
   name: functionAppName
   location: location
-  kind: 'functionapp,linux,container'
+  kind: 'functionapp,linux'
   identity: {
     type: 'SystemAssigned, UserAssigned'
     userAssignedIdentities: {
@@ -283,7 +280,7 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
     virtualNetworkSubnetId: vnet.properties.subnets[0].id
     keyVaultReferenceIdentity: managedIdentity.id
     siteConfig: {
-      linuxFxVersion: 'DOCKER|${containerRegistry.properties.loginServer}/appointmentsapi:${containerImageTag}'
+      linuxFxVersion: 'DOTNET-ISOLATED|8.0'
       acrUseManagedIdentityCreds: true
       acrUserManagedIdentityID: managedIdentity.properties.clientId
       vnetRouteAllEnabled: true
