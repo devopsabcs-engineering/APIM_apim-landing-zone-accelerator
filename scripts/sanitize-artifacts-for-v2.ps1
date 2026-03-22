@@ -30,7 +30,7 @@
     ./scripts/sanitize-artifacts-for-v2.ps1 -ArtifactPath "./artifacts" -TargetApimName "apim-dev-006-abc123" -WhatIf
 #>
 
-[CmdletBinding(SupportsShouldProcess)]
+[CmdletBinding()]
 param(
     [Parameter(Mandatory)]
     [string]$ArtifactPath,
@@ -112,7 +112,7 @@ if (Test-Path $productsPath) {
             }
             # Remove empty groups folder
             if (-not $WhatIf -and (Test-Path $productGroupsPath)) {
-                $remaining = Get-ChildItem -Path $productGroupsPath
+                $remaining = @(Get-ChildItem -Path $productGroupsPath)
                 if ($remaining.Count -eq 0) {
                     Remove-Item -Path $productGroupsPath -Force
                 }
@@ -139,7 +139,7 @@ if (Test-Path $subscriptionsPath) {
     }
     # Remove empty subscriptions folder
     if (-not $WhatIf -and (Test-Path $subscriptionsPath)) {
-        $remaining = Get-ChildItem -Path $subscriptionsPath
+        $remaining = @(Get-ChildItem -Path $subscriptionsPath)
         if ($remaining.Count -eq 0) {
             Remove-Item -Path $subscriptionsPath -Force
         }
@@ -158,7 +158,8 @@ if (Test-Path $apisPath) {
     foreach ($apiFile in $apiInfoFiles) {
         $content = Get-Content $apiFile.FullName -Raw
         $apiInfo = $content | ConvertFrom-Json
-        if ($apiInfo.properties.authenticationSettings.oAuth2) {
+        $authSettings = $apiInfo.properties.authenticationSettings
+        if ($authSettings -and $authSettings.PSObject.Properties['oAuth2'] -and $authSettings.oAuth2) {
             Write-Information "  Clearing OAuth2 from: $($apiFile.FullName | Split-Path -Parent | Split-Path -Leaf)"
             $changeCount++
             if (-not $WhatIf) {
@@ -241,7 +242,8 @@ if (Test-Path $apisPath) {
     foreach ($apiFile in $apiInfoFiles) {
         $content = Get-Content $apiFile.FullName -Raw
         $apiInfo = $content | ConvertFrom-Json
-        $serviceUrl = $apiInfo.properties.serviceUrl
+        $props = $apiInfo.properties
+        $serviceUrl = if ($props -and $props.PSObject.Properties['serviceUrl']) { $props.serviceUrl } else { $null }
         if ($serviceUrl -and $serviceUrl -match "https://[^/]+\.azure-api\.net") {
             $newUrl = $serviceUrl -replace "https://[^/]+\.azure-api\.net", $targetGatewayUrl
             if ($newUrl -ne $serviceUrl) {
