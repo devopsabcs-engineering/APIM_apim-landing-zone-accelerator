@@ -39,14 +39,14 @@ var host = new HostBuilder()
                 credential);
         });
 
-        services.AddSingleton<IAppointmentRepository>(sp =>
+        services.AddScoped<IAppointmentRepository>(sp =>
         {
             string appointmentsTable = Environment.GetEnvironmentVariable("StorageAccountAppointmentsTable") ?? "Appointments";
             var tableServiceClient = sp.GetRequiredService<TableServiceClient>();
             return new AppointmentRepository(tableServiceClient, appointmentsTable);
         });
 
-        services.AddSingleton<AppointmentService>();
+        services.AddScoped<AppointmentService>();
     })
     .Build();
 
