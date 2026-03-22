@@ -86,7 +86,7 @@ jobs:
   deploy-infra:
     name: Deploy Infrastructure
     needs: set-version
-    if: ${{ inputs.deploy_infra != false }}
+    if: ${{ github.event_name == 'push' || inputs.deploy_infra != false }}
     runs-on: ubuntu-latest
     environment: APIM_Appointments_Api_infra_production
     outputs:
