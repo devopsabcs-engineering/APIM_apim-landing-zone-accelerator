@@ -1,0 +1,123 @@
+name: Generate Architecture Diagrams
+
+on:
+  push:
+    paths:
+      - 'infra/appservice/main.bicep'
+      - 'infra/fnapp/main.bicep'
+      - 'infra/api-management-basicv2/main.bicep'
+      - 'src/fast-api-app-insights/main.bicep'
+      - 'src/msal-python-soln/python-flask-webapp/main.bicep'
+      - 'scripts/generate_architecture_diagrams.py'
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate-diagrams:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Bicep CLI
+        run: |
+          curl -Lo bicep https://github.com/Azure/bicep/releases/latest/download/bicep-linux-x64
+          chmod +x bicep && sudo mv bicep /usr/local/bin/
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install diagram dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y graphviz
+          pip install diagrams
+
+      - name: Build ARM JSON from Bicep
+        run: |
+          bicep build infra/appservice/main.bicep --outfile /tmp/appservice.json
+          bicep build infra/fnapp/main.bicep --outfile /tmp/fnapp.json
+          bicep build infra/api-management-basicv2/main.bicep --outfile /tmp/apim.json
+          bicep build src/fast-api-app-insights/main.bicep --outfile /tmp/fastapi.json
+          bicep build src/msal-python-soln/python-flask-webapp/main.bicep --outfile /tmp/flask.json
+
+      - name: Generate architecture diagrams
+        run: python scripts/generate_architecture_diagrams.py diagrams
+
+      - name: Publish architecture diagrams to Wiki
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          WIKI_REPO="${GITHUB_REPOSITORY}.wiki"
+          WIKI_DIR="wiki-checkout"
+
+          git clone "https://x-access-token:${GITHUB_TOKEN}@github.com/${WIKI_REPO}.git" "${WIKI_DIR}" 2>/dev/null || {
+            echo "Wiki not initialized. Please create a wiki page first."
+            exit 1
+          }
+
+          # Remove old architecture diagrams
+          rm -f "${WIKI_DIR}"/architecture-*.png
+
+          # Copy new diagrams to wiki root (GitHub Wiki requires root-level images)
+          cp diagrams/architecture-*.png "${WIKI_DIR}/"
+
+          # Generate Architecture-Diagrams.md wiki page
+          cat > "${WIKI_DIR}/Architecture-Diagrams.md" << 'WIKIEOF'
+          # Architecture Diagrams
+
+          Auto-generated from Bicep infrastructure-as-code files. Updated on every Bicep change.
+
+          ## APIM Basic v2
+
+          ![APIM BasicV2 Architecture](architecture-apim-basicv2.png)
+
+          ## Backend APIs
+
+          ### Weather API
+
+          ![Weather API Architecture](architecture-weather-api.png)
+
+          ### Star Wars API
+
+          ![Star Wars API Architecture](architecture-star-wars-api.png)
+
+          ### SOAP API
+
+          ![SOAP API Architecture](architecture-soap-api.png)
+
+          ### OData API
+
+          ![OData API Architecture](architecture-odata-api.png)
+
+          ### Movie Reviews API
+
+          ![Movie API Architecture](architecture-movie-api.png)
+
+          ### Web App (OpenID Connect)
+
+          ![Web App Architecture](architecture-web-app.png)
+
+          ### Flask App (MSAL Python)
+
+          ![Flask App Architecture](architecture-flask-app.png)
+
+          ### FastAPI App
+
+          ![FastAPI Architecture](architecture-fast-api.png)
+
+          ### Appointments API (Azure Functions)
+
+          ![Appointments API Architecture](architecture-appointments-api.png)
+          WIKIEOF
+
+          cd "${WIKI_DIR}"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add -A
+          git diff --cached --quiet && echo "No wiki changes" && exit 0
+          git commit -m "Update architecture diagrams - $(date -u '+%Y-%m-%d')"
+          git push origin master 2>/dev/null || git push origin main 2>/dev/null || echo "Wiki push failed"
