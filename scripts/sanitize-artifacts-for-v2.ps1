@@ -30,7 +30,7 @@
     ./scripts/sanitize-artifacts-for-v2.ps1 -ArtifactPath "./artifacts" -TargetApimName "apim-dev-006-abc123" -WhatIf
 #>
 
-[CmdletBinding(SupportsShouldProcess)]
+[CmdletBinding()]
 param(
     [Parameter(Mandatory)]
     [string]$ArtifactPath,
