@@ -251,7 +251,7 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
         }
         {
           name: 'SCM_DO_BUILD_DURING_DEPLOYMENT'
-          value: 'true'
+          value: '0'
         }
         {
           name: 'StorageAccountAppointmentsTable'

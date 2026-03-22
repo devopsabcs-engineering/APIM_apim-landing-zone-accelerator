@@ -205,6 +205,17 @@ jobs:
               --name "$APP_NAME" --resource-group "$RG" \
               --src ${{ runner.temp }}/deploy.zip --build-remote false
 
+            echo "=== Triggering function sync ==="
+            az rest --method post \
+              --url "https://management.azure.com/subscriptions/$(az account show --query id -o tsv)/resourceGroups/${RG}/providers/Microsoft.Web/sites/${APP_NAME}/host/default/listkeys?api-version=2024-04-01" \
+              --output none 2>/dev/null || true
+            az resource invoke-action \
+              --resource-group "$RG" \
+              --resource-type "Microsoft.Web/sites" \
+              --name "$APP_NAME" \
+              --action syncfunctiontriggers \
+              --api-version 2024-04-01 2>/dev/null || true
+
             echo "=== Checking deployed files via Kudu VFS ==="
             CREDS=$(az functionapp deployment list-publishing-credentials \
               --name "$APP_NAME" --resource-group "$RG" \
