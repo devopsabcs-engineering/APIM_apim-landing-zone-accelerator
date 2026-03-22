@@ -1,0 +1,6 @@
+{
+  "name": "APIM-BasicV2-Prod-Teardown",
+  "issuer": "https://token.actions.githubusercontent.com",
+  "subject": "repo:devopsabcs-engineering/APIM_apim-landing-zone-accelerator:environment:APIM_BasicV2_Prod_Teardown",
+  "audiences": ["api://AzureADTokenExchange"]
+}
