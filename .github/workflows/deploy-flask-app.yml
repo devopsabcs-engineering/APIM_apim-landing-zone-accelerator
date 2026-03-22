@@ -177,14 +177,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Wait for app warmup
-        run: sleep 30
+        run: sleep 60
       - name: Smoke test home page
         id: smoke
         run: |
           APP_URL="https://${{ env.WEB_APP_NAME }}.azurewebsites.net"
           echo "Testing: ${APP_URL}"
-          HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" -L --max-time 60 --retry 3 --retry-delay 10 "${APP_URL}")
-          echo "HTTP status: ${HTTP_STATUS}"
+          HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}" -L --max-time 60 --retry 3 --retry-delay 10 "${APP_URL}" || true)
+          if [ -z "${HTTP_STATUS}" ] || [ "${HTTP_STATUS}" = "000" ]; then
+            HTTP_STATUS="000"
+            echo "HTTP status: ${HTTP_STATUS} (connection failed or timed out)"
+          else
+            echo "HTTP status: ${HTTP_STATUS}"
+          fi
           echo "app_url=${APP_URL}" >> "$GITHUB_OUTPUT"
           if [[ "${HTTP_STATUS}" -ge 200 && "${HTTP_STATUS}" -lt 400 ]]; then
             echo "result=✅ Passed (HTTP ${HTTP_STATUS})" >> "$GITHUB_OUTPUT"
