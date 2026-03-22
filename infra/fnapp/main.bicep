@@ -32,7 +32,7 @@ param appInsightsLocation string = resourceGroup().location
 param functionWorkerRuntime string = 'dotnet-isolated'
 
 @description('Required for Linux app to represent runtime stack in the format of \'runtime|runtimeVersion\'. For example: \'python|3.9\'')
-param linuxFxVersion string = 'dotnet-isolated|8.0'
+param linuxFxVersion string = 'DOTNET-ISOLATED|8.0'
 
 //@description('The zip content url.')
 //param packageUri string
@@ -264,10 +264,6 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
         {
           name: 'MANAGED_IDENTITY_CLIENT_ID'
           value: managedIdentity.properties.clientId
-        }
-        {
-          name: 'WEBSITE_USE_PLACEHOLDER_DOTNETISOLATED'
-          value: '1'
         }
       ]
     }
