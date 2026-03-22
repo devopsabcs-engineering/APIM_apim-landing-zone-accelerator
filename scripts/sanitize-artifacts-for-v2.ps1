@@ -265,7 +265,8 @@ if (Test-Path $namedValuesPath) {
         $nvFile = Join-Path $nv.FullName "namedValueInformation.json"
         if (Test-Path $nvFile) {
             $nvInfo = Get-Content $nvFile -Raw | ConvertFrom-Json
-            $val = $nvInfo.properties.value
+            $nvProps = $nvInfo.properties
+            $val = if ($nvProps -and $nvProps.PSObject.Properties['value']) { $nvProps.value } else { $null }
             if ($val -and $val -match "https://[^/]+\.developer\.azure-api\.net") {
                 $newVal = $val -replace "https://[^/]+\.developer\.azure-api\.net", $targetDevPortalUrl
                 if ($newVal -ne $val) {

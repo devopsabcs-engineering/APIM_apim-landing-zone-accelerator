@@ -30,57 +30,6 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Pre-publish artifact validation
-        if: ${{ inputs.API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH != '' }}
-        run: |
-          ARTIFACT_DIR="${{ github.workspace }}/${{ inputs.API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH }}"
-          echo "Scanning $ARTIFACT_DIR for v1-specific references..."
-          WARN_COUNT=0
-
-          # Check for hardcoded 005 instance names
-          while IFS= read -r -d '' file; do
-            rel="${file#${ARTIFACT_DIR}/}"
-            if jq -e '.. | strings | select(test("005"))' "$file" >/dev/null 2>&1; then
-              echo "::warning file=${rel}::Contains hardcoded 005 instance reference (will be fixed by sanitizer)"
-              WARN_COUNT=$((WARN_COUNT + 1))
-            fi
-          done < <(find "$ARTIFACT_DIR" -name '*.json' -print0 2>/dev/null)
-
-          # Check for external groups
-          while IFS= read -r -d '' file; do
-            rel="${file#${ARTIFACT_DIR}/}"
-            if jq -e '.properties.type == "external"' "$file" >/dev/null 2>&1; then
-              echo "::warning file=${rel}::External AAD group detected (will be removed by sanitizer)"
-              WARN_COUNT=$((WARN_COUNT + 1))
-            fi
-          done < <(find "$ARTIFACT_DIR" -path '*/groups/*/groupInformation.json' -print0 2>/dev/null)
-
-          # Check for Key Vault references
-          while IFS= read -r -d '' file; do
-            rel="${file#${ARTIFACT_DIR}/}"
-            if jq -e '.. | strings | select(test("vault\\.azure\\.net"))' "$file" >/dev/null 2>&1; then
-              echo "::warning file=${rel}::Key Vault reference detected (will be handled by sanitizer)"
-              WARN_COUNT=$((WARN_COUNT + 1))
-            fi
-          done < <(find "$ARTIFACT_DIR" -path '*/named values/*/*.json' -print0 2>/dev/null)
-
-          if [ "$WARN_COUNT" -gt 0 ]; then
-            echo "::notice::Pre-publish validation found ${WARN_COUNT} v1 reference(s). The sanitizer step will fix these."
-          else
-            echo "::notice::Pre-publish validation passed — no v1 references detected."
-          fi
-        shell: bash
-
-      - name: Sanitize artifacts for BasicV2
-        if: ${{ inputs.API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH != '' }}
-        env:
-          API_MANAGEMENT_SERVICE_NAME: ${{ vars.API_MANAGEMENT_SERVICE_NAME }}
-        run: |
-          pwsh ${{ github.workspace }}/scripts/sanitize-artifacts-for-v2.ps1 \
-            -ArtifactPath "${{ github.workspace }}/${{ inputs.API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH }}" \
-            -TargetApimName "${{ vars.API_MANAGEMENT_SERVICE_NAME }}"
-        shell: bash
-
       # Add this step for each APIM environment and pass specific set of secrets that you want replaced in the env section below
       - name: "Perform namevalue secret substitution in configuration.${{ inputs.API_MANAGEMENT_ENVIRONMENT}}.yaml"
         if: (inputs.API_MANAGEMENT_ENVIRONMENT == 'prod' )
