@@ -201,9 +201,10 @@ jobs:
             SCM_URL="https://${APP_NAME}.scm.azurewebsites.net"
 
             echo "=== Deploying zip package ==="
-            az functionapp deployment source config-zip \
+            az functionapp deploy \
               --name "$APP_NAME" --resource-group "$RG" \
-              --src ${{ runner.temp }}/deploy.zip --build-remote false
+              --src-path ${{ runner.temp }}/deploy.zip \
+              --type zip --clean true --restart true
 
             echo "=== Triggering function sync ==="
             az rest --method post \
