@@ -252,15 +252,24 @@ jobs:
               if [ -d "${SCREENSHOT_DIR}" ]; then
                 DIR_NAME=$(basename "${SCREENSHOT_DIR}")
                 APP_LABEL=$(echo "${DIR_NAME}" | sed 's/screenshot-//; s/-/ /g' | sed 's/\b\(.\)/\u\1/g')
+                # Count images in this directory
+                IMG_COUNT=$(find "${SCREENSHOT_DIR}" -maxdepth 1 -name "*.png" | wc -l)
                 for IMG in "${SCREENSHOT_DIR}"*.png; do
                   if [ -f "${IMG}" ]; then
                     FOUND_SCREENSHOTS=true
                     IMG_NAME="${DIR_NAME}-$(basename "${IMG}")"
                     # Copy to flat name for wiki
                     cp "${IMG}" "screenshots/${IMG_NAME}"
-                    echo "### ${APP_LABEL}" >> "${WIKI_FILE}"
+                    # Use sub-label from filename when directory has multiple images
+                    if [ "${IMG_COUNT}" -gt 1 ]; then
+                      SUB_LABEL=$(basename "${IMG}" .png | sed 's/screenshot-//; s/-/ /g' | sed 's/\b\(.\)/\u\1/g')
+                      DISPLAY_LABEL="${APP_LABEL} - ${SUB_LABEL}"
+                    else
+                      DISPLAY_LABEL="${APP_LABEL}"
+                    fi
+                    echo "### ${DISPLAY_LABEL}" >> "${WIKI_FILE}"
                     echo "" >> "${WIKI_FILE}"
-                    echo "![${APP_LABEL}](${IMG_NAME})" >> "${WIKI_FILE}"
+                    echo "![${DISPLAY_LABEL}](${IMG_NAME})" >> "${WIKI_FILE}"
                     echo "" >> "${WIKI_FILE}"
                   fi
                 done
