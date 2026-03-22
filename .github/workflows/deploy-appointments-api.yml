@@ -196,80 +196,45 @@ jobs:
         uses: azure/cli@v2
         with:
           inlineScript: |
+            APP_NAME="${{ steps.get_app.outputs.app_name }}"
+            RG="${{ env.RESOURCE_GROUP_NAME }}"
+            SCM_URL="https://${APP_NAME}.scm.azurewebsites.net"
+
+            echo "=== Deploying zip package ==="
             az functionapp deployment source config-zip \
-              --name ${{ steps.get_app.outputs.app_name }} \
-              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
-              --src ${{ runner.temp }}/deploy.zip \
-              --build-remote false
+              --name "$APP_NAME" --resource-group "$RG" \
+              --src ${{ runner.temp }}/deploy.zip --build-remote false
 
-            echo "Restarting function app..."
-            az functionapp restart \
-              --name ${{ steps.get_app.outputs.app_name }} \
-              --resource-group ${{ env.RESOURCE_GROUP_NAME }}
+            echo "=== Checking deployed files via Kudu VFS ==="
+            CREDS=$(az functionapp deployment list-publishing-credentials \
+              --name "$APP_NAME" --resource-group "$RG" \
+              --query "{user:publishingUserName, pass:publishingPassword}" -o json)
+            KUDU_USER=$(echo "$CREDS" | jq -r '.user')
+            KUDU_PASS=$(echo "$CREDS" | jq -r '.pass')
+            echo "Files in /home/site/wwwroot/:"
+            curl -s -u "${KUDU_USER}:${KUDU_PASS}" "${SCM_URL}/api/vfs/site/wwwroot/" | jq -r '.[].name' 2>/dev/null | head -30 || echo "Could not list files"
+            echo "host.json:"
+            curl -s -u "${KUDU_USER}:${KUDU_PASS}" "${SCM_URL}/api/vfs/site/wwwroot/host.json" || echo "No host.json"
+            echo ""
+            echo "worker.config.json:"
+            curl -s -u "${KUDU_USER}:${KUDU_PASS}" "${SCM_URL}/api/vfs/site/wwwroot/worker.config.json" || echo "No worker.config.json"
+            echo ""
 
-            echo "Waiting for runtime to initialize..."
+            echo "=== Restarting function app ==="
+            az functionapp restart --name "$APP_NAME" --resource-group "$RG"
+
+            echo "=== Waiting 120s for runtime ==="
             sleep 120
 
-            echo "=== Current linuxFxVersion ==="
-            az functionapp config show \
-              --name ${{ steps.get_app.outputs.app_name }} \
-              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
-              --query "linuxFxVersion" -o tsv
+            echo "=== Function list ==="
+            az functionapp function list --name "$APP_NAME" --resource-group "$RG" --output table || echo "No functions"
 
-            echo "=== Checking app settings ==="
-            az functionapp config appsettings list \
-              --name ${{ steps.get_app.outputs.app_name }} \
-              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
-              --query "[?name=='AzureWebJobsStorage__accountName' || name=='FUNCTIONS_WORKER_RUNTIME' || name=='FUNCTIONS_EXTENSION_VERSION' || name=='AzureWebJobsFeatureFlags' || name=='SCM_DO_BUILD_DURING_DEPLOYMENT'].{name:name, value:value}" \
-              --output table
-
-            echo "=== Fetching app logs ==="
-            az webapp log download \
-              --name ${{ steps.get_app.outputs.app_name }} \
-              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
-              --log-file /tmp/applogs.zip 2>&1 || true
-            apt-get update -qq && apt-get install -y -qq unzip > /dev/null 2>&1 || true
-            if [ -f /tmp/applogs.zip ]; then
-              cd /tmp && unzip -o applogs.zip 2>/dev/null || true
-              echo "--- Log files found ---"
-              find /tmp -name "*.log" -o -name "*.txt" 2>/dev/null | head -20
-              for logfile in $(find /tmp -name "*.log" -o -name "*.txt" 2>/dev/null | head -10); do
-                echo "--- $logfile ---"
-                tail -50 "$logfile" 2>/dev/null || true
-              done
-            fi
-
-            echo "=== Listing deployed functions ==="
-            az functionapp function list \
-              --name ${{ steps.get_app.outputs.app_name }} \
-              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
-              --output table || echo "Function listing not available yet"
+            echo "=== Version endpoint ==="
+            curl -sv --max-time 30 "https://${APP_NAME}.azurewebsites.net/api/version" 2>&1 || echo "Version endpoint not responding"
 
             echo "=== Function app status ==="
-            az functionapp show \
-              --name ${{ steps.get_app.outputs.app_name }} \
-              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
-              --query "{state:state, availabilityState:availabilityState}" \
-              --output table
-
-            echo "=== Hitting version endpoint ==="
-            curl -sv --max-time 15 "https://${{ steps.get_app.outputs.app_name }}.azurewebsites.net/api/version" 2>&1 || echo "Version endpoint not responding"
-
-            echo "=== Listing deployed functions ==="
-            az functionapp function list \
-              --name ${{ steps.get_app.outputs.app_name }} \
-              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
-              --output table || echo "Function listing not available yet"
-
-            echo "=== Function app status ==="
-            az functionapp show \
-              --name ${{ steps.get_app.outputs.app_name }} \
-              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
-              --query "{state:state, availabilityState:availabilityState}" \
-              --output table
-
-            echo "=== Hitting version endpoint directly ==="
-            curl -s --max-time 15 "https://${{ steps.get_app.outputs.app_name }}.azurewebsites.net/api/version" || echo "Version endpoint not responding"
+            az functionapp show --name "$APP_NAME" --resource-group "$RG" \
+              --query "{state:state, availabilityState:availabilityState}" --output table
 
   smoke-test:
     name: Smoke Test
