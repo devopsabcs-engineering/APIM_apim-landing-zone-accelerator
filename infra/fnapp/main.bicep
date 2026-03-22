@@ -270,6 +270,10 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
           value: '1'
         }
         {
+          name: 'WEBSITE_RUN_FROM_PACKAGE'
+          value: '1'
+        }
+        {
           name: 'AzureWebJobsFeatureFlags'
           value: 'EnableWorkerIndexing'
         }
