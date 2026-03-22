@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "17574316403399177605"
+      "templateHash": "11520575701253768536"
     }
   },
   "parameters": {
@@ -70,11 +70,11 @@
         "description": "The language worker runtime to load in the function app."
       }
     },
-    "linuxFxVersion": {
+    "containerImageTag": {
       "type": "string",
-      "defaultValue": "dotnet-isolated|8.0",
+      "defaultValue": "latest",
       "metadata": {
-        "description": "Required for Linux app to represent runtime stack in the format of 'runtime|runtimeVersion'. For example: 'python|3.9'"
+        "description": "Container image tag for the Function App. Set during deployment."
       }
     }
   },
@@ -83,7 +83,22 @@
     "applicationInsightsName": "[format('appi-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id))]",
     "storageAccountName": "[format('stappt{0}{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id))]",
     "containerRegistryName": "[format('crappt{0}{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id))]",
-    "logAnalyticsName": "[format('log-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id))]"
+    "logAnalyticsName": "[format('log-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id))]",
+    "vnetName": "[format('vnet-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id))]",
+    "funcSubnetName": "snet-func",
+    "peSubnetName": "snet-pe",
+    "storageDnsZones": [
+      "[format('privatelink.blob.{0}', environment().suffixes.storage)]",
+      "[format('privatelink.queue.{0}', environment().suffixes.storage)]",
+      "[format('privatelink.table.{0}', environment().suffixes.storage)]",
+      "[format('privatelink.file.{0}', environment().suffixes.storage)]"
+    ],
+    "storageSubResources": [
+      "blob",
+      "queue",
+      "table",
+      "file"
+    ]
   },
   "resources": [
     {
@@ -103,14 +118,68 @@
       ]
     },
     {
-      "type": "Microsoft.Web/sites/basicPublishingCredentialsPolicies",
-      "apiVersion": "2024-04-01",
-      "name": "[format('{0}/{1}', parameters('functionAppName'), 'scm')]",
+      "type": "Microsoft.Network/virtualNetworks",
+      "apiVersion": "2024-01-01",
+      "name": "[variables('vnetName')]",
+      "location": "[parameters('location')]",
       "properties": {
-        "allow": true
+        "addressSpace": {
+          "addressPrefixes": [
+            "10.0.0.0/16"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[variables('funcSubnetName')]",
+            "properties": {
+              "addressPrefix": "10.0.1.0/24",
+              "delegations": [
+                {
+                  "name": "delegation",
+                  "properties": {
+                    "serviceName": "Microsoft.Web/serverFarms"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "[variables('peSubnetName')]",
+            "properties": {
+              "addressPrefix": "10.0.2.0/24"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "copy": {
+        "name": "privateDnsZones",
+        "count": "[length(variables('storageDnsZones'))]"
+      },
+      "type": "Microsoft.Network/privateDnsZones",
+      "apiVersion": "2024-06-01",
+      "name": "[variables('storageDnsZones')[copyIndex()]]",
+      "location": "global"
+    },
+    {
+      "copy": {
+        "name": "privateDnsZoneLinks",
+        "count": "[length(variables('storageDnsZones'))]"
+      },
+      "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+      "apiVersion": "2024-06-01",
+      "name": "[format('{0}/{1}', variables('storageDnsZones')[copyIndex()], format('{0}-link', variables('vnetName')))]",
+      "location": "global",
+      "properties": {
+        "registrationEnabled": false,
+        "virtualNetwork": {
+          "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+        }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Web/sites', parameters('functionAppName'))]"
+        "[resourceId('Microsoft.Network/privateDnsZones', variables('storageDnsZones')[copyIndex()])]",
+        "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
       ]
     },
     {
@@ -148,6 +217,15 @@
       }
     },
     {
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+      "apiVersion": "2023-01-31",
+      "name": "[format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id))]",
+      "location": "[parameters('location')]",
+      "metadata": {
+        "description": "User-assigned managed identity for the Function App to access storage and ACR without shared keys"
+      }
+    },
+    {
       "type": "Microsoft.Storage/storageAccounts",
       "apiVersion": "2023-05-01",
       "name": "[variables('storageAccountName')]",
@@ -157,14 +235,68 @@
       },
       "kind": "StorageV2",
       "properties": {
+        "allowSharedKeyAccess": false,
+        "allowBlobPublicAccess": false,
+        "publicNetworkAccess": "Disabled",
+        "minimumTlsVersion": "TLS1_2",
         "networkAcls": {
-          "defaultAction": "Allow",
-          "bypass": "AzureServices",
-          "virtualNetworkRules": [],
-          "ipRules": []
-        },
-        "allowSharedKeyAccess": false
+          "defaultAction": "Deny",
+          "bypass": "AzureServices"
+        }
       }
+    },
+    {
+      "copy": {
+        "name": "storagePrivateEndpoints",
+        "count": "[length(variables('storageSubResources'))]"
+      },
+      "type": "Microsoft.Network/privateEndpoints",
+      "apiVersion": "2024-01-01",
+      "name": "[format('pe-{0}-{1}', variables('storageAccountName'), variables('storageSubResources')[copyIndex()])]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "subnet": {
+          "id": "[reference(resourceId('Microsoft.Network/virtualNetworks', variables('vnetName')), '2024-01-01').subnets[1].id]"
+        },
+        "privateLinkServiceConnections": [
+          {
+            "name": "[format('psc-{0}', variables('storageSubResources')[copyIndex()])]",
+            "properties": {
+              "privateLinkServiceId": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
+              "groupIds": [
+                "[variables('storageSubResources')[copyIndex()]]"
+              ]
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
+        "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+      ]
+    },
+    {
+      "copy": {
+        "name": "privateEndpointDnsGroups",
+        "count": "[length(variables('storageSubResources'))]"
+      },
+      "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+      "apiVersion": "2024-01-01",
+      "name": "[format('{0}/{1}', format('pe-{0}-{1}', variables('storageAccountName'), variables('storageSubResources')[copyIndex()]), 'default')]",
+      "properties": {
+        "privateDnsZoneConfigs": [
+          {
+            "name": "[format('config-{0}', variables('storageSubResources')[copyIndex()])]",
+            "properties": {
+              "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', variables('storageDnsZones')[copyIndex()])]"
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/privateDnsZones', variables('storageDnsZones')[copyIndex()])]",
+        "[resourceId('Microsoft.Network/privateEndpoints', format('pe-{0}-{1}', variables('storageAccountName'), variables('storageSubResources')[copyIndex()]))]"
+      ]
     },
     {
       "type": "Microsoft.Web/serverfarms",
@@ -172,10 +304,11 @@
       "name": "[variables('hostingPlanName')]",
       "location": "[parameters('location')]",
       "sku": {
-        "name": "Y1",
-        "tier": "Dynamic",
-        "size": "Y1",
-        "family": "Y"
+        "name": "S1",
+        "tier": "Standard",
+        "size": "S1",
+        "family": "S",
+        "capacity": 1
       },
       "properties": {
         "reserved": true
@@ -203,19 +336,27 @@
       "apiVersion": "2024-04-01",
       "name": "[parameters('functionAppName')]",
       "location": "[parameters('location')]",
-      "kind": "functionapp,linux",
+      "kind": "functionapp,linux,container",
       "identity": {
-        "type": "SystemAssigned"
+        "type": "SystemAssigned, UserAssigned",
+        "userAssignedIdentities": {
+          "[format('{0}', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id))))]": {}
+        }
       },
       "properties": {
         "reserved": true,
         "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]",
+        "virtualNetworkSubnetId": "[reference(resourceId('Microsoft.Network/virtualNetworks', variables('vnetName')), '2024-01-01').subnets[0].id]",
+        "keyVaultReferenceIdentity": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id)))]",
         "siteConfig": {
-          "linuxFxVersion": "[parameters('linuxFxVersion')]",
+          "linuxFxVersion": "[format('DOCKER|{0}/appointmentsapi:{1}', reference(resourceId('Microsoft.ContainerRegistry/registries', variables('containerRegistryName')), '2023-11-01-preview').loginServer, parameters('containerImageTag'))]",
+          "acrUseManagedIdentityCreds": true,
+          "acrUserManagedIdentityID": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id))), '2023-01-31').clientId]",
+          "vnetRouteAllEnabled": true,
           "appSettings": [
             {
-              "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
-              "value": "[reference(resourceId('Microsoft.Insights/components', variables('applicationInsightsName')), '2020-02-02').InstrumentationKey]"
+              "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+              "value": "[reference(resourceId('Microsoft.Insights/components', variables('applicationInsightsName')), '2020-02-02').ConnectionString]"
             },
             {
               "name": "Logging__LogLevel__Default",
@@ -238,68 +379,16 @@
               "value": "*"
             },
             {
-              "name": "ApplicationInsights__InstrumentationKey",
-              "value": "[reference(resourceId('Microsoft.Insights/components', variables('applicationInsightsName')), '2020-02-02').InstrumentationKey]"
-            },
-            {
-              "name": "APPLICATIONINSIGHTS_INSTRUMENTATIONKEY",
-              "value": "[reference(resourceId('Microsoft.Insights/components', variables('applicationInsightsName')), '2020-02-02').InstrumentationKey]"
-            },
-            {
-              "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
-              "value": "[reference(resourceId('Microsoft.Insights/components', variables('applicationInsightsName')), '2020-02-02').ConnectionString]"
-            },
-            {
-              "name": "APPINSIGHTS_PROFILERFEATURE_VERSION",
-              "value": "1.0.0"
-            },
-            {
-              "name": "APPINSIGHTS_SNAPSHOTFEATURE_VERSION",
-              "value": "1.0.0"
-            },
-            {
-              "name": "ApplicationInsightsAgent_EXTENSION_VERSION",
-              "value": "~3"
-            },
-            {
-              "name": "DiagnosticServices_EXTENSION_VERSION",
-              "value": "~3"
-            },
-            {
-              "name": "InstrumentationEngine_EXTENSION_VERSION",
-              "value": "disabled"
-            },
-            {
-              "name": "SnapshotDebugger_EXTENSION_VERSION",
-              "value": "disabled"
-            },
-            {
-              "name": "XDT_MicrosoftApplicationInsights_BaseExtensions",
-              "value": "disabled"
-            },
-            {
-              "name": "XDT_MicrosoftApplicationInsights_Mode",
-              "value": "recommended"
-            },
-            {
-              "name": "XDT_MicrosoftApplicationInsights_PreemptSdk",
-              "value": "disabled"
-            },
-            {
-              "name": "APPLICATIONINSIGHTS_CONFIGURATION_CONTENT",
-              "value": ""
-            },
-            {
               "name": "AzureWebJobsStorage__accountName",
               "value": "[variables('storageAccountName')]"
             },
             {
-              "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING__accountName",
-              "value": "[variables('storageAccountName')]"
+              "name": "AzureWebJobsStorage__credential",
+              "value": "managedidentity"
             },
             {
-              "name": "WEBSITE_CONTENTSHARE",
-              "value": "[toLower(parameters('functionAppName'))]"
+              "name": "AzureWebJobsStorage__clientId",
+              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id))), '2023-01-31').clientId]"
             },
             {
               "name": "FUNCTIONS_EXTENSION_VERSION",
@@ -310,8 +399,12 @@
               "value": "[parameters('functionWorkerRuntime')]"
             },
             {
-              "name": "SCM_DO_BUILD_DURING_DEPLOYMENT",
-              "value": "0"
+              "name": "WEBSITES_ENABLE_APP_SERVICE_STORAGE",
+              "value": "false"
+            },
+            {
+              "name": "DOCKER_ENABLE_CI",
+              "value": "false"
             },
             {
               "name": "StorageAccountAppointmentsTable",
@@ -322,15 +415,116 @@
               "value": "[variables('storageAccountName')]"
             },
             {
-              "name": "WEBSITE_USE_PLACEHOLDER_DOTNETISOLATED",
-              "value": "1"
+              "name": "MANAGED_IDENTITY_CLIENT_ID",
+              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id))), '2023-01-31').clientId]"
             }
           ]
         }
       },
       "dependsOn": [
         "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]",
-        "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]"
+        "[resourceId('Microsoft.ContainerRegistry/registries', variables('containerRegistryName'))]",
+        "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]",
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id)))]",
+        "privateEndpointDnsGroups",
+        "storagePrivateEndpoints",
+        "[extensionResourceId(resourceId('Microsoft.ContainerRegistry/registries', variables('containerRegistryName')), 'Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.ContainerRegistry/registries', variables('containerRegistryName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id))), '7f951dda-4ed3-4680-a7ca-43fe172d538d'))]",
+        "[extensionResourceId(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), 'Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id))), '17d1049b-9a84-46fb-8f53-869881c3d3ab'))]",
+        "[extensionResourceId(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), 'Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id))), 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b'))]",
+        "[extensionResourceId(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), 'Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id))), '69566ab7-960f-475b-8e7c-b3118f30c6bd'))]",
+        "[extensionResourceId(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), 'Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id))), '974c5e8b-45b9-4653-ba55-5f855dd0fb88'))]",
+        "[extensionResourceId(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), 'Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id))), '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'))]",
+        "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
+      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id))), 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b')]",
+      "properties": {
+        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id))), '2023-01-31').principalId]",
+        "principalType": "ServicePrincipal",
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id)))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
+      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id))), '17d1049b-9a84-46fb-8f53-869881c3d3ab')]",
+      "properties": {
+        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id))), '2023-01-31').principalId]",
+        "principalType": "ServicePrincipal",
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '17d1049b-9a84-46fb-8f53-869881c3d3ab')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id)))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
+      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id))), '974c5e8b-45b9-4653-ba55-5f855dd0fb88')]",
+      "properties": {
+        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id))), '2023-01-31').principalId]",
+        "principalType": "ServicePrincipal",
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id)))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
+      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id))), '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')]",
+      "properties": {
+        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id))), '2023-01-31').principalId]",
+        "principalType": "ServicePrincipal",
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id)))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
+      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id))), '69566ab7-960f-475b-8e7c-b3118f30c6bd')]",
+      "properties": {
+        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id))), '2023-01-31').principalId]",
+        "principalType": "ServicePrincipal",
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '69566ab7-960f-475b-8e7c-b3118f30c6bd')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id)))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.ContainerRegistry/registries', variables('containerRegistryName'))]",
+      "name": "[guid(resourceId('Microsoft.ContainerRegistry/registries', variables('containerRegistryName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id))), '7f951dda-4ed3-4680-a7ca-43fe172d538d')]",
+      "properties": {
+        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id))), '2023-01-31').principalId]",
+        "principalType": "ServicePrincipal",
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ContainerRegistry/registries', variables('containerRegistryName'))]",
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id)))]"
       ]
     },
     {
@@ -397,11 +591,11 @@
       "type": "Microsoft.Authorization/roleAssignments",
       "apiVersion": "2022-04-01",
       "scope": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
-      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), resourceId('Microsoft.Web/sites', parameters('functionAppName')), '69566ab7-960f-4991-ab7a-7c5b17e59d95')]",
+      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), resourceId('Microsoft.Web/sites', parameters('functionAppName')), '69566ab7-960f-475b-8e7c-b3118f30c6bd')]",
       "properties": {
         "principalId": "[reference(resourceId('Microsoft.Web/sites', parameters('functionAppName')), '2024-04-01', 'full').identity.principalId]",
         "principalType": "ServicePrincipal",
-        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '69566ab7-960f-4991-ab7a-7c5b17e59d95')]"
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '69566ab7-960f-475b-8e7c-b3118f30c6bd')]"
       },
       "dependsOn": [
         "[resourceId('Microsoft.Web/sites', parameters('functionAppName'))]",
@@ -422,6 +616,10 @@
       "type": "string",
       "value": "[variables('containerRegistryName')]"
     },
+    "containerRegistryLoginServer": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ContainerRegistry/registries', variables('containerRegistryName')), '2023-11-01-preview').loginServer]"
+    },
     "hostingPlanName": {
       "type": "string",
       "value": "[variables('hostingPlanName')]"
@@ -429,6 +627,10 @@
     "applicationInsightsName": {
       "type": "string",
       "value": "[variables('applicationInsightsName')]"
+    },
+    "managedIdentityClientId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-appt-{0}-{1}', parameters('instanceNumber'), uniqueString(resourceGroup().id))), '2023-01-31').clientId]"
     }
   }
 }

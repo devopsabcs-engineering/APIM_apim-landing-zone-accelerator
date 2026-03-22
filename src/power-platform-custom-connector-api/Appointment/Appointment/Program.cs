@@ -16,6 +16,13 @@ var host = new HostBuilder()
 
         services.AddSingleton<TableServiceClient>(sp =>
         {
+            string tableStorageConnection = Environment.GetEnvironmentVariable("TableStorageConnection") ?? "";
+
+            if (!string.IsNullOrEmpty(tableStorageConnection))
+            {
+                return new TableServiceClient(tableStorageConnection);
+            }
+
             string storageAccountName = Environment.GetEnvironmentVariable("StorageAccountName") ?? "";
             string managedIdentityClientId = Environment.GetEnvironmentVariable("MANAGED_IDENTITY_CLIENT_ID");
 

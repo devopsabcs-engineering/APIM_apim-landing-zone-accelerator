@@ -44,22 +44,15 @@ permissions:
   contents: write
 
 env:
-  SOLUTION: src/power-platform-custom-connector-api/Appointment/Appointment.sln
-  BUILD_CONFIGURATION: Release
-  ARTIFACT_NAME: appointments-api-artifact
-  WEBSITE_PACKAGE_NAME: Appointment
   RESOURCE_GROUP_NAME: rg-appointments-fnapp-linux-${{ inputs.instance_number || '003' }}
   LOCATION: canadacentral
   DEPLOYMENT_NAME: infra-deployment
   TEMPLATE_FILE: infra/fnapp/main.bicep
-  BASE_NAME: appointments-api
   IMAGE_NAME: appointmentsapi
-  WORKING_DIRECTORY: src/power-platform-custom-connector-api/Appointment/Appointment
   BUILD_CONTEXT: src/power-platform-custom-connector-api/Appointment
   DOCKERFILE_PATH: src/power-platform-custom-connector-api/Appointment/Appointment/Dockerfile
   INSTANCE_NUMBER: ${{ inputs.instance_number || '003' }}
   DEPLOY_INFRA: ${{ inputs.deploy_infra || true }}
-  ADD_AZURE_AD_APP_SETTINGS: 'false'
 
 jobs:
   set-version:
@@ -90,40 +83,16 @@ jobs:
           git tag -a "$TAG" -m "Main version $TAG" 2>/dev/null || true
           git push origin "$TAG" 2>/dev/null || echo "Tag $TAG already exists, skipping."
 
-  build:
-    name: Build
-    needs: set-version
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.x'
-      - name: Build
-        run: dotnet build "${{ env.SOLUTION }}" --configuration ${{ env.BUILD_CONFIGURATION }}
-      - name: Publish
-        run: |
-          dotnet publish "${{ env.WORKING_DIRECTORY }}" \
-            --configuration ${{ env.BUILD_CONFIGURATION }} \
-            --output "${{ runner.temp }}/${{ env.WEBSITE_PACKAGE_NAME }}_${{ github.run_id }}" \
-            -p:Version=${{ needs.set-version.outputs.semver }} \
-            -p:FileVersion=${{ needs.set-version.outputs.assembly_sem_file_ver }} \
-            -p:AssemblyVersion=${{ needs.set-version.outputs.assembly_sem_ver }}
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ runner.temp }}/${{ env.WEBSITE_PACKAGE_NAME }}_${{ github.run_id }}
-
   deploy-infra:
     name: Deploy Infrastructure
-    needs: build
+    needs: set-version
     if: ${{ inputs.deploy_infra != false }}
     runs-on: ubuntu-latest
     environment: APIM_Appointments_Api_infra_production
+    outputs:
+      acr_login_server: ${{ steps.deploy.outputs.acr_login_server }}
+      acr_name: ${{ steps.deploy.outputs.acr_name }}
+      app_name: ${{ steps.deploy.outputs.app_name }}
     steps:
       - uses: actions/checkout@v4
       - uses: azure/login@v2
@@ -132,6 +101,7 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       - name: Deploy Bicep
+        id: deploy
         uses: azure/cli@v2
         with:
           inlineScript: |
@@ -142,112 +112,103 @@ jobs:
               --template-file ${{ env.TEMPLATE_FILE }} \
               --parameters instanceNumber=${{ env.INSTANCE_NUMBER }}
 
-            echo "Waiting 60s for system-assigned identity RBAC to propagate..."
-            sleep 60
-
-            echo "Restarting function app after RBAC propagation..."
             FUNC_NAME=$(az deployment group show \
               --name ${{ env.DEPLOYMENT_NAME }} \
               --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
               --query properties.outputs.functionAppName.value -o tsv)
-            az functionapp restart --name "$FUNC_NAME" --resource-group ${{ env.RESOURCE_GROUP_NAME }}
+            ACR_NAME=$(az deployment group show \
+              --name ${{ env.DEPLOYMENT_NAME }} \
+              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+              --query properties.outputs.containerRegistryName.value -o tsv)
+            ACR_LOGIN=$(az deployment group show \
+              --name ${{ env.DEPLOYMENT_NAME }} \
+              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+              --query properties.outputs.containerRegistryLoginServer.value -o tsv)
 
-  deploy-app:
-    name: Deploy Application
+            echo "app_name=$FUNC_NAME" >> "$GITHUB_OUTPUT"
+            echo "acr_name=$ACR_NAME" >> "$GITHUB_OUTPUT"
+            echo "acr_login_server=$ACR_LOGIN" >> "$GITHUB_OUTPUT"
+
+            echo "Waiting 90s for RBAC and private endpoints to propagate..."
+            sleep 90
+
+  build-and-push:
+    name: Build and Push Container Image
     needs: [set-version, deploy-infra]
     runs-on: ubuntu-latest
     environment: APIM_Appointments_Api_app_production
     outputs:
-      app_name: ${{ steps.get_app.outputs.app_name }}
+      image_tag: ${{ needs.set-version.outputs.semver }}
+      app_name: ${{ needs.deploy-infra.outputs.app_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Log in to ACR
+        run: az acr login --name ${{ needs.deploy-infra.outputs.acr_name }}
+      - name: Build and push container image
+        run: |
+          ACR_LOGIN="${{ needs.deploy-infra.outputs.acr_login_server }}"
+          IMAGE="${ACR_LOGIN}/${{ env.IMAGE_NAME }}"
+          TAG="${{ needs.set-version.outputs.semver }}"
+
+          docker build \
+            --build-arg GitVersion_SemVer="${TAG}" \
+            --build-arg GitVersion_AssemblySemFileVer="${{ needs.set-version.outputs.assembly_sem_file_ver }}" \
+            --build-arg GitVersion_AssemblySemVer="${{ needs.set-version.outputs.assembly_sem_ver }}" \
+            -t "${IMAGE}:${TAG}" \
+            -t "${IMAGE}:latest" \
+            -f ${{ env.DOCKERFILE_PATH }} \
+            ${{ env.BUILD_CONTEXT }}
+
+          docker push "${IMAGE}:${TAG}"
+          docker push "${IMAGE}:latest"
+
+          echo "Pushed: ${IMAGE}:${TAG}"
+
+  deploy-app:
+    name: Deploy Application
+    needs: [set-version, deploy-infra, build-and-push]
+    runs-on: ubuntu-latest
+    environment: APIM_Appointments_Api_app_production
+    outputs:
+      app_name: ${{ needs.deploy-infra.outputs.app_name }}
     steps:
       - uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      - name: Get app name
-        id: get_app
-        run: |
-          APP_NAME=$(az deployment group show \
-            --name ${{ env.DEPLOYMENT_NAME }} \
-            --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
-            --query properties.outputs.functionAppName.value -o tsv)
-          echo "app_name=$APP_NAME" >> "$GITHUB_OUTPUT"
-      - name: Wait for SCM to stabilize after infrastructure changes
-        run: |
-          echo "Waiting 90s for SCM container to stabilize after settings changes..."
-          sleep 90
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ runner.temp }}/drop
-      - name: Create zip package
-        run: |
-          cd ${{ runner.temp }}/drop
-          echo "=== Published files ==="
-          find . -maxdepth 2 -type f | sort | head -30
-          echo "=== Checking for function metadata ==="
-          ls -la *.json 2>/dev/null || echo "No JSON files at root"
-          ls -la *.deps.json 2>/dev/null || echo "No deps files"
-          cat host.json 2>/dev/null || echo "No host.json found"
-          zip -r ${{ runner.temp }}/deploy.zip .
-      - name: Deploy to Azure Functions
+      - name: Update container image on Function App
         uses: azure/cli@v2
         with:
           inlineScript: |
-            APP_NAME="${{ steps.get_app.outputs.app_name }}"
+            APP_NAME="${{ needs.deploy-infra.outputs.app_name }}"
             RG="${{ env.RESOURCE_GROUP_NAME }}"
-            SCM_URL="https://${APP_NAME}.scm.azurewebsites.net"
+            ACR_LOGIN="${{ needs.deploy-infra.outputs.acr_login_server }}"
+            TAG="${{ needs.set-version.outputs.semver }}"
+            IMAGE="${ACR_LOGIN}/${{ env.IMAGE_NAME }}:${TAG}"
 
-            echo "=== Deploying zip package ==="
-            az functionapp deployment source config-zip \
-              --name "$APP_NAME" --resource-group "$RG" \
-              --src ${{ runner.temp }}/deploy.zip --build-remote false
-
-            echo "=== Triggering function sync ==="
-            az rest --method post \
-              --url "https://management.azure.com/subscriptions/$(az account show --query id -o tsv)/resourceGroups/${RG}/providers/Microsoft.Web/sites/${APP_NAME}/host/default/listkeys?api-version=2024-04-01" \
-              --output none 2>/dev/null || true
-            az resource invoke-action \
-              --resource-group "$RG" \
-              --resource-type "Microsoft.Web/sites" \
+            echo "=== Setting container image to ${IMAGE} ==="
+            az functionapp config container set \
               --name "$APP_NAME" \
-              --action syncfunctiontriggers \
-              --api-version 2024-04-01 2>/dev/null || true
-
-            echo "=== Checking deployed files via Kudu VFS ==="
-            CREDS=$(az functionapp deployment list-publishing-credentials \
-              --name "$APP_NAME" --resource-group "$RG" \
-              --query "{user:publishingUserName, pass:publishingPassword}" -o json)
-            KUDU_USER=$(echo "$CREDS" | jq -r '.user')
-            KUDU_PASS=$(echo "$CREDS" | jq -r '.pass')
-            echo "Files in /home/site/wwwroot/:"
-            curl -s -u "${KUDU_USER}:${KUDU_PASS}" "${SCM_URL}/api/vfs/site/wwwroot/" | jq -r '.[].name' 2>/dev/null | head -30 || echo "Could not list files"
-            echo "host.json:"
-            curl -s -u "${KUDU_USER}:${KUDU_PASS}" "${SCM_URL}/api/vfs/site/wwwroot/host.json" || echo "No host.json"
-            echo ""
-            echo "worker.config.json:"
-            curl -s -u "${KUDU_USER}:${KUDU_PASS}" "${SCM_URL}/api/vfs/site/wwwroot/worker.config.json" || echo "No worker.config.json"
-            echo ""
-
-            echo "=== Checking Kudu process list ==="
-            curl -s -u "${KUDU_USER}:${KUDU_PASS}" "${SCM_URL}/api/processes" | jq '.[].name' 2>/dev/null || echo "Could not list processes"
-
-            echo "=== Checking Kudu environment ==="
-            curl -s -u "${KUDU_USER}:${KUDU_PASS}" "${SCM_URL}/api/environment" | jq '{version, osName}' 2>/dev/null || echo "Could not get env"
+              --resource-group "$RG" \
+              --image "$IMAGE"
 
             echo "=== Restarting function app ==="
             az functionapp restart --name "$APP_NAME" --resource-group "$RG"
 
-            echo "=== Waiting 120s for runtime ==="
+            echo "=== Waiting 120s for container to pull and start ==="
             sleep 120
 
             echo "=== Function list ==="
-            az functionapp function list --name "$APP_NAME" --resource-group "$RG" --output table || echo "No functions"
+            az functionapp function list --name "$APP_NAME" --resource-group "$RG" --output table || echo "No functions listed yet"
 
             echo "=== Version endpoint ==="
-            curl -sv --max-time 30 "https://${APP_NAME}.azurewebsites.net/api/version" 2>&1 || echo "Version endpoint not responding"
+            curl -sv --max-time 30 "https://${APP_NAME}.azurewebsites.net/api/version" 2>&1 || echo "Version endpoint not responding yet"
 
             echo "=== Function app status ==="
             az functionapp show --name "$APP_NAME" --resource-group "$RG" \
@@ -283,25 +244,8 @@ jobs:
           SMOKE_URL: ${{ steps.smoke.outputs.smoke_url }}
           SMOKE_RESULT: ${{ steps.smoke.outputs.result }}
         run: |
-          # Fetch version
           VERSION_RESPONSE=$(curl -s --max-time 30 --retry 2 --retry-delay 5 "${APP_URL}/api/version" || echo "N/A")
           echo "Version: ${VERSION_RESPONSE}"
-
-          # Capture screenshot of version endpoint
-          npm install puppeteer 2>/dev/null
-          node -e "
-            const puppeteer = require('puppeteer');
-            (async () => {
-              const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox', '--disable-setuid-sandbox'] });
-              const page = await browser.newPage();
-              await page.setViewport({ width: 1280, height: 720 });
-              await page.goto('${APP_URL}/api/version', { waitUntil: 'networkidle2', timeout: 30000 }).catch(() => {});
-              await new Promise(r => setTimeout(r, 3000));
-              await page.screenshot({ path: 'screenshot.png' });
-              await browser.close();
-              console.log('Screenshot captured');
-            })().catch(e => { console.error('Screenshot failed:', e.message); process.exit(0); });
-          "
 
           {
             echo "## 🔍 Smoke Test Results"
@@ -317,22 +261,8 @@ jobs:
             echo "| Version | \`${VERSION_RESPONSE}\` |"
             echo "| Version URL | [${APP_URL}/api/version](${APP_URL}/api/version) |"
             echo ""
-            if [ -f screenshot.png ]; then
-              echo "### 📸 Appointments API Screenshot"
-              echo ""
-              echo "Screenshot uploaded as workflow artifact: **screenshot-appointments-api**"
-              echo ""
-            fi
             echo "🔗 **Application URL:** [${APP_URL}](${APP_URL})"
           } >> "$GITHUB_STEP_SUMMARY"
-      - name: Upload screenshot artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: screenshot-appointments-api
-          path: screenshot.png
-          if-no-files-found: ignore
-          retention-days: 30
 
   teardown:
     name: Teardown Infrastructure

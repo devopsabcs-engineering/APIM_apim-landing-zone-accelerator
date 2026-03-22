@@ -31,17 +31,85 @@ param appInsightsLocation string = resourceGroup().location
 ])
 param functionWorkerRuntime string = 'dotnet-isolated'
 
-@description('Required for Linux app to represent runtime stack in the format of \'runtime|runtimeVersion\'. For example: \'python|3.9\'')
-param linuxFxVersion string = 'DOTNET-ISOLATED|8.0'
-
-//@description('The zip content url.')
-//param packageUri string
+@description('Container image tag for the Function App. Set during deployment.')
+param containerImageTag string = 'latest'
 
 var hostingPlanName = 'asp-appt-${instanceNumber}-${uniqueString(resourceGroup().id)}'
 var applicationInsightsName = 'appi-appt-${instanceNumber}-${uniqueString(resourceGroup().id)}'
 var storageAccountName = 'stappt${instanceNumber}${uniqueString(resourceGroup().id)}'
 var containerRegistryName = 'crappt${instanceNumber}${uniqueString(resourceGroup().id)}'
 var logAnalyticsName = 'log-appt-${instanceNumber}-${uniqueString(resourceGroup().id)}'
+var vnetName = 'vnet-appt-${instanceNumber}-${uniqueString(resourceGroup().id)}'
+var funcSubnetName = 'snet-func'
+var peSubnetName = 'snet-pe'
+
+// ─── Networking ─────────────────────────────────────────────────────────────────
+
+resource vnet 'Microsoft.Network/virtualNetworks@2024-01-01' = {
+  name: vnetName
+  location: location
+  properties: {
+    addressSpace: {
+      addressPrefixes: [
+        '10.0.0.0/16'
+      ]
+    }
+    subnets: [
+      {
+        name: funcSubnetName
+        properties: {
+          addressPrefix: '10.0.1.0/24'
+          delegations: [
+            {
+              name: 'delegation'
+              properties: {
+                serviceName: 'Microsoft.Web/serverFarms'
+              }
+            }
+          ]
+        }
+      }
+      {
+        name: peSubnetName
+        properties: {
+          addressPrefix: '10.0.2.0/24'
+        }
+      }
+    ]
+  }
+}
+
+// ─── Private DNS Zones ──────────────────────────────────────────────────────────
+
+var storageDnsZones = [
+  'privatelink.blob.${environment().suffixes.storage}'
+  'privatelink.queue.${environment().suffixes.storage}'
+  'privatelink.table.${environment().suffixes.storage}'
+  'privatelink.file.${environment().suffixes.storage}'
+]
+
+resource privateDnsZones 'Microsoft.Network/privateDnsZones@2024-06-01' = [
+  for zone in storageDnsZones: {
+    name: zone
+    location: 'global'
+  }
+]
+
+resource privateDnsZoneLinks 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = [
+  for (zone, i) in storageDnsZones: {
+    parent: privateDnsZones[i]
+    name: '${vnetName}-link'
+    location: 'global'
+    properties: {
+      registrationEnabled: false
+      virtualNetwork: {
+        id: vnet.id
+      }
+    }
+  }
+]
+
+// ─── Logging ────────────────────────────────────────────────────────────────────
 
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: logAnalyticsName
@@ -52,7 +120,7 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
     }
     retentionInDays: 30
     features: {
-      legacy: 0 // 0 means disable
+      legacy: 0
       searchVersion: 1
       enableLogAccessUsingOnlyResourcePermissions: true
     }
@@ -63,6 +131,8 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
     publicNetworkAccessForQuery: 'Enabled'
   }
 }
+
+// ─── Container Registry ─────────────────────────────────────────────────────────
 
 resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-11-01-preview' = {
   name: containerRegistryName
@@ -75,11 +145,15 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-11-01-pr
   }
 }
 
-@description('User-assigned managed identity for the Function App to access storage without shared keys')
+// ─── Managed Identity ───────────────────────────────────────────────────────────
+
+@description('User-assigned managed identity for the Function App to access storage and ACR without shared keys')
 resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: 'id-appt-${instanceNumber}-${uniqueString(resourceGroup().id)}'
   location: location
 }
+
+// ─── Storage Account (policy-compliant: no shared key, no public access) ────────
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   name: storageAccountName
@@ -88,19 +162,17 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
     name: storageAccountType
   }
   kind: 'StorageV2'
-  // allow storage account to be accessed from the function app
   properties: {
+    allowSharedKeyAccess: false
+    allowBlobPublicAccess: false
+    publicNetworkAccess: 'Disabled'
+    minimumTlsVersion: 'TLS1_2'
     networkAcls: {
-      defaultAction: 'Allow'
-      // allow access from the function app
+      defaultAction: 'Deny'
       bypass: 'AzureServices'
-      virtualNetworkRules: []
-      ipRules: []
     }
-    allowSharedKeyAccess: true
   }
 
-  // add table services
   resource tableService 'tableServices@2023-05-01' = {
     name: 'default'
     resource table 'tables@2023-05-01' = {
@@ -108,6 +180,50 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
     }
   }
 }
+
+// ─── Private Endpoints for Storage ──────────────────────────────────────────────
+
+var storageSubResources = ['blob', 'queue', 'table', 'file']
+
+resource storagePrivateEndpoints 'Microsoft.Network/privateEndpoints@2024-01-01' = [
+  for (subResource, i) in storageSubResources: {
+    name: 'pe-${storageAccountName}-${subResource}'
+    location: location
+    properties: {
+      subnet: {
+        id: vnet.properties.subnets[1].id
+      }
+      privateLinkServiceConnections: [
+        {
+          name: 'psc-${subResource}'
+          properties: {
+            privateLinkServiceId: storageAccount.id
+            groupIds: [subResource]
+          }
+        }
+      ]
+    }
+  }
+]
+
+resource privateEndpointDnsGroups 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024-01-01' = [
+  for (subResource, i) in storageSubResources: {
+    parent: storagePrivateEndpoints[i]
+    name: 'default'
+    properties: {
+      privateDnsZoneConfigs: [
+        {
+          name: 'config-${subResource}'
+          properties: {
+            privateDnsZoneId: privateDnsZones[i].id
+          }
+        }
+      ]
+    }
+  }
+]
+
+// ─── App Service Plan ───────────────────────────────────────────────────────────
 
 resource hostingPlan 'Microsoft.Web/serverfarms@2024-04-01' = {
   name: hostingPlanName
@@ -124,6 +240,8 @@ resource hostingPlan 'Microsoft.Web/serverfarms@2024-04-01' = {
   }
 }
 
+// ─── Application Insights ───────────────────────────────────────────────────────
+
 resource applicationInsight 'Microsoft.Insights/components@2020-02-02' = {
   name: applicationInsightsName
   location: appInsightsLocation
@@ -137,10 +255,12 @@ resource applicationInsight 'Microsoft.Insights/components@2020-02-02' = {
   kind: 'web'
 }
 
+// ─── Function App (container-based, VNet-integrated) ────────────────────────────
+
 resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
   name: functionAppName
   location: location
-  kind: 'functionapp,linux'
+  kind: 'functionapp,linux,container'
   identity: {
     type: 'SystemAssigned, UserAssigned'
     userAssignedIdentities: {
@@ -153,17 +273,24 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
     uamiStorageQueueDataContributorRole
     uamiStorageTableDataContributorRole
     uamiStorageFileDataContributorRole
+    uamiAcrPullRole
+    storagePrivateEndpoints
+    privateEndpointDnsGroups
   ]
   properties: {
     reserved: true
     serverFarmId: hostingPlan.id
+    virtualNetworkSubnetId: vnet.properties.subnets[0].id
     keyVaultReferenceIdentity: managedIdentity.id
     siteConfig: {
-      linuxFxVersion: linuxFxVersion
+      linuxFxVersion: 'DOCKER|${containerRegistry.properties.loginServer}/appointmentsapi:${containerImageTag}'
+      acrUseManagedIdentityCreds: true
+      acrUserManagedIdentityID: managedIdentity.properties.clientId
+      vnetRouteAllEnabled: true
       appSettings: [
         {
-          name: 'APPINSIGHTS_INSTRUMENTATIONKEY'
-          value: applicationInsight.properties.InstrumentationKey
+          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+          value: applicationInsight.properties.ConnectionString
         }
         {
           name: 'Logging__LogLevel__Default'
@@ -185,61 +312,18 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
           name: 'AllowedHosts'
           value: '*'
         }
+        // Identity-based AzureWebJobsStorage (no shared key)
         {
-          name: 'ApplicationInsights__InstrumentationKey'
-          value: applicationInsight.properties.InstrumentationKey
+          name: 'AzureWebJobsStorage__accountName'
+          value: storageAccountName
         }
         {
-          name: 'APPLICATIONINSIGHTS_INSTRUMENTATIONKEY'
-          value: applicationInsight.properties.InstrumentationKey
+          name: 'AzureWebJobsStorage__credential'
+          value: 'managedidentity'
         }
         {
-          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-          value: applicationInsight.properties.ConnectionString
-        }
-        {
-          name: 'APPINSIGHTS_PROFILERFEATURE_VERSION'
-          value: '1.0.0'
-        }
-        {
-          name: 'APPINSIGHTS_SNAPSHOTFEATURE_VERSION'
-          value: '1.0.0'
-        }
-        {
-          name: 'ApplicationInsightsAgent_EXTENSION_VERSION'
-          value: '~3'
-        }
-        {
-          name: 'DiagnosticServices_EXTENSION_VERSION'
-          value: '~3'
-        }
-        {
-          name: 'InstrumentationEngine_EXTENSION_VERSION'
-          value: 'disabled'
-        }
-        {
-          name: 'SnapshotDebugger_EXTENSION_VERSION'
-          value: 'disabled'
-        }
-        {
-          name: 'XDT_MicrosoftApplicationInsights_BaseExtensions'
-          value: 'disabled'
-        }
-        {
-          name: 'XDT_MicrosoftApplicationInsights_Mode'
-          value: 'recommended'
-        }
-        {
-          name: 'XDT_MicrosoftApplicationInsights_PreemptSdk'
-          value: 'disabled'
-        }
-        {
-          name: 'APPLICATIONINSIGHTS_CONFIGURATION_CONTENT'
-          value: ''
-        }
-        {
-          name: 'AzureWebJobsStorage'
-          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccountName};EndpointSuffix=${environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}'
+          name: 'AzureWebJobsStorage__clientId'
+          value: managedIdentity.properties.clientId
         }
         {
           name: 'FUNCTIONS_EXTENSION_VERSION'
@@ -250,8 +334,12 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
           value: functionWorkerRuntime
         }
         {
-          name: 'SCM_DO_BUILD_DURING_DEPLOYMENT'
-          value: '0'
+          name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE'
+          value: 'false'
+        }
+        {
+          name: 'DOCKER_ENABLE_CI'
+          value: 'false'
         }
         {
           name: 'StorageAccountAppointmentsTable'
@@ -268,17 +356,10 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
       ]
     }
   }
-
-  resource scm 'basicPublishingCredentialsPolicies@2024-04-01' = {
-    name: 'scm'
-    properties: {
-      //enable basic auth for the app
-      allow: true
-    }
-  }
 }
 
-// RBAC role assignments for the user-assigned managed identity on the storage account
+// ─── RBAC: UAMI → Storage ──────────────────────────────────────────────────────
+
 // Storage Blob Data Owner (UAMI)
 resource uamiStorageBlobDataOwnerRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(storageAccount.id, managedIdentity.id, 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b')
@@ -334,7 +415,20 @@ resource uamiStorageFileDataContributorRole 'Microsoft.Authorization/roleAssignm
   }
 }
 
-// RBAC role assignments for the system-assigned managed identity (created after function app)
+// ─── RBAC: UAMI → ACR (AcrPull) ────────────────────────────────────────────────
+
+resource uamiAcrPullRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(containerRegistry.id, managedIdentity.id, '7f951dda-4ed3-4680-a7ca-43fe172d538d')
+  scope: containerRegistry
+  properties: {
+    principalId: managedIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')
+  }
+}
+
+// ─── RBAC: System Identity → Storage ────────────────────────────────────────────
+
 // Storage Blob Data Owner (System)
 resource sysStorageBlobDataOwnerRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(storageAccount.id, functionApp.id, 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b')
@@ -390,9 +484,12 @@ resource sysStorageFileDataContributorRole 'Microsoft.Authorization/roleAssignme
   }
 }
 
+// ─── Outputs ────────────────────────────────────────────────────────────────────
+
 output functionAppName string = functionApp.name
 output storageAccountName string = storageAccount.name
 output containerRegistryName string = containerRegistry.name
+output containerRegistryLoginServer string = containerRegistry.properties.loginServer
 output hostingPlanName string = hostingPlan.name
 output applicationInsightsName string = applicationInsight.name
 output managedIdentityClientId string = managedIdentity.properties.clientId
