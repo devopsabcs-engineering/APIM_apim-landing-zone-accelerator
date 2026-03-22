@@ -3,7 +3,7 @@ info:
   title: WRKSHP_SimpleWebApiWithContainers
   version: '1.0'
 servers:
-  - url: https://apim-dev-005-3snpbfdd5kffc.azure-api.net/weatherdemo001
+  - url: https://apim-dev-006-cxfqm7rkx4ppi.azure-api.net/weatherdemo001
 paths:
   /WeatherForecast:
     get:

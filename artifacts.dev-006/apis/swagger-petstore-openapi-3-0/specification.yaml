@@ -10,7 +10,7 @@ info:
     url: http://www.apache.org/licenses/LICENSE-2.0.html
   version: '1.0'
 servers:
-  - url: https://apim-dev-005-3snpbfdd5kffc.azure-api.net/petstore
+  - url: https://apim-dev-006-cxfqm7rkx4ppi.azure-api.net/petstore
 paths:
   /pet:
     put:
@@ -1028,11 +1028,6 @@ security:
   - apiKeyHeader: [ ]
   - apiKeyQuery: [ ]
 tags:
-  - name: pet
-    description: Everything about your Pets
-    externalDocs:
-      description: Find out more
-      url: http://swagger.io/
   - name: store
     description: Access to Petstore orders
     externalDocs:
@@ -1040,3 +1035,8 @@ tags:
       url: http://swagger.io/
   - name: user
     description: Operations about user
+  - name: pet
+    description: Everything about your Pets
+    externalDocs:
+      description: Find out more
+      url: http://swagger.io/

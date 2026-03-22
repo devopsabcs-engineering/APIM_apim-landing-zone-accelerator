@@ -10,7 +10,7 @@ info:
     url: https://opensource.org/licenses/MIT
   version: '1.0'
 servers:
-  - url: https://apim-dev-005-3snpbfdd5kffc.azure-api.net/fastapi001
+  - url: https://apim-dev-006-cxfqm7rkx4ppi.azure-api.net/fastapi001
 paths:
   /:
     get:

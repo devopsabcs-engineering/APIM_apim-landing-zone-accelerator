@@ -4,8 +4,8 @@ info:
   description: 'A sample API with information related to a technical conference.  The available resources  include *Speakers*, *Sessions* and *Topics*.  A single write operation is available to provide  feedback on a session.'
   version: v2
 servers:
-  - url: http://apim-dev-005-3snpbfdd5kffc.azure-api.net/democonfver/v2
-  - url: https://apim-dev-005-3snpbfdd5kffc.azure-api.net/democonfver/v2
+  - url: http://apim-dev-006-cxfqm7rkx4ppi.azure-api.net/democonfver/v2
+  - url: https://apim-dev-006-cxfqm7rkx4ppi.azure-api.net/democonfver/v2
 paths:
   /sessions:
     get:

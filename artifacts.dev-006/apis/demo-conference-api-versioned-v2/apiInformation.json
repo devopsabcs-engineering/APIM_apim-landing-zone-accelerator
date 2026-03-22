@@ -3,7 +3,7 @@
     "path": "democonfver",
     "apiRevision": "1",
     "apiVersion": "v2",
-    "apiVersionSetId": "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-vnet-external-dev-005-eu2/providers/Microsoft.ApiManagement/service/apim-dev-005-3snpbfdd5kffc/apiVersionSets/66fc4f9c0ff1c03f50ffc9ab",
+    "apiVersionSetId": "/subscriptions/64c3d212-40ed-4c6d-a825-6adfbdf25dad/resourceGroups/rg-apim-basicv2-dev-006/providers/Microsoft.ApiManagement/service/apim-dev-006-cxfqm7rkx4ppi/apiVersionSets/66fc4f9c0ff1c03f50ffc9ab",
     "authenticationSettings": {},
     "description": "A sample API with information related to a technical conference.  The available resources  include *Speakers*, *Sessions* and *Topics*.  A single write operation is available to provide  feedback on a session.",
     "isCurrent": true,

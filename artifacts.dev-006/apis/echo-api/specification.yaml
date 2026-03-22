@@ -4,7 +4,7 @@ info:
   description: fix linting (testing api team 001 PIPES) -- TC -- MAPAQ
   version: '1.0'
 servers:
-  - url: https://apim-dev-005-3snpbfdd5kffc.azure-api.net/echo
+  - url: https://apim-dev-006-cxfqm7rkx4ppi.azure-api.net/echo
 paths:
   /resource:
     get:
