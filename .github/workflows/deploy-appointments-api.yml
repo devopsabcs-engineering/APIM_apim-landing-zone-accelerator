@@ -135,11 +135,6 @@ jobs:
         uses: azure/cli@v2
         with:
           inlineScript: |
-            # Clean deploy - delete existing RG if present to clear any corrupted state
-            if az group exists --name ${{ env.RESOURCE_GROUP_NAME }} | grep -q true; then
-              echo "Deleting existing resource group for clean deploy..."
-              az group delete --name ${{ env.RESOURCE_GROUP_NAME }} --yes 2>/dev/null || true
-            fi
             az group create --name ${{ env.RESOURCE_GROUP_NAME }} --location ${{ env.LOCATION }}
             az deployment group create \
               --name ${{ env.DEPLOYMENT_NAME }} \
