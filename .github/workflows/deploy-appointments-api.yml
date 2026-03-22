@@ -252,6 +252,22 @@ jobs:
           VERSION_RESPONSE=$(curl -s --max-time 30 --retry 2 --retry-delay 5 "${APP_URL}/api/version" || echo "N/A")
           echo "Version: ${VERSION_RESPONSE}"
 
+          # Capture screenshot of Appointments API
+          npm install puppeteer 2>/dev/null
+          node -e "
+            const puppeteer = require('puppeteer');
+            (async () => {
+              const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+              const page = await browser.newPage();
+              await page.setViewport({ width: 1280, height: 720 });
+              try { await page.goto('${APP_URL}/api/Appointment', { waitUntil: 'networkidle2', timeout: 30000 }); }
+              catch (e) { console.log('Navigation warning:', e.message); }
+              await page.screenshot({ path: 'screenshot.png' });
+              await browser.close();
+              console.log('Screenshot captured');
+            })().catch(e => { console.error('Screenshot failed:', e.message); process.exit(0); });
+          "
+
           {
             echo "## 🔍 Smoke Test Results"
             echo ""
@@ -266,8 +282,22 @@ jobs:
             echo "| Version | \`${VERSION_RESPONSE}\` |"
             echo "| Version URL | [${APP_URL}/api/version](${APP_URL}/api/version) |"
             echo ""
+            if [ -f screenshot.png ]; then
+              echo "### 📸 Appointments API Screenshot"
+              echo ""
+              echo "Screenshot uploaded as workflow artifact: **screenshot-appointments-api**"
+              echo ""
+            fi
             echo "🔗 **Application URL:** [${APP_URL}](${APP_URL})"
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload screenshot artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshot-appointments-api
+          path: screenshot.png
+          if-no-files-found: ignore
+          retention-days: 30
 
   teardown:
     name: Teardown Infrastructure
