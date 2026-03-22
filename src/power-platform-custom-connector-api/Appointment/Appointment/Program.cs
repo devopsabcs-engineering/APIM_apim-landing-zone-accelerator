@@ -4,50 +4,49 @@ using Appointments.Services;
 using Azure.Data.Tables;
 using Azure.Identity;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-var host = new HostBuilder()
-    .ConfigureFunctionsWorkerDefaults()
-    .ConfigureServices(services =>
+var builder = FunctionsApplication.CreateBuilder(args);
+
+builder.ConfigureFunctionsWebApplication();
+
+builder.Services.AddApplicationInsightsTelemetryWorkerService();
+builder.Services.ConfigureFunctionsApplicationInsights();
+
+builder.Services.AddSingleton<TableServiceClient>(sp =>
+{
+    string storageAccountName = Environment.GetEnvironmentVariable("StorageAccountName") ?? "";
+    string managedIdentityClientId = Environment.GetEnvironmentVariable("MANAGED_IDENTITY_CLIENT_ID");
+
+    var credentialOptions = new DefaultAzureCredentialOptions
     {
-        services.AddApplicationInsightsTelemetryWorkerService();
-        services.ConfigureFunctionsApplicationInsights();
+        ExcludeSharedTokenCacheCredential = true,
+        ExcludeVisualStudioCodeCredential = true,
+        ExcludeVisualStudioCredential = true,
+        ExcludeInteractiveBrowserCredential = true
+    };
 
-        services.AddSingleton<TableServiceClient>(sp =>
-        {
-            string storageAccountName = Environment.GetEnvironmentVariable("StorageAccountName") ?? "";
-            string managedIdentityClientId = Environment.GetEnvironmentVariable("MANAGED_IDENTITY_CLIENT_ID");
+    if (!string.IsNullOrEmpty(managedIdentityClientId))
+    {
+        credentialOptions.ManagedIdentityClientId = managedIdentityClientId;
+    }
 
-            var credentialOptions = new DefaultAzureCredentialOptions
-            {
-                ExcludeSharedTokenCacheCredential = true,
-                ExcludeVisualStudioCodeCredential = true,
-                ExcludeVisualStudioCredential = true,
-                ExcludeInteractiveBrowserCredential = true
-            };
+    var credential = new DefaultAzureCredential(credentialOptions);
 
-            if (!string.IsNullOrEmpty(managedIdentityClientId))
-            {
-                credentialOptions.ManagedIdentityClientId = managedIdentityClientId;
-            }
+    return new TableServiceClient(
+        new Uri($"https://{storageAccountName}.table.core.windows.net"),
+        credential);
+});
 
-            var credential = new DefaultAzureCredential(credentialOptions);
+builder.Services.AddScoped<IAppointmentRepository>(sp =>
+{
+    string appointmentsTable = Environment.GetEnvironmentVariable("StorageAccountAppointmentsTable") ?? "Appointments";
+    var tableServiceClient = sp.GetRequiredService<TableServiceClient>();
+    return new AppointmentRepository(tableServiceClient, appointmentsTable);
+});
 
-            return new TableServiceClient(
-                new Uri($"https://{storageAccountName}.table.core.windows.net"),
-                credential);
-        });
+builder.Services.AddScoped<AppointmentService>();
 
-        services.AddScoped<IAppointmentRepository>(sp =>
-        {
-            string appointmentsTable = Environment.GetEnvironmentVariable("StorageAccountAppointmentsTable") ?? "Appointments";
-            var tableServiceClient = sp.GetRequiredService<TableServiceClient>();
-            return new AppointmentRepository(tableServiceClient, appointmentsTable);
-        });
-
-        services.AddScoped<AppointmentService>();
-    })
-    .Build();
-
-host.Run();
+builder.Build().Run();
