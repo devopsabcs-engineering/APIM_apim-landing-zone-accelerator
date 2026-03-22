@@ -26,7 +26,7 @@ jobs:
     name: Teardown Backend APIs
     if: ${{ inputs.teardown_apis }}
     runs-on: ubuntu-latest
-    environment: APIM_Lab_Teardown
+    environment: APIM_Teardown_All
     steps:
       - uses: azure/login@v2
         with:
@@ -95,7 +95,7 @@ jobs:
     name: Teardown APIM Dev
     if: ${{ inputs.teardown_apim }}
     runs-on: ubuntu-latest
-    environment: APIM_Lab_Teardown
+    environment: APIM_BasicV2_Dev_Teardown
     env:
       RG_DEV: rg-apim-basicv2-dev-${{ inputs.instance_number }}
     steps:
@@ -132,7 +132,7 @@ jobs:
     name: Teardown APIM Prod
     if: ${{ inputs.teardown_apim }}
     runs-on: ubuntu-latest
-    environment: APIM_Lab_Teardown
+    environment: APIM_BasicV2_Prod_Teardown
     env:
       RG_PROD: rg-apim-basicv2-prod-${{ inputs.instance_number }}
     steps:
