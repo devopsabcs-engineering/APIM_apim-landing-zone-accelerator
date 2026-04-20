@@ -161,13 +161,26 @@ jobs:
         with:
           inlineScript: |
             az group create --name ${{ env.RG_DEV }} --location ${{ env.LOCATION }}
-            RESULT=$(az deployment group create \
-              --resource-group ${{ env.RG_DEV }} \
-              --name ${{ env.RG_DEV }} \
-              --template-file ${{ env.TEMPLATE_FILE }} \
-              --parameters ${{ env.PARAMETERS_DIR }}/main.parameters.dev-${{ env.INSTANCE_NUMBER }}.json \
-              --query '{name:properties.outputs.apiManagementName.value, url:properties.outputs.apiManagementGatewayUrl.value}' \
-              -o json)
+            MAX_RETRIES=3
+            RETRY_DELAY=60
+            for ATTEMPT in $(seq 1 $MAX_RETRIES); do
+              echo "Deployment attempt $ATTEMPT of $MAX_RETRIES..."
+              RESULT=$(az deployment group create \
+                --resource-group ${{ env.RG_DEV }} \
+                --name ${{ env.RG_DEV }} \
+                --template-file ${{ env.TEMPLATE_FILE }} \
+                --parameters ${{ env.PARAMETERS_DIR }}/main.parameters.dev-${{ env.INSTANCE_NUMBER }}.json \
+                --query '{name:properties.outputs.apiManagementName.value, url:properties.outputs.apiManagementGatewayUrl.value}' \
+                -o json) && break
+              echo "Attempt $ATTEMPT failed. Managed identity may not be ready yet."
+              if [ "$ATTEMPT" -lt "$MAX_RETRIES" ]; then
+                echo "Waiting ${RETRY_DELAY}s before retry..."
+                sleep $RETRY_DELAY
+              else
+                echo "All $MAX_RETRIES attempts failed."
+                exit 1
+              fi
+            done
             APIM_NAME=$(echo "$RESULT" | jq -r '.name')
             GATEWAY_URL=$(echo "$RESULT" | jq -r '.url')
             echo "apim_name=$APIM_NAME" >> "$GITHUB_OUTPUT"
@@ -249,13 +262,26 @@ jobs:
         with:
           inlineScript: |
             az group create --name ${{ env.RG_PROD }} --location ${{ env.LOCATION }}
-            RESULT=$(az deployment group create \
-              --resource-group ${{ env.RG_PROD }} \
-              --name ${{ env.RG_PROD }} \
-              --template-file ${{ env.TEMPLATE_FILE }} \
-              --parameters ${{ env.PARAMETERS_DIR }}/main.parameters.prod-${{ env.INSTANCE_NUMBER }}.json \
-              --query '{name:properties.outputs.apiManagementName.value, url:properties.outputs.apiManagementGatewayUrl.value}' \
-              -o json)
+            MAX_RETRIES=3
+            RETRY_DELAY=60
+            for ATTEMPT in $(seq 1 $MAX_RETRIES); do
+              echo "Deployment attempt $ATTEMPT of $MAX_RETRIES..."
+              RESULT=$(az deployment group create \
+                --resource-group ${{ env.RG_PROD }} \
+                --name ${{ env.RG_PROD }} \
+                --template-file ${{ env.TEMPLATE_FILE }} \
+                --parameters ${{ env.PARAMETERS_DIR }}/main.parameters.prod-${{ env.INSTANCE_NUMBER }}.json \
+                --query '{name:properties.outputs.apiManagementName.value, url:properties.outputs.apiManagementGatewayUrl.value}' \
+                -o json) && break
+              echo "Attempt $ATTEMPT failed. Managed identity may not be ready yet."
+              if [ "$ATTEMPT" -lt "$MAX_RETRIES" ]; then
+                echo "Waiting ${RETRY_DELAY}s before retry..."
+                sleep $RETRY_DELAY
+              else
+                echo "All $MAX_RETRIES attempts failed."
+                exit 1
+              fi
+            done
             APIM_NAME=$(echo "$RESULT" | jq -r '.name')
             GATEWAY_URL=$(echo "$RESULT" | jq -r '.url')
             echo "apim_name=$APIM_NAME" >> "$GITHUB_OUTPUT"
