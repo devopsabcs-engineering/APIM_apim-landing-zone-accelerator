@@ -35,6 +35,9 @@ param createOAuth2Server bool = false
 @description('The client ID of the AAD app registration for OAuth2 authorization')
 param oAuth2ClientId string = ''
 
+@description('The object ID of the service principal used by the APIops publisher. When provided, grants API Management Service Contributor on the APIM instance.')
+param publisherPrincipalId string = ''
+
 var applicationInsightsLoggerName = 'apimlogger'
 var baseName = 'apim-${environmentName}-${instanceNumber}-${uniqueString(resourceGroup().id)}'
 var apiManagementName = baseName
@@ -159,6 +162,19 @@ resource secretAppInsights 'Microsoft.KeyVault/vaults/secrets@2024-04-01-preview
   parent: keyVault
   properties: {
     value: applicationInsights.properties.InstrumentationKey
+  }
+}
+
+resource publisherRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (publisherPrincipalId != '') {
+  name: guid(subscription().subscriptionId, apiManagement.name, publisherPrincipalId, 'apim-service-contributor')
+  scope: apiManagement
+  properties: {
+    principalId: publisherPrincipalId
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      '312a565d-c81f-4fd8-895a-4e21e48d571c'
+    )
+    principalType: 'ServicePrincipal'
   }
 }
 

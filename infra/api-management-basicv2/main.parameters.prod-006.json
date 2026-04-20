@@ -22,6 +22,9 @@
         },
         "instanceNumber": {
             "value": "006"
+        },
+        "publisherPrincipalId": {
+            "value": "f8551597-229b-4465-902e-0ed308fef332"
         }
     }
 }
