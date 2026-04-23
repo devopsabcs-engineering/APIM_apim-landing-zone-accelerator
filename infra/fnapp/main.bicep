@@ -4,6 +4,12 @@ param functionAppName string = 'func-appt-${instanceNumber}-${uniqueString(resou
 @description('The instance number of the Azure Function app.')
 param instanceNumber string = '002'
 
+@description('The Docker image name to pull from ACR.')
+param imageName string = 'appointmentsapi'
+
+@description('The Docker image tag to pull from ACR.')
+param imageTag string = 'latest'
+
 @description('The name of the table to create in the storage account.')
 param appointmentTableName string = 'Appointments'
 
@@ -280,7 +286,7 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
     virtualNetworkSubnetId: vnet.properties.subnets[0].id
     keyVaultReferenceIdentity: managedIdentity.id
     siteConfig: {
-      linuxFxVersion: 'DOTNET-ISOLATED|8.0'
+      linuxFxVersion: 'DOCKER|${containerRegistry.properties.loginServer}/${imageName}:${imageTag}'
       acrUseManagedIdentityCreds: true
       acrUserManagedIdentityID: managedIdentity.properties.clientId
       vnetRouteAllEnabled: true

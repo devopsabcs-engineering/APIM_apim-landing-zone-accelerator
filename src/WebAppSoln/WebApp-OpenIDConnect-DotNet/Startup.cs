@@ -50,26 +50,36 @@ namespace WebApp_OpenIDConnect_DotNet
                 options.KnownProxies.Clear();
             });
 
-            services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
-               .AddMicrosoftIdentityWebApp(Configuration.GetSection("AzureAd"))
-               .EnableTokenAcquisitionToCallDownstreamApi()
-                .AddInMemoryTokenCaches();
+            var azureAdSection = Configuration.GetSection("AzureAd");
+            var clientId = azureAdSection["ClientId"];
 
-            // Add APIs
-            services.AddGraphService(Configuration);
-            services.AddHttpClient<IArmOperations, ArmApiOperationService>();
-            services.AddHttpClient<IArmOperationsWithImplicitAuth, ArmApiOperationServiceWithImplicitAuth>()
-                .AddMicrosoftIdentityUserAuthenticationHandler(
-                    "arm",
-                    options => options.Scopes = $"{ArmApiOperationService.ArmResource}user_impersonation");
-
-            services.AddControllersWithViews(options =>
+            if (!string.IsNullOrEmpty(clientId))
             {
-                var policy = new AuthorizationPolicyBuilder()
-                    .RequireAuthenticatedUser()
-                    .Build();
-                options.Filters.Add(new AuthorizeFilter(policy));
-            }).AddMicrosoftIdentityUI();
+                services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
+                   .AddMicrosoftIdentityWebApp(azureAdSection)
+                   .EnableTokenAcquisitionToCallDownstreamApi()
+                    .AddInMemoryTokenCaches();
+
+                // Add APIs
+                services.AddGraphService(Configuration);
+                services.AddHttpClient<IArmOperations, ArmApiOperationService>();
+                services.AddHttpClient<IArmOperationsWithImplicitAuth, ArmApiOperationServiceWithImplicitAuth>()
+                    .AddMicrosoftIdentityUserAuthenticationHandler(
+                        "arm",
+                        options => options.Scopes = $"{ArmApiOperationService.ArmResource}user_impersonation");
+
+                services.AddControllersWithViews(options =>
+                {
+                    var policy = new AuthorizationPolicyBuilder()
+                        .RequireAuthenticatedUser()
+                        .Build();
+                    options.Filters.Add(new AuthorizeFilter(policy));
+                }).AddMicrosoftIdentityUI();
+            }
+            else
+            {
+                services.AddControllersWithViews();
+            }
 
             // add application insights
             services.AddApplicationInsightsTelemetry(Configuration["ApplicationInsights:InstrumentationKey"]);

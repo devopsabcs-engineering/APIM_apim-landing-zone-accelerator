@@ -261,6 +261,8 @@ jobs:
           APP_NAME: ${{ needs.deploy-app.outputs.app_name }}
         run: |
           APP_URL="https://${APP_NAME}.azurewebsites.net"
+          echo "Warming up ${APP_URL}..."
+          curl -s -o /dev/null --max-time 30 "${APP_URL}" || true
           npm install puppeteer
           node -e "
             const puppeteer = require('puppeteer');
@@ -269,10 +271,11 @@ jobs:
               const page = await browser.newPage();
               await page.setViewport({ width: 1280, height: 720 });
               try {
-                await page.goto('${APP_URL}', { waitUntil: 'networkidle2', timeout: 30000 });
+                await page.goto('${APP_URL}', { waitUntil: 'networkidle2', timeout: 45000 });
               } catch (e) {
                 console.log('Navigation warning:', e.message);
               }
+              await new Promise(r => setTimeout(r, 3000));
               await page.screenshot({ path: 'screenshot.png' });
               await browser.close();
               console.log('Screenshot captured successfully');
@@ -284,11 +287,12 @@ jobs:
             echo "captured=false" >> "$GITHUB_OUTPUT"
           fi
       - name: Upload screenshot artifact
-        if: steps.screenshot.outputs.captured == 'true'
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: screenshot-web-app
           path: screenshot.png
+          if-no-files-found: ignore
           retention-days: 30
       - name: Write job summary
         env:

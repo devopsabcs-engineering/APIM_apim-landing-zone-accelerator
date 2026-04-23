@@ -183,6 +183,19 @@ jobs:
           pattern: screenshot-*
           path: screenshots
           merge-multiple: false
+        continue-on-error: true
+      - name: List downloaded screenshot artifacts
+        run: |
+          echo "=== Screenshot artifacts downloaded ==="
+          if [ -d screenshots ]; then
+            find screenshots -type f -name "*.png" | sort
+            echo ""
+            echo "Total PNG files: $(find screenshots -type f -name '*.png' | wc -l)"
+            echo "Artifact directories:"
+            ls -d screenshots/screenshot-*/ 2>/dev/null || echo "  (none)"
+          else
+            echo "No screenshots directory found"
+          fi
       - name: Collect version and smoke test data
         id: collect
         run: |
@@ -192,7 +205,7 @@ jobs:
           # Define all apps with their version endpoints
           declare -A APPS
           APPS=(
-            ["Web App"]="https://app-web-app-jqlzyrm7hw4ou.azurewebsites.net|/api/version|/"
+            ["Web App"]="https://app-web-app-jqlzyrm7hw4ou.azurewebsites.net|/api/version|/api/version"
             ["Weather API"]="https://app-weather-api-wvwg5gngtozli.azurewebsites.net|/api/version|/swagger"
             ["Star Wars API"]="https://app-star-wars-api-o3swnbq56q5wi.azurewebsites.net|/api/version|/swagger"
             ["SOAP API"]="https://app-soap-api-eck3siixea55c.azurewebsites.net|/api/version|/PersonProfileService.asmx?wsdl"
@@ -246,7 +259,9 @@ jobs:
           } >> "${WIKI_FILE}"
 
           # List available screenshots
+          echo "=== Screenshot directories found ===" >&2
           if [ -d screenshots ]; then
+            ls -la screenshots/ >&2 || true
             FOUND_SCREENSHOTS=false
             for SCREENSHOT_DIR in screenshots/screenshot-*/; do
               if [ -d "${SCREENSHOT_DIR}" ]; then
@@ -334,9 +349,7 @@ jobs:
             done
           fi
 
-          # Copy report as latest only (no historical copies)
-          DATE_STAMP=$(date -u '+%Y-%m-%d')
-          cp wiki-report.md "${WIKI_DIR}/Deployment-Reports/Deployment-Report-${DATE_STAMP}-Run-${GITHUB_RUN_NUMBER}.md"
+          # Copy report as latest only — no historical copies
           cp wiki-report.md "${WIKI_DIR}/Deployment-Reports/Latest-Deployment-Report.md"
 
           # Update wiki index page for deployment reports

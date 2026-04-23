@@ -1,0 +1,154 @@
+# ---------------------------------------------------------------------------
+# APIops Publisher Pipeline for BasicV2 006 environments
+# Ports: .github/workflows/run-publisher-with-env-006.yaml
+# Downloads the APIops publisher from GitHub releases and runs it against
+# the specified APIM BasicV2 environment (dev-006 or prod-006).
+# ---------------------------------------------------------------------------
+
+trigger: none
+
+parameters:
+  - name: apiManagementEnvironment
+    type: string
+    displayName: 'Target APIM environment'
+    default: 'dev-006'
+    values:
+      - dev-006
+      - prod-006
+  - name: configurationYamlPath
+    type: string
+    displayName: 'Optional configuration YAML path (repo-relative)'
+    default: 'configuration.prod-006.yaml'
+  - name: commitId
+    type: string
+    displayName: 'Optional commit ID'
+    default: ' '
+  - name: apiManagementServiceOutputFolderPath
+    type: string
+    displayName: 'Artifacts output folder (repo-relative)'
+    default: 'artifacts.dev-006'
+
+variables:
+  - name: azureSubscription
+    value: 'APIM_MicrosoftAzureExternal_multitenant'
+  - name: publisherVersion
+    value: 'v6.0.2'
+
+pool:
+  name: KubernetesPoolOnPremLinux002
+
+stages:
+  - stage: run_publisher
+    displayName: 'Run APIops Publisher (${{ parameters.apiManagementEnvironment }})'
+    jobs:
+      - job: publish
+        displayName: 'Publish to ${{ parameters.apiManagementEnvironment }}'
+        steps:
+          - checkout: self
+            fetchDepth: 0
+
+          # ------------------------------------------------------------------
+          # Step 1 – Download and extract the publisher binary
+          # ------------------------------------------------------------------
+          - script: |
+              set -euo pipefail
+              echo "Downloading publisher $(publisherVersion)..."
+              curl -L -o publisher.zip \
+                "https://github.com/Azure/apiops/releases/download/$(publisherVersion)/publisher-linux-x64.zip"
+              unzip -o publisher.zip -d publisher
+              chmod +x publisher/publisher
+              echo "Publisher ready."
+            displayName: 'Download APIops publisher'
+
+          # ------------------------------------------------------------------
+          # Step 2 – Token substitution for prod configuration files
+          # ------------------------------------------------------------------
+          - script: |
+              set -euo pipefail
+              CONFIG_YAML=$(echo "${{ parameters.configurationYamlPath }}" | xargs)
+              if [ -n "$CONFIG_YAML" ]; then
+                echo "Performing token substitution in $CONFIG_YAML..."
+                sed -i "s/{#testSecretValue#}/$(testSecretValue)/g" \
+                  "$(System.DefaultWorkingDirectory)/$CONFIG_YAML"
+                echo "Token substitution complete."
+              else
+                echo "No configuration YAML provided – skipping token substitution."
+              fi
+            displayName: 'Token substitution (conditional)'
+            condition: succeeded()
+
+          # ------------------------------------------------------------------
+          # Step 3 – Resolve environment-specific variables and run publisher
+          # Uses AzureCLI@2 so the service-principal credentials are available
+          # via addSpnToEnvironment. The 4 conditional execution paths mirror
+          # the GitHub Actions workflow logic.
+          # ------------------------------------------------------------------
+          - task: AzureCLI@2
+            displayName: 'Run publisher for ${{ parameters.apiManagementEnvironment }}'
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              addSpnToEnvironment: true
+              failOnStandardError: false
+              inlineScript: |
+                set -euo pipefail
+
+                # --- Map environment to resource group / APIM instance ----------
+                case "${{ parameters.apiManagementEnvironment }}" in
+                  dev-006)
+                    RG_NAME="rg-apim-basicv2-dev-006"
+                    ;;
+                  prod-006)
+                    RG_NAME="rg-apim-basicv2-prod-006"
+                    ;;
+                  *)
+                    echo "##[error]Unknown environment: ${{ parameters.apiManagementEnvironment }}"
+                    exit 1
+                    ;;
+                esac
+
+                # Resolve actual APIM service name from resource group
+                APIM_NAME=$(az apim list --resource-group "$RG_NAME" --query "[0].name" -o tsv)
+                echo "Resolved APIM service name: $APIM_NAME"
+
+                # --- Azure credentials from service connection ------------------
+                export AZURE_CLIENT_ID="$servicePrincipalId"
+                export AZURE_CLIENT_SECRET="$servicePrincipalKey"
+                export AZURE_TENANT_ID="$tenantId"
+                export AZURE_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+
+                # --- Common publisher environment variables ---------------------
+                export AZURE_RESOURCE_GROUP_NAME="$RG_NAME"
+                export API_MANAGEMENT_SERVICE_NAME="$APIM_NAME"
+                export API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH="$(System.DefaultWorkingDirectory)/${{ parameters.apiManagementServiceOutputFolderPath }}"
+                export Logging__LogLevel__Default="Debug"
+
+                CONFIG_YAML=$(echo "${{ parameters.configurationYamlPath }}" | xargs)
+                COMMIT_ID=$(echo "${{ parameters.commitId }}" | xargs)
+
+                # --- 4 conditional execution paths ------------------------------
+                if [ -n "$CONFIG_YAML" ] && [ -n "$COMMIT_ID" ]; then
+                  echo "Running publisher with config YAML and commit ID..."
+                  export CONFIGURATION_YAML_PATH="$(System.DefaultWorkingDirectory)/$CONFIG_YAML"
+                  export COMMIT_ID="$COMMIT_ID"
+
+                elif [ -n "$CONFIG_YAML" ]; then
+                  echo "Running publisher with config YAML only..."
+                  export CONFIGURATION_YAML_PATH="$(System.DefaultWorkingDirectory)/$CONFIG_YAML"
+
+                elif [ -n "$COMMIT_ID" ]; then
+                  echo "Running publisher with commit ID only..."
+                  export COMMIT_ID="$COMMIT_ID"
+
+                else
+                  echo "Running publisher with defaults (no config YAML, no commit ID)..."
+                fi
+
+                echo "Resource Group : $RG_NAME"
+                echo "APIM Instance  : $APIM_NAME"
+                echo "Output Folder  : $API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH"
+
+                # --- Execute publisher ------------------------------------------
+                ./publisher/publisher
+                echo "Publisher execution complete."

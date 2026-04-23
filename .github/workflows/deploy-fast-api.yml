@@ -262,14 +262,17 @@ jobs:
 
           # Capture screenshot of API docs
           npm install puppeteer 2>/dev/null
+          echo "Warming up ${DOCS_URL}..."
+          curl -s -o /dev/null --max-time 30 "${DOCS_URL}" || true
           node -e "
             const puppeteer = require('puppeteer');
             (async () => {
               const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox', '--disable-setuid-sandbox'] });
               const page = await browser.newPage();
               await page.setViewport({ width: 1280, height: 720 });
-              try { await page.goto('${DOCS_URL}', { waitUntil: 'networkidle2', timeout: 30000 }); }
+              try { await page.goto('${DOCS_URL}', { waitUntil: 'networkidle2', timeout: 45000 }); }
               catch (e) { console.log('Navigation warning:', e.message); }
+              await new Promise(r => setTimeout(r, 3000));
               await page.screenshot({ path: 'screenshot.png' });
               await browser.close();
               console.log('Screenshot captured');

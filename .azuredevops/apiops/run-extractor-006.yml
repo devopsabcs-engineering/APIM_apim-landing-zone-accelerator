@@ -1,0 +1,188 @@
+# ---------------------------------------------------------------------------
+# APIops Extractor Pipeline for BasicV2 006 environments
+# Ports: .github/workflows/run-extractor-006.yaml
+# Downloads the APIops extractor from GitHub releases and runs it against
+# the dev-006 APIM environment. Creates a PR with the extracted artifacts.
+# ---------------------------------------------------------------------------
+
+trigger: none
+
+parameters:
+  - name: configurationYamlPath
+    type: string
+    displayName: 'Configuration YAML path (or "Extract All APIs")'
+    default: 'Extract All APIs'
+    values:
+      - Extract All APIs
+      - configuration.extractor.yaml
+      - configuration.extractor.dev-006.yaml
+      - configuration.extractor.dev-006.api-team-001.yaml
+      - configuration.extractor.dev-006.api-team-002.yaml
+  - name: apiSpecificationFormat
+    type: string
+    displayName: 'API Specification Format'
+    default: 'OpenAPIV3Yaml'
+    values:
+      - OpenAPIV3Yaml
+      - OpenAPIV3Json
+      - OpenAPIV2Yaml
+      - OpenAPIV2Json
+  - name: apiManagementServiceOutputFolderPath
+    type: string
+    displayName: 'Artifacts output folder (repo-relative)'
+    default: 'artifacts.dev-006'
+    values:
+      - artifacts
+      - artifacts.dev-006
+      - artifacts.dev-006.api-team-001
+      - artifacts.dev-006.api-team-002
+
+variables:
+  - group: APIM_rg-apim-vnet-external-dev-006
+  - name: azureSubscription
+    value: 'APIM_MicrosoftAzureExternal_multitenant'
+  - name: extractorVersion
+    value: 'v6.0.2'
+
+pool:
+  name: KubernetesPoolOnPremLinux002
+
+stages:
+  - stage: run_extractor
+    displayName: 'Run APIops Extractor (dev-006)'
+    jobs:
+      - job: extract
+        displayName: 'Extract APIM artifacts'
+        steps:
+          - checkout: self
+            persistCredentials: true
+            fetchDepth: 0
+
+          # Step 1: Download extractor binary
+          - script: |
+              set -euo pipefail
+              echo "Downloading extractor $(extractorVersion)..."
+              curl -L -o extractor.zip \
+                "https://github.com/Azure/apiops/releases/download/$(extractorVersion)/extractor-linux-x64.zip"
+              unzip -o extractor.zip -d extractor
+              chmod +x extractor/extractor
+              echo "Extractor ready."
+            displayName: 'Download APIops extractor'
+
+          # Step 2: Run extractor
+          - task: AzureCLI@2
+            displayName: 'Run extractor for dev-006'
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              addSpnToEnvironment: true
+              failOnStandardError: false
+              inlineScript: |
+                set -euo pipefail
+
+                RG_NAME="rg-apim-basicv2-dev-006"
+                APIM_NAME=$(az apim list --resource-group "$RG_NAME" --query "[0].name" -o tsv)
+                echo "Resolved APIM service name: $APIM_NAME"
+
+                export AZURE_CLIENT_ID="$servicePrincipalId"
+                export AZURE_CLIENT_SECRET="$servicePrincipalKey"
+                export AZURE_TENANT_ID="$tenantId"
+                export AZURE_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+                export AZURE_RESOURCE_GROUP_NAME="$RG_NAME"
+                export API_MANAGEMENT_SERVICE_NAME="$APIM_NAME"
+                export API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH="$(System.DefaultWorkingDirectory)/${{ parameters.apiManagementServiceOutputFolderPath }}"
+                export API_SPECIFICATION_FORMAT="${{ parameters.apiSpecificationFormat }}"
+                export Logging__LogLevel__Default="Debug"
+
+                CONFIG_YAML="${{ parameters.configurationYamlPath }}"
+                if [ "$CONFIG_YAML" != "Extract All APIs" ]; then
+                  echo "Using configuration: $CONFIG_YAML"
+                  export CONFIGURATION_YAML_PATH="$(System.DefaultWorkingDirectory)/$CONFIG_YAML"
+                else
+                  echo "Extracting all APIs (no configuration file)."
+                fi
+
+                echo "Resource Group : $AZURE_RESOURCE_GROUP_NAME"
+                echo "APIM Instance  : $API_MANAGEMENT_SERVICE_NAME"
+                echo "Output Folder  : $API_MANAGEMENT_SERVICE_OUTPUT_FOLDER_PATH"
+                echo "Spec Format    : $API_SPECIFICATION_FORMAT"
+
+                ./extractor/extractor
+                echo "Extractor execution complete."
+
+          # Step 3: Normalize subscription artifacts (convert absolute ARM paths to relative)
+          - script: |
+              set -euo pipefail
+              OUTPUT_DIR="$(System.DefaultWorkingDirectory)/${{ parameters.apiManagementServiceOutputFolderPath }}"
+              SUBS_DIR="$OUTPUT_DIR/subscriptions"
+              if [ -d "$SUBS_DIR" ]; then
+                echo "Normalizing subscription artifacts in $SUBS_DIR..."
+                FIXED=0
+                find "$SUBS_DIR" -name '*.json' | while read -r FILE; do
+                  if grep -q 'providers/Microsoft.ApiManagement/service/' "$FILE" 2>/dev/null; then
+                    # Replace absolute ARM paths with relative paths
+                    sed -i 's|/subscriptions/[^/]*/resourceGroups/[^/]*/providers/Microsoft.ApiManagement/service/[^/]*/users/|/users/|g' "$FILE"
+                    sed -i 's|/subscriptions/[^/]*/resourceGroups/[^/]*/providers/Microsoft.ApiManagement/service/[^/]*/products/|/products/|g' "$FILE"
+                    echo "  Fixed: $(basename "$(dirname "$FILE")")/$(basename "$FILE")"
+                    FIXED=$((FIXED + 1))
+                  fi
+                done
+                echo "Normalized $FIXED subscription file(s)."
+              else
+                echo "No subscriptions directory found — skipping normalization."
+              fi
+            displayName: 'Normalize subscription ARM paths to relative'
+
+          # Step 4: Publish extracted artifacts as pipeline artifact
+          - task: PublishPipelineArtifact@1
+            displayName: 'Publish extracted artifacts'
+            inputs:
+              targetPath: $(System.DefaultWorkingDirectory)/${{ parameters.apiManagementServiceOutputFolderPath }}
+              artifactName: artifacts-from-portal
+            condition: always()
+
+          # Step 5: Create a PR with extracted artifacts
+          - task: AzureCLI@2
+            displayName: 'Create pull request with artifacts'
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                az extension add --name azure-devops --allow-preview true 2>/dev/null || true
+                export AZURE_DEVOPS_EXT_PAT=$(AZDO_PAT)
+                az devops configure --defaults organization=https://dev.azure.com/devopsabcs project=OneProject
+
+                OUTPUT_FOLDER="${{ parameters.apiManagementServiceOutputFolderPath }}"
+                BRANCH_NAME="artifacts-from-portal-$(Build.BuildId)"
+
+                cd "$(System.DefaultWorkingDirectory)"
+
+                # Check for changes
+                git add "$OUTPUT_FOLDER/" --force
+                if git diff --cached --quiet; then
+                  echo "No artifact changes detected. Skipping PR creation."
+                  exit 0
+                fi
+
+                # Create branch and commit
+                git config user.email "pipeline@devopsabcs.com"
+                git config user.name "ADO Pipeline"
+                git checkout -b "$BRANCH_NAME"
+                git commit -m "Update $OUTPUT_FOLDER artifacts from APIM"
+                git push origin "$BRANCH_NAME"
+
+                # Create PR
+                az repos pr create \
+                  --title "Update APIM artifacts - $OUTPUT_FOLDER" \
+                  --description "Automated extraction of APIM artifacts from dev environment (Build $(Build.BuildNumber))" \
+                  --source-branch "$BRANCH_NAME" \
+                  --target-branch main \
+                  --repository "APIM_apim-landing-zone-accelerator" \
+                  --auto-complete false
+
+                echo "Pull request created from $BRANCH_NAME -> main"
+            env:
+              AZURE_DEVOPS_EXT_PAT: $(AZDO_PAT)

@@ -1,0 +1,198 @@
+# Azure DevOps Pipeline: Teardown APIM Lab Environment
+# Mirrors: .github/workflows/teardown-lab.yml
+# 4 stages: teardown-apis → teardown-apim-dev → teardown-apim-prod → teardown-summary
+#
+# ADO Environments Required (all require approval gates — destructive operations):
+#
+# | Environment                      | Pipeline             | Approval Required    |
+# |----------------------------------|----------------------|----------------------|
+# | APIM_Teardown_All_006            | teardown-lab-v2.yml  | Yes — destructive    |
+# | APIM_BasicV2_Dev_Teardown_006    | teardown-lab-v2.yml  | Yes — destructive    |
+# | APIM_BasicV2_Prod_Teardown_006   | teardown-lab-v2.yml  | Yes — destructive    |
+#
+# Create these environments in Azure DevOps → Project Settings → Environments
+# and configure approval checks before running this pipeline.
+
+trigger: none
+
+parameters:
+  - name: instanceNumber
+    type: string
+    default: '006'
+  - name: teardownApis
+    type: boolean
+    default: true
+  - name: teardownApim
+    type: boolean
+    default: true
+
+variables:
+  azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+
+stages:
+  # ── Stage 1: Teardown backend API resource groups ──────────────────────
+  - stage: teardown_apis
+    displayName: 'Teardown Backend APIs'
+    condition: eq('${{ parameters.teardownApis }}', 'True')
+    pool:
+      name: KubernetesPoolOnPremLinux002
+    jobs:
+      - deployment: teardown_api_resource_groups
+        displayName: 'Delete API Resource Groups'
+        environment: 'APIM_Teardown_All_006'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: none
+                - task: AzureCLI@2
+                  displayName: 'Delete API resource groups'
+                  inputs:
+                    azureSubscription: '$(azureSubscription)'
+                    scriptType: 'bash'
+                    scriptLocation: 'inlineScript'
+                    inlineScript: |
+                      set -euo pipefail
+
+                      RESOURCE_GROUPS=(
+                        "rg-web-appservice-linux-005"
+                        "rg-weather-appservice-linux-005"
+                        "rg-star-wars-appservice-linux-003"
+                        "rg-soap-appservice-linux-007"
+                        "rg-odata-appservice-linux-002"
+                        "rg-movies-appservice-linux-006"
+                        "rg-msal-python-soln"
+                        "rg-fast-api-app-insights-001"
+                        "rg-appointments-fnapp-linux-003"
+                      )
+
+                      DELETED=0
+                      SKIPPED=0
+
+                      for RG in "${RESOURCE_GROUPS[@]}"; do
+                        EXISTS=$(az group exists --name "$RG" 2>/dev/null || echo "false")
+                        if [ "$EXISTS" = "true" ]; then
+                          echo "Deleting resource group $RG (async)..."
+                          az group delete --name "$RG" --yes --no-wait 2>/dev/null || echo "RG not found"
+                          DELETED=$((DELETED + 1))
+                        else
+                          echo "Resource group $RG does not exist, skipping."
+                          SKIPPED=$((SKIPPED + 1))
+                        fi
+                      done
+
+                      echo "Teardown APIs complete: $DELETED deleted, $SKIPPED skipped."
+
+  # ── Stage 2: Teardown APIM Dev resource group ─────────────────────────
+  - stage: teardown_apim_dev
+    displayName: 'Teardown APIM Dev'
+    condition: eq('${{ parameters.teardownApim }}', 'True')
+    pool:
+      name: KubernetesPoolOnPremLinux002
+    jobs:
+      - deployment: teardown_dev_resource_group
+        displayName: 'Delete Dev APIM Resource Group'
+        environment: 'APIM_BasicV2_Dev_Teardown_006'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: none
+                - task: AzureCLI@2
+                  displayName: 'Delete Dev APIM resource group'
+                  inputs:
+                    azureSubscription: '$(azureSubscription)'
+                    scriptType: 'bash'
+                    scriptLocation: 'inlineScript'
+                    inlineScript: |
+                      RG="rg-apim-basicv2-dev-${{ parameters.instanceNumber }}"
+                      echo "Checking resource group $RG..."
+                      EXISTS=$(az group exists --name "$RG" 2>/dev/null || echo "false")
+                      if [ "$EXISTS" = "true" ]; then
+                        echo "Deleting resource group $RG (async)..."
+                        az group delete --name "$RG" --yes --no-wait 2>/dev/null || echo "RG not found"
+                      else
+                        echo "Resource group $RG does not exist, skipping."
+                      fi
+
+  # ── Stage 3: Teardown APIM Prod resource group ────────────────────────
+  - stage: teardown_apim_prod
+    displayName: 'Teardown APIM Prod'
+    condition: eq('${{ parameters.teardownApim }}', 'True')
+    pool:
+      name: KubernetesPoolOnPremLinux002
+    jobs:
+      - deployment: teardown_prod_resource_group
+        displayName: 'Delete Prod APIM Resource Group'
+        environment: 'APIM_BasicV2_Prod_Teardown_006'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: none
+                - task: AzureCLI@2
+                  displayName: 'Delete Prod APIM resource group'
+                  inputs:
+                    azureSubscription: '$(azureSubscription)'
+                    scriptType: 'bash'
+                    scriptLocation: 'inlineScript'
+                    inlineScript: |
+                      RG="rg-apim-basicv2-prod-${{ parameters.instanceNumber }}"
+                      echo "Checking resource group $RG..."
+                      EXISTS=$(az group exists --name "$RG" 2>/dev/null || echo "false")
+                      if [ "$EXISTS" = "true" ]; then
+                        echo "Deleting resource group $RG (async)..."
+                        az group delete --name "$RG" --yes --no-wait 2>/dev/null || echo "RG not found"
+                      else
+                        echo "Resource group $RG does not exist, skipping."
+                      fi
+
+  # ── Stage 4: Teardown Summary ─────────────────────────────────────────
+  - stage: teardown_summary
+    displayName: 'Teardown Summary'
+    dependsOn:
+      - teardown_apis
+      - teardown_apim_dev
+      - teardown_apim_prod
+    condition: always()
+    pool:
+      name: KubernetesPoolOnPremLinux002
+    jobs:
+      - job: print_summary
+        displayName: 'Print Teardown Summary'
+        steps:
+          - checkout: none
+          - script: |
+              echo "============================================"
+              echo "  APIM Lab Teardown Summary"
+              echo "============================================"
+              echo ""
+              echo "Instance Number: ${{ parameters.instanceNumber }}"
+              echo "Teardown APIs:   ${{ parameters.teardownApis }}"
+              echo "Teardown APIM:   ${{ parameters.teardownApim }}"
+              echo ""
+              echo "Stages:"
+              echo "  - teardown_apis:      $(Agent.JobStatus)"
+              echo "  - teardown_apim_dev:  see stage result"
+              echo "  - teardown_apim_prod: see stage result"
+              echo ""
+              echo "Resource groups targeted for deletion:"
+              echo "  APIs:"
+              echo "    - rg-web-appservice-linux-005"
+              echo "    - rg-weather-appservice-linux-005"
+              echo "    - rg-star-wars-appservice-linux-003"
+              echo "    - rg-soap-appservice-linux-007"
+              echo "    - rg-odata-appservice-linux-002"
+              echo "    - rg-movies-appservice-linux-006"
+              echo "    - rg-msal-python-soln"
+              echo "    - rg-fast-api-app-insights-001"
+              echo "    - rg-appointments-fnapp-linux-003"
+              echo "  APIM Dev:"
+              echo "    - rg-apim-basicv2-dev-${{ parameters.instanceNumber }}"
+              echo "  APIM Prod:"
+              echo "    - rg-apim-basicv2-prod-${{ parameters.instanceNumber }}"
+              echo ""
+              echo "Note: Resource groups are deleted asynchronously (--no-wait)."
+              echo "Check the Azure portal to confirm deletion has completed."
+              echo "============================================"
+            displayName: 'Print teardown summary'

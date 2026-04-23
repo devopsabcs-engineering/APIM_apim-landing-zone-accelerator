@@ -252,13 +252,15 @@ jobs:
 
           # Capture screenshot of WSDL page
           npm install puppeteer 2>/dev/null
+          echo "Warming up ${APP_URL}/PersonProfileService.asmx?wsdl..."
+          curl -s -o /dev/null --max-time 30 "${APP_URL}/PersonProfileService.asmx?wsdl" || true
           node -e "
             const puppeteer = require('puppeteer');
             (async () => {
               const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox', '--disable-setuid-sandbox'] });
               const page = await browser.newPage();
               await page.setViewport({ width: 1280, height: 720 });
-              await page.goto('${APP_URL}/PersonProfileService.asmx?wsdl', { waitUntil: 'networkidle2', timeout: 30000 }).catch(() => {});
+              await page.goto('${APP_URL}/PersonProfileService.asmx?wsdl', { waitUntil: 'networkidle2', timeout: 45000 }).catch(() => {});
               await new Promise(r => setTimeout(r, 3000));
               await page.screenshot({ path: 'screenshot.png' });
               await browser.close();

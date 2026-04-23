@@ -1,0 +1,1310 @@
+# Deploy All Apps and APIs (ADO v2)
+# Ports the GitHub Actions deploy-all.yml workflow to Azure DevOps
+# Deploys 9 APIs in parallel, captures screenshots, publishes wiki report, optional teardown
+
+trigger: none
+
+pool:
+  name: KubernetesPoolOnPremLinux002
+
+parameters:
+  - name: deployInfra
+    type: boolean
+    default: true
+  - name: teardown
+    type: boolean
+    default: false
+  - name: skipDeploy
+    type: boolean
+    default: false
+    displayName: "Skip API deployment (screenshots/teardown only)"
+  - name: webAppInstance
+    type: string
+    default: "005"
+  - name: weatherApiInstance
+    type: string
+    default: "005"
+  - name: starWarsApiInstance
+    type: string
+    default: "003"
+  - name: soapApiInstance
+    type: string
+    default: "007"
+  - name: odataApiInstance
+    type: string
+    default: "002"
+  - name: movieApiInstance
+    type: string
+    default: "006"
+  - name: appointmentsApiInstance
+    type: string
+    default: "003"
+
+variables:
+  - group: APIM_rg-apim-vnet-external-dev-006
+  - name: azureSubscription
+    value: APIM_MicrosoftAzureExternal_multitenant
+  - name: location
+    value: canadacentral
+  - name: deploymentName
+    value: infra-deployment
+  - name: appserviceTemplateFile
+    value: $(System.DefaultWorkingDirectory)/infra/appservice/main.bicep
+  - name: fnappTemplateFile
+    value: $(System.DefaultWorkingDirectory)/infra/fnapp/main.bicep
+
+stages:
+  # ============================================================
+  # Stage 0: Set Version and Tag
+  # ============================================================
+  - stage: set_version
+    displayName: "Set Version and Tag"
+    pool:
+      name: KubernetesPoolOnPremLinux002
+    jobs:
+      - job: tag_version
+        displayName: "Calculate SemVer and push tag"
+        steps:
+          - checkout: self
+            persistCredentials: true
+            fetchDepth: 0
+          - task: gitversion/setup@3
+            displayName: "Install GitVersion"
+            inputs:
+              versionSpec: "5.x"
+          - task: gitversion/execute@3
+            displayName: "Calculate SemVer"
+          - script: |
+              echo "Version: $(GitVersion.SemVer)"
+              echo "##vso[build.updatebuildnumber]$(GitVersion.SemVer)"
+            displayName: "Update build number to SemVer"
+          - script: |
+              git config --global user.email "$(Build.RequestedForEmail)"
+              git config --global user.name "$(Build.RequestedFor)"
+              git tag -a "$(GitVersion.SemVer)" -m "Version $(GitVersion.SemVer)"
+              git push origin "$(GitVersion.SemVer)" 2>/dev/null || echo "Tag already exists"
+            displayName: "Create and push git tag"
+
+  # ============================================================
+  # Stage 1: Deploy — 9 parallel jobs
+  # ============================================================
+  - stage: deploy
+    displayName: "Deploy All Apps"
+    dependsOn: set_version
+    condition: and(not(canceled()), eq('${{ parameters.skipDeploy }}', false))
+    jobs:
+      # ----------------------------------------------------------
+      # Job 1: Web App (.NET Docker)
+      # ----------------------------------------------------------
+      - job: deploy_web_app
+        displayName: "Deploy Web App"
+        variables:
+          resourceGroupName: "rg-web-appservice-linux-${{ parameters.webAppInstance }}"
+          baseName: "web-app"
+          imageName: "webappopenidconnectdotnet"
+          dockerfilePath: "$(System.DefaultWorkingDirectory)/src/WebAppSoln/WebApp-OpenIDConnect-DotNet/Dockerfile"
+          dockerContext: "$(System.DefaultWorkingDirectory)/src/WebAppSoln"
+        steps:
+          - checkout: self
+            fetchDepth: 0
+          - task: gitversion/setup@3
+            displayName: 'Install GitVersion'
+            inputs:
+              versionSpec: '5.x'
+          - task: gitversion/execute@3
+            displayName: 'Calculate SemVer'
+          - task: AzureCLI@2
+            displayName: "Deploy Infrastructure"
+            condition: eq('${{ parameters.deployInfra }}', true)
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                if az group exists --name $(resourceGroupName) | grep -q true; then
+                  echo "Deleting stale resource group $(resourceGroupName)..."
+                  az group delete --name $(resourceGroupName) --yes
+                fi
+                az group create --name $(resourceGroupName) --location $(location)
+                az deployment group create \
+                  --name $(deploymentName) \
+                  --resource-group $(resourceGroupName) \
+                  --template-file $(appserviceTemplateFile) \
+                  --parameters baseName=$(baseName) \
+                  --parameters imageName=$(imageName) \
+                  --parameters addAzureAdAppSettings=false
+          - task: AzureCLI@2
+            displayName: "Build and Push Docker Image"
+            name: build_push
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                containerRegistry=$(az deployment group show \
+                  --name $(deploymentName) \
+                  --resource-group $(resourceGroupName) \
+                  --query properties.outputs.containerRegistryName.value -o tsv)
+                echo "Container Registry: $containerRegistry"
+                SEMVER="${GITVERSION_SEMVER:-0.0.$(Build.BuildId)}"
+                FILEVERSION="${GITVERSION_ASSEMBLYSEMFILEVER:-0.0.0.0}"
+                ASMVERSION="${GITVERSION_ASSEMBLYSEMVER:-0.0.0}"
+                set +e
+                for attempt in 1 2 3; do
+                  az acr build --registry "$containerRegistry" \
+                  --image $(imageName):$(Build.BuildId) \
+                  --image $(imageName):latest \
+                  --file $(dockerfilePath) \
+                  --build-arg GitVersion_SemVer="$SEMVER" \
+                  --build-arg GitVersion_AssemblySemFileVer="$FILEVERSION" \
+                  --build-arg GitVersion_AssemblySemVer="$ASMVERSION" \
+                  $(dockerContext)
+                  acr_exit=$?
+                  [ $acr_exit -eq 0 ] && break
+                  echo "ACR build attempt $attempt failed, retrying in 30s..."
+                  sleep 30
+                done
+                set -e
+                [ $acr_exit -ne 0 ] && exit $acr_exit
+                appName=$(az deployment group show \
+                  --name $(deploymentName) \
+                  --resource-group $(resourceGroupName) \
+                  --query properties.outputs.appName.value -o tsv)
+                echo "##vso[task.setvariable variable=appName;isOutput=true]$appName"
+          - task: AzureCLI@2
+            displayName: "Restart Web App"
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                appName=$(build_push.appName)
+                echo "Restarting $appName"
+                az webapp restart --name "$appName" --resource-group $(resourceGroupName)
+
+      # ----------------------------------------------------------
+      # Job 2: Weather API (.NET Docker)
+      # ----------------------------------------------------------
+      - job: deploy_weather_api
+        displayName: "Deploy Weather API"
+        variables:
+          resourceGroupName: "rg-weather-appservice-linux-${{ parameters.weatherApiInstance }}"
+          baseName: "weather-api"
+          imageName: "weatherapi"
+          dockerfilePath: "$(System.DefaultWorkingDirectory)/src/WeatherApiSoln/WeatherApi/Dockerfile"
+          dockerContext: "$(System.DefaultWorkingDirectory)/src/WeatherApiSoln"
+        steps:
+          - checkout: self
+            fetchDepth: 0
+          - task: gitversion/setup@3
+            displayName: 'Install GitVersion'
+            inputs:
+              versionSpec: '5.x'
+          - task: gitversion/execute@3
+            displayName: 'Calculate SemVer'
+          - task: AzureCLI@2
+            displayName: "Deploy Infrastructure"
+            condition: eq('${{ parameters.deployInfra }}', true)
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                if az group exists --name $(resourceGroupName) | grep -q true; then
+                  echo "Deleting stale resource group $(resourceGroupName)..."
+                  az group delete --name $(resourceGroupName) --yes
+                fi
+                az group create --name $(resourceGroupName) --location $(location)
+                az deployment group create \
+                  --name $(deploymentName) \
+                  --resource-group $(resourceGroupName) \
+                  --template-file $(appserviceTemplateFile) \
+                  --parameters baseName=$(baseName) \
+                  --parameters imageName=$(imageName) \
+                  --parameters addAzureAdAppSettings=false
+          - task: AzureCLI@2
+            displayName: "Build and Push Docker Image"
+            name: build_push
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                containerRegistry=$(az deployment group show \
+                  --name $(deploymentName) \
+                  --resource-group $(resourceGroupName) \
+                  --query properties.outputs.containerRegistryName.value -o tsv)
+                echo "Container Registry: $containerRegistry"
+                SEMVER="${GITVERSION_SEMVER:-0.0.$(Build.BuildId)}"
+                FILEVERSION="${GITVERSION_ASSEMBLYSEMFILEVER:-0.0.0.0}"
+                ASMVERSION="${GITVERSION_ASSEMBLYSEMVER:-0.0.0}"
+                set +e
+                for attempt in 1 2 3; do
+                  az acr build --registry "$containerRegistry" \
+                  --image $(imageName):$(Build.BuildId) \
+                  --image $(imageName):latest \
+                  --file $(dockerfilePath) \
+                  --build-arg GitVersion_SemVer="$SEMVER" \
+                  --build-arg GitVersion_AssemblySemFileVer="$FILEVERSION" \
+                  --build-arg GitVersion_AssemblySemVer="$ASMVERSION" \
+                  $(dockerContext)
+                  acr_exit=$?
+                  [ $acr_exit -eq 0 ] && break
+                  echo "ACR build attempt $attempt failed, retrying in 30s..."
+                  sleep 30
+                done
+                set -e
+                [ $acr_exit -ne 0 ] && exit $acr_exit
+                appName=$(az deployment group show \
+                  --name $(deploymentName) \
+                  --resource-group $(resourceGroupName) \
+                  --query properties.outputs.appName.value -o tsv)
+                echo "##vso[task.setvariable variable=appName;isOutput=true]$appName"
+          - task: AzureCLI@2
+            displayName: "Restart Web App"
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                appName=$(build_push.appName)
+                echo "Restarting $appName"
+                az webapp restart --name "$appName" --resource-group $(resourceGroupName)
+
+      # ----------------------------------------------------------
+      # Job 3: Star Wars API (.NET Docker)
+      # ----------------------------------------------------------
+      - job: deploy_star_wars_api
+        displayName: "Deploy Star Wars API"
+        variables:
+          resourceGroupName: "rg-star-wars-appservice-linux-${{ parameters.starWarsApiInstance }}"
+          baseName: "star-wars-api"
+          imageName: "starwarsapi"
+          dockerfilePath: "$(System.DefaultWorkingDirectory)/src/StarWarsApiNetSoln/StarWarsApiNet/Dockerfile"
+          dockerContext: "$(System.DefaultWorkingDirectory)/src/StarWarsApiNetSoln"
+        steps:
+          - checkout: self
+            fetchDepth: 0
+          - task: gitversion/setup@3
+            displayName: 'Install GitVersion'
+            inputs:
+              versionSpec: '5.x'
+          - task: gitversion/execute@3
+            displayName: 'Calculate SemVer'
+          - task: AzureCLI@2
+            displayName: "Deploy Infrastructure"
+            condition: eq('${{ parameters.deployInfra }}', true)
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                if az group exists --name $(resourceGroupName) | grep -q true; then
+                  echo "Deleting stale resource group $(resourceGroupName)..."
+                  az group delete --name $(resourceGroupName) --yes
+                fi
+                az group create --name $(resourceGroupName) --location $(location)
+                az deployment group create \
+                  --name $(deploymentName) \
+                  --resource-group $(resourceGroupName) \
+                  --template-file $(appserviceTemplateFile) \
+                  --parameters baseName=$(baseName) \
+                  --parameters imageName=$(imageName) \
+                  --parameters addAzureAdAppSettings=false
+          - task: AzureCLI@2
+            displayName: "Build and Push Docker Image"
+            name: build_push
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                containerRegistry=$(az deployment group show \
+                  --name $(deploymentName) \
+                  --resource-group $(resourceGroupName) \
+                  --query properties.outputs.containerRegistryName.value -o tsv)
+                echo "Container Registry: $containerRegistry"
+                SEMVER="${GITVERSION_SEMVER:-0.0.$(Build.BuildId)}"
+                FILEVERSION="${GITVERSION_ASSEMBLYSEMFILEVER:-0.0.0.0}"
+                ASMVERSION="${GITVERSION_ASSEMBLYSEMVER:-0.0.0}"
+                set +e
+                for attempt in 1 2 3; do
+                  az acr build --registry "$containerRegistry" \
+                  --image $(imageName):$(Build.BuildId) \
+                  --image $(imageName):latest \
+                  --file $(dockerfilePath) \
+                  --build-arg GitVersion_SemVer="$SEMVER" \
+                  --build-arg GitVersion_AssemblySemFileVer="$FILEVERSION" \
+                  --build-arg GitVersion_AssemblySemVer="$ASMVERSION" \
+                  $(dockerContext)
+                  acr_exit=$?
+                  [ $acr_exit -eq 0 ] && break
+                  echo "ACR build attempt $attempt failed, retrying in 30s..."
+                  sleep 30
+                done
+                set -e
+                [ $acr_exit -ne 0 ] && exit $acr_exit
+                appName=$(az deployment group show \
+                  --name $(deploymentName) \
+                  --resource-group $(resourceGroupName) \
+                  --query properties.outputs.appName.value -o tsv)
+                echo "##vso[task.setvariable variable=appName;isOutput=true]$appName"
+          - task: AzureCLI@2
+            displayName: "Restart Web App"
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                appName=$(build_push.appName)
+                echo "Restarting $appName"
+                az webapp restart --name "$appName" --resource-group $(resourceGroupName)
+
+      # ----------------------------------------------------------
+      # Job 4: SOAP API (.NET Docker)
+      # ----------------------------------------------------------
+      - job: deploy_soap_api
+        displayName: "Deploy SOAP API"
+        variables:
+          resourceGroupName: "rg-soap-appservice-linux-${{ parameters.soapApiInstance }}"
+          baseName: "soap-api"
+          imageName: "soapapi"
+          dockerfilePath: "$(System.DefaultWorkingDirectory)/src/soap-service-dotnetcore-example/AddressBook.Service.SOAP/Dockerfile"
+          dockerContext: "$(System.DefaultWorkingDirectory)/src/soap-service-dotnetcore-example"
+        steps:
+          - checkout: self
+            fetchDepth: 0
+          - task: gitversion/setup@3
+            displayName: 'Install GitVersion'
+            inputs:
+              versionSpec: '5.x'
+          - task: gitversion/execute@3
+            displayName: 'Calculate SemVer'
+          - task: AzureCLI@2
+            displayName: "Deploy Infrastructure"
+            condition: eq('${{ parameters.deployInfra }}', true)
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                if az group exists --name $(resourceGroupName) | grep -q true; then
+                  echo "Deleting stale resource group $(resourceGroupName)..."
+                  az group delete --name $(resourceGroupName) --yes
+                fi
+                az group create --name $(resourceGroupName) --location $(location)
+                az deployment group create \
+                  --name $(deploymentName) \
+                  --resource-group $(resourceGroupName) \
+                  --template-file $(appserviceTemplateFile) \
+                  --parameters baseName=$(baseName) \
+                  --parameters imageName=$(imageName) \
+                  --parameters addAzureAdAppSettings=false
+          - task: AzureCLI@2
+            displayName: "Build and Push Docker Image"
+            name: build_push
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                containerRegistry=$(az deployment group show \
+                  --name $(deploymentName) \
+                  --resource-group $(resourceGroupName) \
+                  --query properties.outputs.containerRegistryName.value -o tsv)
+                echo "Container Registry: $containerRegistry"
+                SEMVER="${GITVERSION_SEMVER:-0.0.$(Build.BuildId)}"
+                FILEVERSION="${GITVERSION_ASSEMBLYSEMFILEVER:-0.0.0.0}"
+                ASMVERSION="${GITVERSION_ASSEMBLYSEMVER:-0.0.0}"
+                set +e
+                for attempt in 1 2 3; do
+                  az acr build --registry "$containerRegistry" \
+                  --image $(imageName):$(Build.BuildId) \
+                  --image $(imageName):latest \
+                  --file $(dockerfilePath) \
+                  --build-arg GitVersion_SemVer="$SEMVER" \
+                  --build-arg GitVersion_AssemblySemFileVer="$FILEVERSION" \
+                  --build-arg GitVersion_AssemblySemVer="$ASMVERSION" \
+                  $(dockerContext)
+                  acr_exit=$?
+                  [ $acr_exit -eq 0 ] && break
+                  echo "ACR build attempt $attempt failed, retrying in 30s..."
+                  sleep 30
+                done
+                set -e
+                [ $acr_exit -ne 0 ] && exit $acr_exit
+                appName=$(az deployment group show \
+                  --name $(deploymentName) \
+                  --resource-group $(resourceGroupName) \
+                  --query properties.outputs.appName.value -o tsv)
+                echo "##vso[task.setvariable variable=appName;isOutput=true]$appName"
+          - task: AzureCLI@2
+            displayName: "Restart Web App"
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                appName=$(build_push.appName)
+                echo "Restarting $appName"
+                az webapp restart --name "$appName" --resource-group $(resourceGroupName)
+
+      # ----------------------------------------------------------
+      # Job 5: OData API (.NET Docker)
+      # ----------------------------------------------------------
+      - job: deploy_odata_api
+        displayName: "Deploy OData API"
+        variables:
+          resourceGroupName: "rg-odata-appservice-linux-${{ parameters.odataApiInstance }}"
+          baseName: "odata-api"
+          imageName: "odataapi"
+          dockerfilePath: "$(System.DefaultWorkingDirectory)/src/OdataAppSoln/OdataApp/Dockerfile"
+          dockerContext: "$(System.DefaultWorkingDirectory)/src/OdataAppSoln"
+        steps:
+          - checkout: self
+            fetchDepth: 0
+          - task: gitversion/setup@3
+            displayName: 'Install GitVersion'
+            inputs:
+              versionSpec: '5.x'
+          - task: gitversion/execute@3
+            displayName: 'Calculate SemVer'
+          - task: AzureCLI@2
+            displayName: "Deploy Infrastructure"
+            condition: eq('${{ parameters.deployInfra }}', true)
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                if az group exists --name $(resourceGroupName) | grep -q true; then
+                  echo "Deleting stale resource group $(resourceGroupName)..."
+                  az group delete --name $(resourceGroupName) --yes
+                fi
+                az group create --name $(resourceGroupName) --location $(location)
+                az deployment group create \
+                  --name $(deploymentName) \
+                  --resource-group $(resourceGroupName) \
+                  --template-file $(appserviceTemplateFile) \
+                  --parameters baseName=$(baseName) \
+                  --parameters imageName=$(imageName) \
+                  --parameters addAzureAdAppSettings=false
+          - task: AzureCLI@2
+            displayName: "Build and Push Docker Image"
+            name: build_push
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                containerRegistry=$(az deployment group show \
+                  --name $(deploymentName) \
+                  --resource-group $(resourceGroupName) \
+                  --query properties.outputs.containerRegistryName.value -o tsv)
+                echo "Container Registry: $containerRegistry"
+                SEMVER="${GITVERSION_SEMVER:-0.0.$(Build.BuildId)}"
+                FILEVERSION="${GITVERSION_ASSEMBLYSEMFILEVER:-0.0.0.0}"
+                ASMVERSION="${GITVERSION_ASSEMBLYSEMVER:-0.0.0}"
+                set +e
+                for attempt in 1 2 3; do
+                  az acr build --registry "$containerRegistry" \
+                  --image $(imageName):$(Build.BuildId) \
+                  --image $(imageName):latest \
+                  --file $(dockerfilePath) \
+                  --build-arg GitVersion_SemVer="$SEMVER" \
+                  --build-arg GitVersion_AssemblySemFileVer="$FILEVERSION" \
+                  --build-arg GitVersion_AssemblySemVer="$ASMVERSION" \
+                  $(dockerContext)
+                  acr_exit=$?
+                  [ $acr_exit -eq 0 ] && break
+                  echo "ACR build attempt $attempt failed, retrying in 30s..."
+                  sleep 30
+                done
+                set -e
+                [ $acr_exit -ne 0 ] && exit $acr_exit
+                appName=$(az deployment group show \
+                  --name $(deploymentName) \
+                  --resource-group $(resourceGroupName) \
+                  --query properties.outputs.appName.value -o tsv)
+                echo "##vso[task.setvariable variable=appName;isOutput=true]$appName"
+          - task: AzureCLI@2
+            displayName: "Restart Web App"
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                appName=$(build_push.appName)
+                echo "Restarting $appName"
+                az webapp restart --name "$appName" --resource-group $(resourceGroupName)
+
+      # ----------------------------------------------------------
+      # Job 6: Movie API (.NET Docker)
+      # ----------------------------------------------------------
+      - job: deploy_movie_api
+        displayName: "Deploy Movie API"
+        variables:
+          resourceGroupName: "rg-movies-appservice-linux-${{ parameters.movieApiInstance }}"
+          baseName: "movie-reviews-api"
+          imageName: "moviereviews"
+          dockerfilePath: "$(System.DefaultWorkingDirectory)/src/MovieReviewsSoln/MovieReviews/Dockerfile"
+          dockerContext: "$(System.DefaultWorkingDirectory)/src/MovieReviewsSoln"
+        steps:
+          - checkout: self
+            fetchDepth: 0
+          - task: gitversion/setup@3
+            displayName: 'Install GitVersion'
+            inputs:
+              versionSpec: '5.x'
+          - task: gitversion/execute@3
+            displayName: 'Calculate SemVer'
+          - task: AzureCLI@2
+            displayName: "Deploy Infrastructure"
+            condition: eq('${{ parameters.deployInfra }}', true)
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                if az group exists --name $(resourceGroupName) | grep -q true; then
+                  echo "Deleting stale resource group $(resourceGroupName)..."
+                  az group delete --name $(resourceGroupName) --yes
+                fi
+                az group create --name $(resourceGroupName) --location $(location)
+                az deployment group create \
+                  --name $(deploymentName) \
+                  --resource-group $(resourceGroupName) \
+                  --template-file $(appserviceTemplateFile) \
+                  --parameters baseName=$(baseName) \
+                  --parameters imageName=$(imageName) \
+                  --parameters addAzureAdAppSettings=false
+          - task: AzureCLI@2
+            displayName: "Build and Push Docker Image"
+            name: build_push
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                containerRegistry=$(az deployment group show \
+                  --name $(deploymentName) \
+                  --resource-group $(resourceGroupName) \
+                  --query properties.outputs.containerRegistryName.value -o tsv)
+                echo "Container Registry: $containerRegistry"
+                SEMVER="${GITVERSION_SEMVER:-0.0.$(Build.BuildId)}"
+                FILEVERSION="${GITVERSION_ASSEMBLYSEMFILEVER:-0.0.0.0}"
+                ASMVERSION="${GITVERSION_ASSEMBLYSEMVER:-0.0.0}"
+                set +e
+                for attempt in 1 2 3; do
+                  az acr build --registry "$containerRegistry" \
+                  --image $(imageName):$(Build.BuildId) \
+                  --image $(imageName):latest \
+                  --file $(dockerfilePath) \
+                  --build-arg GitVersion_SemVer="$SEMVER" \
+                  --build-arg GitVersion_AssemblySemFileVer="$FILEVERSION" \
+                  --build-arg GitVersion_AssemblySemVer="$ASMVERSION" \
+                  $(dockerContext)
+                  acr_exit=$?
+                  [ $acr_exit -eq 0 ] && break
+                  echo "ACR build attempt $attempt failed, retrying in 30s..."
+                  sleep 30
+                done
+                set -e
+                [ $acr_exit -ne 0 ] && exit $acr_exit
+                appName=$(az deployment group show \
+                  --name $(deploymentName) \
+                  --resource-group $(resourceGroupName) \
+                  --query properties.outputs.appName.value -o tsv)
+                echo "##vso[task.setvariable variable=appName;isOutput=true]$appName"
+          - task: AzureCLI@2
+            displayName: "Restart Web App"
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                appName=$(build_push.appName)
+                echo "Restarting $appName"
+                az webapp restart --name "$appName" --resource-group $(resourceGroupName)
+
+      # ----------------------------------------------------------
+      # Job 7: Flask App (Python zip deploy)
+      # ----------------------------------------------------------
+      - job: deploy_flask_app
+        displayName: "Deploy Flask App"
+        variables:
+          resourceGroupName: "rg-msal-python-soln"
+          flaskLocation: "canadacentral"
+          projectRoot: "$(System.DefaultWorkingDirectory)/src/msal-python-soln/python-flask-webapp"
+          flaskTemplateFile: "$(System.DefaultWorkingDirectory)/src/msal-python-soln/python-flask-webapp/main.bicep"
+          pythonVersion: "3.13"
+          webAppName: "app-flask-iru5pc6fcyhre"
+        steps:
+          - checkout: self
+            fetchDepth: 0
+          - task: gitversion/setup@3
+            displayName: 'Install GitVersion'
+            inputs:
+              versionSpec: '5.x'
+          - task: gitversion/execute@3
+            displayName: 'Calculate SemVer'
+          - task: AzureCLI@2
+            displayName: "Deploy Infrastructure"
+            condition: eq('${{ parameters.deployInfra }}', true)
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                if az group exists --name $(resourceGroupName) | grep -q true; then
+                  echo "Deleting stale resource group $(resourceGroupName)..."
+                  az group delete --name $(resourceGroupName) --yes
+                fi
+                # Purge soft-deleted Key Vaults that would conflict
+                set +e
+                DELETED_KVS=$(az keyvault list-deleted --query "[?properties.vaultId!=null].name" -o tsv 2>/dev/null)
+                for KV in $DELETED_KVS; do
+                  echo "Purging soft-deleted Key Vault: $KV"
+                  az keyvault purge --name "$KV" 2>/dev/null || true
+                done
+                set -e
+                az group create --name $(resourceGroupName) --location $(flaskLocation)
+                az deployment group create \
+                  --name $(deploymentName) \
+                  --resource-group $(resourceGroupName) \
+                  --template-file $(flaskTemplateFile) \
+                  --parameters pythonVersion=$(pythonVersion) \
+                  --parameters secretValue=placeholder-for-lab
+          - task: UsePythonVersion@0
+            displayName: "Use Python $(pythonVersion)"
+            inputs:
+              versionSpec: $(pythonVersion)
+          - script: |
+              set -euo pipefail
+              python -m venv antenv
+              source antenv/bin/activate
+              python -m pip install --upgrade pip
+              pip install -r requirements.txt
+            workingDirectory: $(projectRoot)
+            displayName: "Install requirements"
+          - task: ArchiveFiles@2
+            displayName: "Archive Flask app"
+            inputs:
+              rootFolderOrFile: $(projectRoot)
+              includeRootFolder: false
+              archiveType: zip
+              archiveFile: $(Build.ArtifactStagingDirectory)/flask-app.zip
+              replaceExistingArchive: true
+          - task: AzureWebApp@1
+            displayName: "Deploy Flask App"
+            inputs:
+              azureSubscription: $(azureSubscription)
+              appType: webAppLinux
+              appName: $(webAppName)
+              package: $(Build.ArtifactStagingDirectory)/flask-app.zip
+
+      # ----------------------------------------------------------
+      # Job 8: Fast API (Python zip deploy)
+      # ----------------------------------------------------------
+      - job: deploy_fast_api
+        displayName: "Deploy Fast API"
+        variables:
+          resourceGroupName: "rg-fast-api-app-insights-001"
+          fastApiLocation: "canadacentral"
+          appName: "fast-api-app-insights-001"
+          bicepFile: "$(System.DefaultWorkingDirectory)/src/fast-api-app-insights/main.bicep"
+          pythonVersion: "3.13"
+          packageFolder: "package"
+          packageArchive: "app.zip"
+        steps:
+          - checkout: self
+            fetchDepth: 0
+          - task: gitversion/setup@3
+            displayName: 'Install GitVersion'
+            inputs:
+              versionSpec: '5.x'
+          - task: gitversion/execute@3
+            displayName: 'Calculate SemVer'
+          - task: AzureCLI@2
+            displayName: "Deploy Infrastructure"
+            condition: eq('${{ parameters.deployInfra }}', true)
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                if az group exists --name $(resourceGroupName) | grep -q true; then
+                  echo "Deleting stale resource group $(resourceGroupName)..."
+                  az group delete --name $(resourceGroupName) --yes
+                fi
+                az group create --name $(resourceGroupName) --location $(fastApiLocation)
+                az deployment group create \
+                  --resource-group $(resourceGroupName) \
+                  --template-file $(bicepFile) \
+                  --parameters appName=$(appName) \
+                              location=$(fastApiLocation) \
+                              skuName=B1 \
+                              skuTier=Basic \
+                              skuCapacity=1 \
+                              deploymentEnvironment=production
+          - task: UsePythonVersion@0
+            displayName: "Use Python $(pythonVersion)"
+            inputs:
+              versionSpec: $(pythonVersion)
+          - script: |
+              set -euo pipefail
+              python -m pip install --upgrade pip
+              mkdir -p $(Build.ArtifactStagingDirectory)/$(packageFolder)
+              pip install \
+                --target $(Build.ArtifactStagingDirectory)/$(packageFolder) \
+                --no-cache-dir \
+                -r requirements.txt
+              cp main.py telemetry_v2.py $(Build.ArtifactStagingDirectory)/$(packageFolder)/
+              cp requirements.txt $(Build.ArtifactStagingDirectory)/$(packageFolder)/
+            displayName: "Install dependencies and copy sources"
+            workingDirectory: $(System.DefaultWorkingDirectory)/src/fast-api-app-insights
+          - task: ArchiveFiles@2
+            displayName: "Create deployment archive"
+            inputs:
+              rootFolderOrFile: $(Build.ArtifactStagingDirectory)/$(packageFolder)
+              includeRootFolder: false
+              archiveType: zip
+              archiveFile: $(Build.ArtifactStagingDirectory)/$(packageArchive)
+              replaceExistingArchive: true
+          - task: AzureCLI@2
+            displayName: "Configure and deploy Fast API"
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                az webapp config appsettings set \
+                  --resource-group $(resourceGroupName) \
+                  --name $(appName) \
+                  --settings \
+                    SCM_DO_BUILD_DURING_DEPLOYMENT=false \
+                    ENABLE_ORYX_BUILD=false \
+                    WEBSITES_PORT=8000 \
+                  --output none
+                az webapp config set \
+                  --resource-group $(resourceGroupName) \
+                  --name $(appName) \
+                  --startup-file "python -m uvicorn main:app --host 0.0.0.0 --port 8000" \
+                  --output none
+          - task: AzureWebApp@1
+            displayName: "Deploy Fast API package"
+            inputs:
+              azureSubscription: $(azureSubscription)
+              appType: webAppLinux
+              appName: $(appName)
+              package: $(Build.ArtifactStagingDirectory)/$(packageArchive)
+              deploymentMethod: zipDeploy
+          - task: AzureCLI@2
+            displayName: "Restart Fast API"
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                az webapp restart --name $(appName) --resource-group $(resourceGroupName)
+
+      # ----------------------------------------------------------
+      # Job 9: Appointments API (Function App)
+      # ----------------------------------------------------------
+      - job: deploy_appointments_api
+        displayName: "Deploy Appointments API"
+        variables:
+          resourceGroupName: "rg-appointments-fnapp-linux-${{ parameters.appointmentsApiInstance }}"
+          apptLocation: "canadacentral"
+          baseName: "appointments-api"
+          imageName: "appointmentsapi"
+          instanceNumber: ${{ parameters.appointmentsApiInstance }}
+          dockerfilePath: "$(System.DefaultWorkingDirectory)/src/power-platform-custom-connector-api/Appointment/Appointment/Dockerfile"
+          dockerContext: "$(System.DefaultWorkingDirectory)/src/power-platform-custom-connector-api/Appointment"
+        steps:
+          - checkout: self
+            fetchDepth: 0
+          - task: gitversion/setup@3
+            displayName: 'Install GitVersion'
+            inputs:
+              versionSpec: '5.x'
+          - task: gitversion/execute@3
+            displayName: 'Calculate SemVer'
+          - task: AzureCLI@2
+            displayName: "Deploy Infrastructure"
+            condition: eq('${{ parameters.deployInfra }}', true)
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                if az group exists --name $(resourceGroupName) | grep -q true; then
+                  echo "Deleting stale resource group $(resourceGroupName)..."
+                  az group delete --name $(resourceGroupName) --yes
+                fi
+                az group create --name $(resourceGroupName) --location $(apptLocation)
+                az deployment group create \
+                  --name $(deploymentName) \
+                  --resource-group $(resourceGroupName) \
+                  --template-file $(fnappTemplateFile) \
+                  --parameters instanceNumber=$(instanceNumber)
+          - task: AzureCLI@2
+            displayName: "Build and Push Docker Image"
+            name: build_push
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                containerRegistry=$(az deployment group show \
+                  --name $(deploymentName) \
+                  --resource-group $(resourceGroupName) \
+                  --query properties.outputs.containerRegistryName.value -o tsv)
+                echo "Container Registry: $containerRegistry"
+                SEMVER="${GITVERSION_SEMVER:-0.0.$(Build.BuildId)}"
+                FILEVERSION="${GITVERSION_ASSEMBLYSEMFILEVER:-0.0.0.0}"
+                ASMVERSION="${GITVERSION_ASSEMBLYSEMVER:-0.0.0}"
+                set +e
+                for attempt in 1 2 3; do
+                  az acr build --registry "$containerRegistry" \
+                  --image $(imageName):$(Build.BuildId) \
+                  --image $(imageName):latest \
+                  --file $(dockerfilePath) \
+                  --build-arg GitVersion_SemVer="$SEMVER" \
+                  --build-arg GitVersion_AssemblySemFileVer="$FILEVERSION" \
+                  --build-arg GitVersion_AssemblySemVer="$ASMVERSION" \
+                  $(dockerContext)
+                  acr_exit=$?
+                  [ $acr_exit -eq 0 ] && break
+                  echo "ACR build attempt $attempt failed, retrying in 30s..."
+                  sleep 30
+                done
+                set -e
+                [ $acr_exit -ne 0 ] && exit $acr_exit
+                appName=$(az deployment group show \
+                  --name $(deploymentName) \
+                  --resource-group $(resourceGroupName) \
+                  --query properties.outputs.functionAppName.value -o tsv)
+                echo "Function App: $appName"
+                echo "##vso[task.setvariable variable=appName;isOutput=true]$appName"
+          - task: AzureCLI@2
+            displayName: "Restart Function App"
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                appName=$(build_push.appName)
+                echo "Restarting $appName"
+                az functionapp restart --name "$appName" --resource-group $(resourceGroupName)
+
+  # ============================================================
+  # Stage 2: Screenshots and Deployment Report
+  # ============================================================
+  - stage: screenshots_and_report
+    displayName: "Screenshots and Wiki Report"
+    dependsOn:
+      - set_version
+      - deploy
+    condition: |
+      and(
+        not(canceled()),
+        in(dependencies.deploy.result, 'Succeeded', 'Skipped')
+      )
+    jobs:
+      - job: capture_screenshots
+        displayName: "Capture Screenshots and Publish Wiki"
+        pool:
+          vmImage: "ubuntu-latest"
+        steps:
+          - checkout: self
+            fetchDepth: 1
+
+          - task: NodeTool@0
+            displayName: "Use Node.js 20.x"
+            inputs:
+              versionSpec: "20.x"
+
+          - script: |
+              npm init -y
+              npm install puppeteer
+            displayName: "Install Puppeteer"
+            workingDirectory: $(Build.ArtifactStagingDirectory)
+
+          - task: AzureCLI@2
+            displayName: "Resolve App URLs and Capture Screenshots"
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                SCREENSHOT_DIR="$(Build.ArtifactStagingDirectory)/screenshots"
+                mkdir -p "$SCREENSHOT_DIR"
+
+                # Resolve app URLs from resource groups
+                resolve_app_url() {
+                  local rg="$1"
+                  local output_key="${2:-appName}"
+                  local app_name
+                  app_name=$(az deployment group show \
+                    --name infra-deployment \
+                    --resource-group "$rg" \
+                    --query "properties.outputs.${output_key}.value" -o tsv 2>/dev/null || echo "")
+                  if [ -n "$app_name" ]; then
+                    echo "https://${app_name}.azurewebsites.net"
+                  fi
+                }
+
+                resolve_func_url() {
+                  local rg="$1"
+                  local app_name
+                  app_name=$(az deployment group show \
+                    --name infra-deployment \
+                    --resource-group "$rg" \
+                    --query "properties.outputs.functionAppName.value" -o tsv 2>/dev/null || echo "")
+                  if [ -n "$app_name" ]; then
+                    echo "https://${app_name}.azurewebsites.net"
+                  fi
+                }
+
+                # Resolve all app URLs
+                WEB_APP_URL=$(resolve_app_url "rg-web-appservice-linux-${{ parameters.webAppInstance }}")
+                WEATHER_API_URL=$(resolve_app_url "rg-weather-appservice-linux-${{ parameters.weatherApiInstance }}")
+                STAR_WARS_API_URL=$(resolve_app_url "rg-star-wars-appservice-linux-${{ parameters.starWarsApiInstance }}")
+                SOAP_API_URL=$(resolve_app_url "rg-soap-appservice-linux-${{ parameters.soapApiInstance }}")
+                ODATA_API_URL=$(resolve_app_url "rg-odata-appservice-linux-${{ parameters.odataApiInstance }}")
+                MOVIE_API_URL=$(resolve_app_url "rg-movies-appservice-linux-${{ parameters.movieApiInstance }}")
+                FLASK_APP_URL="https://app-flask-iru5pc6fcyhre.azurewebsites.net"
+                FAST_API_URL="https://fast-api-app-insights-001.azurewebsites.net"
+                APPOINTMENTS_API_URL=$(resolve_func_url "rg-appointments-fnapp-linux-${{ parameters.appointmentsApiInstance }}")
+
+                echo "Resolved URLs:"
+                echo "  Web App:          $WEB_APP_URL"
+                echo "  Weather API:      $WEATHER_API_URL"
+                echo "  Star Wars API:    $STAR_WARS_API_URL"
+                echo "  SOAP API:         $SOAP_API_URL"
+                echo "  OData API:        $ODATA_API_URL"
+                echo "  Movie API:        $MOVIE_API_URL"
+                echo "  Flask App:        $FLASK_APP_URL"
+                echo "  Fast API:         $FAST_API_URL"
+                echo "  Appointments API: $APPOINTMENTS_API_URL"
+
+                # Create Puppeteer screenshot script
+                cat > "$(Build.ArtifactStagingDirectory)/screenshot.js" << 'PUPPETEER_SCRIPT'
+                const puppeteer = require('puppeteer');
+                const path = require('path');
+
+                const apps = JSON.parse(process.env.APPS_JSON);
+                const outputDir = process.env.SCREENSHOT_DIR;
+
+                (async () => {
+                  const browser = await puppeteer.launch({
+                    headless: 'new',
+                    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+                  });
+
+                  for (const app of apps) {
+                    const page = await browser.newPage();
+                    await page.setViewport({ width: 1280, height: 900 });
+                    try {
+                      console.log(`Capturing: ${app.name} -> ${app.url}`);
+                      await page.goto(app.url, { waitUntil: 'networkidle2', timeout: 30000 });
+                      await new Promise(r => setTimeout(r, 2000));
+                      const filename = path.join(outputDir, `${app.slug}.png`);
+                      await page.screenshot({ path: filename, fullPage: false });
+                      console.log(`  Saved: ${filename}`);
+                    } catch (err) {
+                      console.error(`  Failed to capture ${app.name}: ${err.message}`);
+                    } finally {
+                      await page.close();
+                    }
+                  }
+
+                  await browser.close();
+                })();
+                PUPPETEER_SCRIPT
+
+                # Build apps JSON for Puppeteer
+                APPS_JSON=$(cat <<EOF
+                [
+                  {"name":"Web App","slug":"web-app","url":"${WEB_APP_URL}/"},
+                  {"name":"Weather API","slug":"weather-api","url":"${WEATHER_API_URL}/swagger/index.html"},
+                  {"name":"Star Wars API","slug":"star-wars-api","url":"${STAR_WARS_API_URL}/swagger/index.html"},
+                  {"name":"SOAP API","slug":"soap-api","url":"${SOAP_API_URL}/PersonProfileService.asmx?wsdl"},
+                  {"name":"OData API","slug":"odata-api","url":"${ODATA_API_URL}/odata/\$metadata"},
+                  {"name":"Movie API","slug":"movie-api","url":"${MOVIE_API_URL}/swagger/index.html"},
+                  {"name":"Flask App","slug":"flask-app","url":"${FLASK_APP_URL}/"},
+                  {"name":"Fast API","slug":"fast-api","url":"${FAST_API_URL}/docs"},
+                  {"name":"Appointments API","slug":"appointments-api","url":"${APPOINTMENTS_API_URL}/api/Appointment"}
+                ]
+                EOF
+                )
+
+                export APPS_JSON
+                export SCREENSHOT_DIR
+                node "$(Build.ArtifactStagingDirectory)/screenshot.js" || echo "Screenshot capture completed with warnings"
+
+          - task: AzureCLI@2
+            displayName: "Generate Deployment Report"
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                TIMESTAMP=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
+                WIKI_FILE="$(Build.ArtifactStagingDirectory)/wiki-report.md"
+                PIPELINE_URL="$(System.CollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)"
+
+                # Resolve URLs (same as screenshot step)
+                resolve_app_url() {
+                  local rg="$1"
+                  local output_key="${2:-appName}"
+                  az deployment group show --name infra-deployment --resource-group "$rg" \
+                    --query "properties.outputs.${output_key}.value" -o tsv 2>/dev/null || echo ""
+                }
+                resolve_func_url() {
+                  local rg="$1"
+                  az deployment group show --name infra-deployment --resource-group "$rg" \
+                    --query "properties.outputs.functionAppName.value" -o tsv 2>/dev/null || echo ""
+                }
+
+                WEB_APP_NAME=$(resolve_app_url "rg-web-appservice-linux-${{ parameters.webAppInstance }}")
+                WEATHER_API_NAME=$(resolve_app_url "rg-weather-appservice-linux-${{ parameters.weatherApiInstance }}")
+                STAR_WARS_API_NAME=$(resolve_app_url "rg-star-wars-appservice-linux-${{ parameters.starWarsApiInstance }}")
+                SOAP_API_NAME=$(resolve_app_url "rg-soap-appservice-linux-${{ parameters.soapApiInstance }}")
+                ODATA_API_NAME=$(resolve_app_url "rg-odata-appservice-linux-${{ parameters.odataApiInstance }}")
+                MOVIE_API_NAME=$(resolve_app_url "rg-movies-appservice-linux-${{ parameters.movieApiInstance }}")
+                FLASK_APP_NAME="app-flask-iru5pc6fcyhre"
+                FAST_API_NAME="fast-api-app-insights-001"
+                APPOINTMENTS_API_NAME=$(resolve_func_url "rg-appointments-fnapp-linux-${{ parameters.appointmentsApiInstance }}")
+
+                declare -a APP_NAMES=("Web App" "Weather API" "Star Wars API" "SOAP API" "OData API" "Movie API" "Flask App" "Fast API" "Appointments API")
+                declare -a APP_HOSTS=("$WEB_APP_NAME" "$WEATHER_API_NAME" "$STAR_WARS_API_NAME" "$SOAP_API_NAME" "$ODATA_API_NAME" "$MOVIE_API_NAME" "$FLASK_APP_NAME" "$FAST_API_NAME" "$APPOINTMENTS_API_NAME")
+                declare -a VERSION_PATHS=("/api/version" "/api/version" "/api/version" "/api/version" "/api/version" "/api/version" "/version" "/version" "/api/version")
+                declare -a SMOKE_PATHS=("/" "/swagger" "/swagger" "/PersonProfileService.asmx?wsdl" '/odata/$metadata' "/swagger" "/" "/healthz" "/api/Appointment")
+                declare -a SLUGS=("web-app" "weather-api" "star-wars-api" "soap-api" "odata-api" "movie-api" "flask-app" "fast-api" "appointments-api")
+
+                {
+                  echo "# Deployment Report"
+                  echo ""
+                  echo "_Generated: ${TIMESTAMP}_"
+                  echo ""
+                  echo "**Pipeline Run:** [#$(Build.BuildNumber)](${PIPELINE_URL})"
+                  echo "**Branch:** \`$(Build.SourceBranchName)\`"
+                  echo "**Triggered by:** $(Build.RequestedFor)"
+                  echo ""
+                  echo "---"
+                  echo ""
+                  echo "## Application Status"
+                  echo ""
+                  echo "| Application | URL | Version | Smoke Test |"
+                  echo "|-------------|-----|---------|------------|"
+                } > "$WIKI_FILE"
+
+                for i in "${!APP_NAMES[@]}"; do
+                  NAME="${APP_NAMES[$i]}"
+                  HOST="${APP_HOSTS[$i]}"
+                  VPATH="${VERSION_PATHS[$i]}"
+                  SPATH="${SMOKE_PATHS[$i]}"
+
+                  if [ -z "$HOST" ]; then
+                    echo "| ${NAME} | _not deployed_ | N/A | N/A |" >> "$WIKI_FILE"
+                    continue
+                  fi
+
+                  BASE_URL="https://${HOST}.azurewebsites.net"
+                  VERSION=$(curl -s --max-time 15 "${BASE_URL}${VPATH}" 2>/dev/null || echo "N/A")
+                  SMOKE_STATUS=$(curl -o /dev/null -s -w "%{http_code}" --max-time 15 "${BASE_URL}${SPATH}" 2>/dev/null || echo "000")
+
+                  if [[ "${SMOKE_STATUS}" -ge 200 && "${SMOKE_STATUS}" -lt 400 ]]; then
+                    SMOKE_ICON="Pass (HTTP ${SMOKE_STATUS})"
+                  elif [[ "${SMOKE_STATUS}" -ge 400 && "${SMOKE_STATUS}" -lt 500 ]]; then
+                    SMOKE_ICON="Warning (HTTP ${SMOKE_STATUS})"
+                  else
+                    SMOKE_ICON="Fail (HTTP ${SMOKE_STATUS})"
+                  fi
+
+                  echo "| ${NAME} | [${BASE_URL}](${BASE_URL}) | \`${VERSION}\` | ${SMOKE_ICON} |" >> "$WIKI_FILE"
+                done
+
+                {
+                  echo ""
+                  echo "---"
+                  echo ""
+                  echo "## Screenshots"
+                  echo ""
+                } >> "$WIKI_FILE"
+
+                SCREENSHOT_DIR="$(Build.ArtifactStagingDirectory)/screenshots"
+                FOUND=false
+                for SLUG in "${SLUGS[@]}"; do
+                  IMG="${SCREENSHOT_DIR}/${SLUG}.png"
+                  if [ -f "$IMG" ]; then
+                    FOUND=true
+                    LABEL=$(echo "$SLUG" | sed 's/-/ /g' | sed 's/\b\(.\)/\u\1/g')
+                    echo "### ${LABEL}" >> "$WIKI_FILE"
+                    echo "" >> "$WIKI_FILE"
+                    echo "![${LABEL}](/.attachments/screenshots-${SLUG}.png)" >> "$WIKI_FILE"
+                    echo "" >> "$WIKI_FILE"
+                  fi
+                done
+
+                if [ "$FOUND" = "false" ]; then
+                  echo "_No screenshots captured in this run._" >> "$WIKI_FILE"
+                fi
+
+                {
+                  echo ""
+                  echo "---"
+                  echo ""
+                  echo "## Deployment Details"
+                  echo ""
+                  echo "| Property | Value |"
+                  echo "|----------|-------|"
+                  echo "| Build ID | $(Build.BuildId) |"
+                  echo "| Build Number | $(Build.BuildNumber) |"
+                  echo "| Commit | \`$(Build.SourceVersion)\` |"
+                  echo "| Timestamp | ${TIMESTAMP} |"
+                } >> "$WIKI_FILE"
+
+                echo "Wiki report generated at: $WIKI_FILE"
+
+          - task: PublishPipelineArtifact@1
+            displayName: "Publish Screenshots Artifact"
+            inputs:
+              targetPath: $(Build.ArtifactStagingDirectory)/screenshots
+              artifactName: screenshots
+            condition: always()
+
+          - task: AzureCLI@2
+            displayName: "Publish Report to ADO Wiki"
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                az extension add --name azure-devops --allow-preview true 2>/dev/null || true
+                export AZURE_DEVOPS_EXT_PAT=$(AZDO_PAT)
+
+                WIKI_FILE="$(Build.ArtifactStagingDirectory)/wiki-report.md"
+                SCREENSHOT_DIR="$(Build.ArtifactStagingDirectory)/screenshots"
+                PROJECT="OneProject"
+                WIKI_CLONE_DIR="/tmp/wiki-repo"
+
+                # --- Clone the wiki git repo ---
+                rm -rf "$WIKI_CLONE_DIR"
+                git clone "https://:${AZURE_DEVOPS_EXT_PAT}@dev.azure.com/devopsabcs/${PROJECT}/_git/${PROJECT}.wiki" "$WIKI_CLONE_DIR" 2>/dev/null || {
+                  echo "Failed to clone wiki repo. Skipping wiki publish."
+                  exit 0
+                }
+
+                cd "$WIKI_CLONE_DIR"
+                git config user.email "pipeline@devopsabcs.com"
+                git config user.name "ADO Pipeline"
+
+                # --- Upload screenshots to .attachments ---
+                mkdir -p ".attachments"
+                if [ -d "$SCREENSHOT_DIR" ]; then
+                  echo "Copying screenshots to wiki .attachments..."
+                  for IMG in "$SCREENSHOT_DIR"/*.png; do
+                    [ -f "$IMG" ] || continue
+                    DEST=".attachments/screenshots-$(basename "$IMG")"
+                    cp "$IMG" "$DEST"
+                    echo "  Copied: $DEST"
+                  done
+                fi
+
+                # --- Write wiki pages ---
+                mkdir -p "Deployment-Reports"
+                if [ ! -f "Deployment-Reports.md" ]; then
+                  echo "# Deployment Reports" > "Deployment-Reports.md"
+                fi
+
+                cp "$WIKI_FILE" "Deployment-Reports/Latest-Deployment-Report.md"
+
+                # --- Commit and push ---
+                git add -A
+                if git diff --cached --quiet; then
+                  echo "No wiki changes to commit."
+                else
+                  git commit -m "Deployment report for build $(Build.BuildNumber)"
+                  git push origin wikiMaster 2>/dev/null || git push origin main 2>/dev/null || echo "Wiki push failed"
+                  echo "Wiki updated successfully."
+                fi
+            env:
+              AZURE_DEVOPS_EXT_PAT: $(AZDO_PAT)
+
+  # ============================================================
+  # Stage 3: Teardown (conditional)
+  # ============================================================
+  - stage: teardown
+    displayName: "Teardown All Infrastructure"
+    dependsOn:
+      - deploy
+      - screenshots_and_report
+    condition: and(not(canceled()), eq('${{ parameters.teardown }}', true))
+    jobs:
+      - deployment: teardown_all
+        displayName: "Delete All Resource Groups"
+        environment: APIM_Teardown_All_006
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: AzureCLI@2
+                  displayName: "Delete all resource groups"
+                  inputs:
+                    azureSubscription: $(azureSubscription)
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      set -euo pipefail
+
+                      RESOURCE_GROUPS=(
+                        "rg-web-appservice-linux-${{ parameters.webAppInstance }}"
+                        "rg-weather-appservice-linux-${{ parameters.weatherApiInstance }}"
+                        "rg-star-wars-appservice-linux-${{ parameters.starWarsApiInstance }}"
+                        "rg-soap-appservice-linux-${{ parameters.soapApiInstance }}"
+                        "rg-odata-appservice-linux-${{ parameters.odataApiInstance }}"
+                        "rg-movies-appservice-linux-${{ parameters.movieApiInstance }}"
+                        "rg-msal-python-soln"
+                        "rg-fast-api-app-insights-001"
+                        "rg-appointments-fnapp-linux-${{ parameters.appointmentsApiInstance }}"
+                      )
+
+                      for RG in "${RESOURCE_GROUPS[@]}"; do
+                        if az group exists --name "$RG" | grep -q true; then
+                          echo "Deleting resource group $RG..."
+                          az group delete --name "$RG" --yes --no-wait
+                        else
+                          echo "Resource group $RG does not exist, skipping."
+                        fi
+                      done
+
+                      echo "Teardown initiated for all resource groups."

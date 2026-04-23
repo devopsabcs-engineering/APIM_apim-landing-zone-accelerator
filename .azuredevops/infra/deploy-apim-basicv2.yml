@@ -1,0 +1,485 @@
+# Azure DevOps Pipeline: Deploy APIM BasicV2
+# Mirrors: .github/workflows/deploy-apim-basicv2.yml
+# 7 stages: validate → validate-dev → validate-prod → deploy-dev → deploy-prod → teardown-dev → teardown-prod
+
+trigger: none
+
+parameters:
+  - name: instanceNumber
+    type: string
+    default: '006'
+  - name: location
+    type: string
+    default: 'canadacentral'
+  - name: deployDev
+    type: boolean
+    default: true
+  - name: deployProd
+    type: boolean
+    default: true
+  - name: teardownDev
+    type: boolean
+    default: false
+  - name: teardownProd
+    type: boolean
+    default: false
+  - name: seedDemoData
+    type: boolean
+    default: false
+
+variables:
+  azureSubscription: 'APIM_MicrosoftAzureExternal_multitenant'
+  templateFile: '$(System.DefaultWorkingDirectory)/infra/api-management-basicv2/main.bicep'
+  parametersDir: '$(System.DefaultWorkingDirectory)/infra/api-management-basicv2'
+  rgDev: 'rg-apim-basicv2-dev-${{ parameters.instanceNumber }}'
+  rgProd: 'rg-apim-basicv2-prod-${{ parameters.instanceNumber }}'
+
+stages:
+  # Stage 1: Validate Bicep Template
+  - stage: validate
+    displayName: 'Validate Bicep Template'
+    pool:
+      name: KubernetesPoolOnPremLinux002
+    jobs:
+      - job: validate_bicep
+        displayName: 'Validate Bicep'
+        steps:
+          - checkout: self
+          - task: AzureCLI@2
+            displayName: 'Build Bicep template'
+            inputs:
+              azureSubscription: '$(azureSubscription)'
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                az bicep build --file $(templateFile)
+
+  # Stage 2: Validate Dev Template
+  - stage: validate_dev
+    displayName: 'Validate Dev Template'
+    dependsOn: validate
+    condition: and(succeeded(), eq('${{ parameters.deployDev }}', 'True'))
+    pool:
+      name: KubernetesPoolOnPremLinux002
+    jobs:
+      - deployment: validate_dev_template
+        displayName: 'Validate Dev Template'
+        environment: 'APIM_BasicV2_Dev_006'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - task: AzureCLI@2
+                  displayName: 'Ensure resource group exists'
+                  inputs:
+                    azureSubscription: '$(azureSubscription)'
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      az group create --name $(rgDev) --location ${{ parameters.location }} 2>/dev/null || true
+                - task: AzureCLI@2
+                  displayName: 'Validate Dev deployment'
+                  inputs:
+                    azureSubscription: '$(azureSubscription)'
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      az deployment group validate \
+                        --resource-group $(rgDev) \
+                        --template-file $(templateFile) \
+                        --parameters $(parametersDir)/main.parameters.dev-${{ parameters.instanceNumber }}.json
+
+  # Stage 3: Validate Prod Template
+  - stage: validate_prod
+    displayName: 'Validate Prod Template'
+    dependsOn: validate
+    condition: and(succeeded(), eq('${{ parameters.deployProd }}', 'True'))
+    pool:
+      name: KubernetesPoolOnPremLinux002
+    jobs:
+      - deployment: validate_prod_template
+        displayName: 'Validate Prod Template'
+        environment: 'APIM_BasicV2_Prod_006'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - task: AzureCLI@2
+                  displayName: 'Ensure resource group exists'
+                  inputs:
+                    azureSubscription: '$(azureSubscription)'
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      az group create --name $(rgProd) --location ${{ parameters.location }} 2>/dev/null || true
+                - task: AzureCLI@2
+                  displayName: 'Validate Prod deployment'
+                  inputs:
+                    azureSubscription: '$(azureSubscription)'
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      az deployment group validate \
+                        --resource-group $(rgProd) \
+                        --template-file $(templateFile) \
+                        --parameters $(parametersDir)/main.parameters.prod-${{ parameters.instanceNumber }}.json
+
+  # Stage 4: Deploy Dev APIM
+  - stage: deploy_dev
+    displayName: 'Deploy Dev'
+    dependsOn: validate_dev
+    condition: and(succeeded(), eq('${{ parameters.deployDev }}', 'True'))
+    pool:
+      name: KubernetesPoolOnPremLinux002
+    jobs:
+      - deployment: deploy_apim_dev
+        displayName: 'Deploy APIM BasicV2 Dev'
+        environment: 'APIM_BasicV2_Dev_006'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - task: AzureCLI@2
+                  displayName: 'Create resource group'
+                  inputs:
+                    azureSubscription: '$(azureSubscription)'
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      az group create --name $(rgDev) --location ${{ parameters.location }}
+                - task: AzureCLI@2
+                  displayName: 'What-If analysis'
+                  inputs:
+                    azureSubscription: '$(azureSubscription)'
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      az deployment group what-if \
+                        --resource-group $(rgDev) \
+                        --name "apim-basicv2-dev-$(Build.BuildId)" \
+                        --template-file $(templateFile) \
+                        --parameters $(parametersDir)/main.parameters.dev-${{ parameters.instanceNumber }}.json
+                - task: AzureCLI@2
+                  name: deploy
+                  displayName: 'Deploy APIM BasicV2 Dev (with retry)'
+                  inputs:
+                    azureSubscription: '$(azureSubscription)'
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      MAX_RETRIES=3
+                      RETRY_DELAY=60
+                      PARAMETERS_FILE="$(parametersDir)/main.parameters.dev-${{ parameters.instanceNumber }}.json"
+                      DEPLOYMENT_NAME="apim-basicv2-dev-$(Build.BuildId)"
+
+                      # Purge any soft-deleted APIM services to avoid conflicts
+                      echo "Checking for soft-deleted APIM services..."
+                      SUB_ID=$(az account show --query id -o tsv)
+                      DELETED_SERVICES=$(az rest --method GET \
+                        --url "/subscriptions/$SUB_ID/providers/Microsoft.ApiManagement/deletedservices?api-version=2022-08-01" \
+                        --query "value[].name" -o tsv 2>/dev/null || true)
+                      for SVC in $DELETED_SERVICES; do
+                        SVC_LOCATION=$(az rest --method GET \
+                          --url "/subscriptions/$SUB_ID/providers/Microsoft.ApiManagement/deletedservices?api-version=2022-08-01" \
+                          --query "value[?name=='$SVC'].location | [0]" -o tsv 2>/dev/null || true)
+                        echo "Purging soft-deleted APIM service: $SVC (location: $SVC_LOCATION)"
+                        az rest --method DELETE \
+                          --url "/subscriptions/$SUB_ID/providers/Microsoft.ApiManagement/locations/$SVC_LOCATION/deletedservices/$SVC?api-version=2022-08-01" \
+                          2>/dev/null || true
+                      done
+                      # Wait for APIM purge to complete
+                      if [ -n "$DELETED_SERVICES" ]; then
+                        echo "Waiting for APIM purge to complete..."
+                        for i in $(seq 1 30); do
+                          REMAINING=$(az rest --method GET \
+                            --url "/subscriptions/$SUB_ID/providers/Microsoft.ApiManagement/deletedservices?api-version=2022-08-01" \
+                            --query "length(value[])" -o tsv 2>/dev/null || echo "0")
+                          [ "$REMAINING" -eq 0 ] 2>/dev/null && echo "All APIM services purged." && break
+                          echo "Still $REMAINING service(s) purging... ($i/30)"
+                          sleep 30
+                        done
+                      fi
+                      # Purge soft-deleted Key Vaults
+                      DELETED_KVS=$(az keyvault list-deleted --query "[].name" -o tsv 2>/dev/null || true)
+                      for KV in $DELETED_KVS; do
+                        echo "Purging soft-deleted Key Vault: $KV"
+                        az keyvault purge --name "$KV" 2>/dev/null || true
+                      done
+
+                      for ATTEMPT in $(seq 1 $MAX_RETRIES); do
+                        echo "Deployment attempt $ATTEMPT of $MAX_RETRIES..."
+
+                        RESULT=$(az deployment group create \
+                          --resource-group $(rgDev) \
+                          --template-file $(templateFile) \
+                          --parameters @$PARAMETERS_FILE \
+                          --name "$DEPLOYMENT_NAME" \
+                          --query "properties.provisioningState" -o tsv 2>&1) && break
+
+                        echo "Attempt $ATTEMPT failed: $RESULT"
+                        if [ "$ATTEMPT" -lt "$MAX_RETRIES" ]; then
+                          echo "Waiting ${RETRY_DELAY}s before retry..."
+                          sleep $RETRY_DELAY
+                        else
+                          echo "All $MAX_RETRIES attempts failed."
+                          exit 1
+                        fi
+                      done
+
+                      # Capture deployment outputs
+                      APIM_NAME=$(az deployment group show \
+                        --resource-group $(rgDev) \
+                        --name "$DEPLOYMENT_NAME" \
+                        --query "properties.outputs.apiManagementName.value" -o tsv)
+                      GATEWAY_URL=$(az deployment group show \
+                        --resource-group $(rgDev) \
+                        --name "$DEPLOYMENT_NAME" \
+                        --query "properties.outputs.apiManagementGatewayUrl.value" -o tsv)
+
+                      echo "APIM Name: $APIM_NAME"
+                      echo "Gateway URL: $GATEWAY_URL"
+                      echo "##vso[task.setvariable variable=apimName;isOutput=true]$APIM_NAME"
+                      echo "##vso[task.setvariable variable=gatewayUrl;isOutput=true]$GATEWAY_URL"
+                - task: AzureCLI@2
+                  displayName: 'Configure AAD identity provider'
+                  inputs:
+                    azureSubscription: '$(azureSubscription)'
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      if [ -z "$(aadProviderClientId)" ]; then
+                        echo "aadProviderClientId not set, skipping identity provider configuration"
+                        exit 0
+                      fi
+
+                      APIM_NAME="$(deploy.apimName)"
+                      RG="$(rgDev)"
+                      API_VERSION="2024-06-01-preview"
+                      SUB_ID=$(az account show --query id -o tsv)
+                      TENANT_ID=$(az account show --query tenantId -o tsv)
+                      RESOURCE_URL="https://management.azure.com/subscriptions/${SUB_ID}/resourceGroups/${RG}/providers/Microsoft.ApiManagement/service/${APIM_NAME}/identityProviders/aad?api-version=${API_VERSION}"
+
+                      az rest --method put --url "$RESOURCE_URL" \
+                        --body "{\"properties\":{\"clientId\":\"$(aadProviderClientId)\",\"clientSecret\":\"$(aadProviderClientSecret)\",\"allowedTenants\":[\"${TENANT_ID}\"],\"type\":\"aad\"}}" \
+                        --headers 'Content-Type=application/json'
+
+                      echo "AAD identity provider configured for ${APIM_NAME}"
+                - task: AzurePowerShell@5
+                  displayName: 'Seed demo data'
+                  condition: eq('${{ parameters.seedDemoData }}', 'True')
+                  inputs:
+                    azureSubscription: '$(azureSubscription)'
+                    ScriptType: FilePath
+                    ScriptPath: '$(System.DefaultWorkingDirectory)/scripts/seed-apim-demo-data.ps1'
+                    ScriptArguments: >-
+                      -ResourceGroup "$(rgDev)"
+                      -ApimName "$(deploy.apimName)"
+                    azurePowerShellVersion: LatestVersion
+
+  # Stage 5: Deploy Prod APIM
+  - stage: deploy_prod
+    displayName: 'Deploy Prod'
+    dependsOn: validate_prod
+    condition: and(succeeded(), eq('${{ parameters.deployProd }}', 'True'))
+    pool:
+      name: KubernetesPoolOnPremLinux002
+    jobs:
+      - deployment: deploy_apim_prod
+        displayName: 'Deploy APIM BasicV2 Prod'
+        environment: 'APIM_BasicV2_Prod_006'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - task: AzureCLI@2
+                  displayName: 'Create resource group'
+                  inputs:
+                    azureSubscription: '$(azureSubscription)'
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      az group create --name $(rgProd) --location ${{ parameters.location }}
+                - task: AzureCLI@2
+                  displayName: 'What-If analysis'
+                  inputs:
+                    azureSubscription: '$(azureSubscription)'
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      az deployment group what-if \
+                        --resource-group $(rgProd) \
+                        --name "apim-basicv2-prod-$(Build.BuildId)" \
+                        --template-file $(templateFile) \
+                        --parameters $(parametersDir)/main.parameters.prod-${{ parameters.instanceNumber }}.json
+                - task: AzureCLI@2
+                  name: deploy
+                  displayName: 'Deploy APIM BasicV2 Prod (with retry)'
+                  inputs:
+                    azureSubscription: '$(azureSubscription)'
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      MAX_RETRIES=3
+                      RETRY_DELAY=60
+                      PARAMETERS_FILE="$(parametersDir)/main.parameters.prod-${{ parameters.instanceNumber }}.json"
+                      DEPLOYMENT_NAME="apim-basicv2-prod-$(Build.BuildId)"
+
+                      # Purge any soft-deleted APIM services to avoid conflicts
+                      echo "Checking for soft-deleted APIM services..."
+                      SUB_ID=$(az account show --query id -o tsv)
+                      DELETED_SERVICES=$(az rest --method GET \
+                        --url "/subscriptions/$SUB_ID/providers/Microsoft.ApiManagement/deletedservices?api-version=2022-08-01" \
+                        --query "value[].name" -o tsv 2>/dev/null || true)
+                      for SVC in $DELETED_SERVICES; do
+                        SVC_LOCATION=$(az rest --method GET \
+                          --url "/subscriptions/$SUB_ID/providers/Microsoft.ApiManagement/deletedservices?api-version=2022-08-01" \
+                          --query "value[?name=='$SVC'].location | [0]" -o tsv 2>/dev/null || true)
+                        echo "Purging soft-deleted APIM service: $SVC (location: $SVC_LOCATION)"
+                        az rest --method DELETE \
+                          --url "/subscriptions/$SUB_ID/providers/Microsoft.ApiManagement/locations/$SVC_LOCATION/deletedservices/$SVC?api-version=2022-08-01" \
+                          2>/dev/null || true
+                      done
+                      # Wait for APIM purge to complete
+                      if [ -n "$DELETED_SERVICES" ]; then
+                        echo "Waiting for APIM purge to complete..."
+                        for i in $(seq 1 30); do
+                          REMAINING=$(az rest --method GET \
+                            --url "/subscriptions/$SUB_ID/providers/Microsoft.ApiManagement/deletedservices?api-version=2022-08-01" \
+                            --query "length(value[])" -o tsv 2>/dev/null || echo "0")
+                          [ "$REMAINING" -eq 0 ] 2>/dev/null && echo "All APIM services purged." && break
+                          echo "Still $REMAINING service(s) purging... ($i/30)"
+                          sleep 30
+                        done
+                      fi
+                      # Purge soft-deleted Key Vaults
+                      DELETED_KVS=$(az keyvault list-deleted --query "[].name" -o tsv 2>/dev/null || true)
+                      for KV in $DELETED_KVS; do
+                        echo "Purging soft-deleted Key Vault: $KV"
+                        az keyvault purge --name "$KV" 2>/dev/null || true
+                      done
+
+                      for ATTEMPT in $(seq 1 $MAX_RETRIES); do
+                        echo "Deployment attempt $ATTEMPT of $MAX_RETRIES..."
+
+                        RESULT=$(az deployment group create \
+                          --resource-group $(rgProd) \
+                          --template-file $(templateFile) \
+                          --parameters @$PARAMETERS_FILE \
+                          --name "$DEPLOYMENT_NAME" \
+                          --query "properties.provisioningState" -o tsv 2>&1) && break
+
+                        echo "Attempt $ATTEMPT failed: $RESULT"
+                        if [ "$ATTEMPT" -lt "$MAX_RETRIES" ]; then
+                          echo "Waiting ${RETRY_DELAY}s before retry..."
+                          sleep $RETRY_DELAY
+                        else
+                          echo "All $MAX_RETRIES attempts failed."
+                          exit 1
+                        fi
+                      done
+
+                      # Capture deployment outputs
+                      APIM_NAME=$(az deployment group show \
+                        --resource-group $(rgProd) \
+                        --name "$DEPLOYMENT_NAME" \
+                        --query "properties.outputs.apiManagementName.value" -o tsv)
+                      GATEWAY_URL=$(az deployment group show \
+                        --resource-group $(rgProd) \
+                        --name "$DEPLOYMENT_NAME" \
+                        --query "properties.outputs.apiManagementGatewayUrl.value" -o tsv)
+
+                      echo "APIM Name: $APIM_NAME"
+                      echo "Gateway URL: $GATEWAY_URL"
+                      echo "##vso[task.setvariable variable=apimName;isOutput=true]$APIM_NAME"
+                      echo "##vso[task.setvariable variable=gatewayUrl;isOutput=true]$GATEWAY_URL"
+                - task: AzureCLI@2
+                  displayName: 'Configure AAD identity provider'
+                  inputs:
+                    azureSubscription: '$(azureSubscription)'
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      if [ -z "$(aadProviderClientId)" ]; then
+                        echo "aadProviderClientId not set, skipping identity provider configuration"
+                        exit 0
+                      fi
+
+                      APIM_NAME="$(deploy.apimName)"
+                      RG="$(rgProd)"
+                      API_VERSION="2024-06-01-preview"
+                      SUB_ID=$(az account show --query id -o tsv)
+                      TENANT_ID=$(az account show --query tenantId -o tsv)
+                      RESOURCE_URL="https://management.azure.com/subscriptions/${SUB_ID}/resourceGroups/${RG}/providers/Microsoft.ApiManagement/service/${APIM_NAME}/identityProviders/aad?api-version=${API_VERSION}"
+
+                      az rest --method put --url "$RESOURCE_URL" \
+                        --body "{\"properties\":{\"clientId\":\"$(aadProviderClientId)\",\"clientSecret\":\"$(aadProviderClientSecret)\",\"allowedTenants\":[\"${TENANT_ID}\"],\"type\":\"aad\"}}" \
+                        --headers 'Content-Type=application/json'
+
+                      echo "AAD identity provider configured for ${APIM_NAME}"
+                - task: AzurePowerShell@5
+                  displayName: 'Seed demo data'
+                  condition: eq('${{ parameters.seedDemoData }}', 'True')
+                  inputs:
+                    azureSubscription: '$(azureSubscription)'
+                    ScriptType: FilePath
+                    ScriptPath: '$(System.DefaultWorkingDirectory)/scripts/seed-apim-demo-data.ps1'
+                    ScriptArguments: >-
+                      -ResourceGroup "$(rgProd)"
+                      -ApimName "$(deploy.apimName)"
+                    azurePowerShellVersion: LatestVersion
+
+  # Stage 6: Teardown Dev
+  - stage: teardown_dev
+    displayName: 'Teardown Dev'
+    dependsOn: deploy_dev
+    condition: and(succeeded(), eq('${{ parameters.teardownDev }}', 'True'))
+    pool:
+      name: KubernetesPoolOnPremLinux002
+    jobs:
+      - deployment: teardown_apim_dev
+        displayName: 'Teardown APIM Dev'
+        environment: 'APIM_BasicV2_Dev_Teardown_006'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: AzureCLI@2
+                  displayName: 'Delete Dev resource group'
+                  inputs:
+                    azureSubscription: '$(azureSubscription)'
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      echo "Deleting Dev resource group $(rgDev)..."
+                      az group delete --name $(rgDev) --yes --no-wait
+                      echo "Teardown initiated for $(rgDev)"
+
+  # Stage 7: Teardown Prod
+  - stage: teardown_prod
+    displayName: 'Teardown Prod'
+    dependsOn: deploy_prod
+    condition: and(succeeded(), eq('${{ parameters.teardownProd }}', 'True'))
+    pool:
+      name: KubernetesPoolOnPremLinux002
+    jobs:
+      - deployment: teardown_apim_prod
+        displayName: 'Teardown APIM Prod'
+        environment: 'APIM_BasicV2_Prod_Teardown_006'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: AzureCLI@2
+                  displayName: 'Delete Prod resource group'
+                  inputs:
+                    azureSubscription: '$(azureSubscription)'
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      echo "Deleting Prod resource group $(rgProd)..."
+                      az group delete --name $(rgProd) --yes --no-wait
+                      echo "Teardown initiated for $(rgProd)"
