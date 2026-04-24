@@ -155,6 +155,25 @@ jobs:
               --name ${{ env.RG_DEV }} \
               --template-file ${{ env.TEMPLATE_FILE }} \
               --parameters ${{ env.PARAMETERS_DIR }}/main.parameters.dev-${{ env.INSTANCE_NUMBER }}.json
+      - name: Purge soft-deleted resources
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            echo "Checking for soft-deleted APIM services in ${{ env.RG_DEV }}..."
+            az apim deletedservice list \
+              --query "[?contains(properties.serviceId, 'resourceGroups/${{ env.RG_DEV }}/')].{name:name, location:location}" \
+              -o json 2>/dev/null | jq -r '.[] | "\(.name) \(.location)"' | while read -r SVC_NAME SVC_LOC; do
+              echo "Purging soft-deleted APIM: $SVC_NAME in $SVC_LOC"
+              az apim deletedservice purge --service-name "$SVC_NAME" --location "$SVC_LOC" || true
+            done
+            echo "Checking for soft-deleted Key Vaults in ${{ env.RG_DEV }}..."
+            az keyvault list-deleted \
+              --query "[?contains(properties.vaultId, 'resourceGroups/${{ env.RG_DEV }}/')].name" \
+              -o tsv 2>/dev/null | while read -r KV_NAME; do
+              echo "Purging soft-deleted Key Vault: $KV_NAME"
+              az keyvault purge --name "$KV_NAME" || true
+            done
+            echo "Soft-delete purge check complete"
       - name: Deploy APIM Dev
         id: deploy
         uses: azure/cli@v2
@@ -172,7 +191,7 @@ jobs:
                 --parameters ${{ env.PARAMETERS_DIR }}/main.parameters.dev-${{ env.INSTANCE_NUMBER }}.json \
                 --query '{name:properties.outputs.apiManagementName.value, url:properties.outputs.apiManagementGatewayUrl.value}' \
                 -o json) && break
-              echo "Attempt $ATTEMPT failed. Managed identity may not be ready yet."
+              echo "Attempt $ATTEMPT failed."
               if [ "$ATTEMPT" -lt "$MAX_RETRIES" ]; then
                 echo "Waiting ${RETRY_DELAY}s before retry..."
                 sleep $RETRY_DELAY
@@ -256,6 +275,25 @@ jobs:
               --name ${{ env.RG_PROD }} \
               --template-file ${{ env.TEMPLATE_FILE }} \
               --parameters ${{ env.PARAMETERS_DIR }}/main.parameters.prod-${{ env.INSTANCE_NUMBER }}.json
+      - name: Purge soft-deleted resources
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            echo "Checking for soft-deleted APIM services in ${{ env.RG_PROD }}..."
+            az apim deletedservice list \
+              --query "[?contains(properties.serviceId, 'resourceGroups/${{ env.RG_PROD }}/')].{name:name, location:location}" \
+              -o json 2>/dev/null | jq -r '.[] | "\(.name) \(.location)"' | while read -r SVC_NAME SVC_LOC; do
+              echo "Purging soft-deleted APIM: $SVC_NAME in $SVC_LOC"
+              az apim deletedservice purge --service-name "$SVC_NAME" --location "$SVC_LOC" || true
+            done
+            echo "Checking for soft-deleted Key Vaults in ${{ env.RG_PROD }}..."
+            az keyvault list-deleted \
+              --query "[?contains(properties.vaultId, 'resourceGroups/${{ env.RG_PROD }}/')].name" \
+              -o tsv 2>/dev/null | while read -r KV_NAME; do
+              echo "Purging soft-deleted Key Vault: $KV_NAME"
+              az keyvault purge --name "$KV_NAME" || true
+            done
+            echo "Soft-delete purge check complete"
       - name: Deploy APIM Prod
         id: deploy
         uses: azure/cli@v2
@@ -273,7 +311,7 @@ jobs:
                 --parameters ${{ env.PARAMETERS_DIR }}/main.parameters.prod-${{ env.INSTANCE_NUMBER }}.json \
                 --query '{name:properties.outputs.apiManagementName.value, url:properties.outputs.apiManagementGatewayUrl.value}' \
                 -o json) && break
-              echo "Attempt $ATTEMPT failed. Managed identity may not be ready yet."
+              echo "Attempt $ATTEMPT failed."
               if [ "$ATTEMPT" -lt "$MAX_RETRIES" ]; then
                 echo "Waiting ${RETRY_DELAY}s before retry..."
                 sleep $RETRY_DELAY

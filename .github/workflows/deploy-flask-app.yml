@@ -120,6 +120,18 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Purge soft-deleted Key Vaults
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            echo "Checking for soft-deleted Key Vaults in ${{ env.RESOURCE_GROUP_NAME }}..."
+            az keyvault list-deleted \
+              --query "[?contains(properties.vaultId, 'resourceGroups/${{ env.RESOURCE_GROUP_NAME }}/')].name" \
+              -o tsv 2>/dev/null | while read -r KV_NAME; do
+              echo "Purging soft-deleted Key Vault: $KV_NAME"
+              az keyvault purge --name "$KV_NAME" || true
+            done
+            echo "Soft-delete purge check complete"
       - name: Deploy Infrastructure
         uses: azure/cli@v2
         with:
