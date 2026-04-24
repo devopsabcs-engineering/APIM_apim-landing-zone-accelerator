@@ -120,29 +120,51 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      - name: Purge soft-deleted Key Vaults
-        uses: azure/cli@v2
-        with:
-          inlineScript: |
-            echo "Checking for soft-deleted Key Vaults in ${{ env.RESOURCE_GROUP_NAME }}..."
-            az keyvault list-deleted \
-              --query "[?contains(properties.vaultId, 'resourceGroups/${{ env.RESOURCE_GROUP_NAME }}/')].name" \
-              -o tsv 2>/dev/null | while read -r KV_NAME; do
-              echo "Purging soft-deleted Key Vault: $KV_NAME"
-              az keyvault purge --name "$KV_NAME" || true
-            done
-            echo "Soft-delete purge check complete"
       - name: Deploy Infrastructure
         uses: azure/cli@v2
         with:
           inlineScript: |
             az group create --name ${{ env.RESOURCE_GROUP_NAME }} --location ${{ env.LOCATION }}
-            az deployment group create \
-              --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
-              --name ${{ env.DEPLOYMENT_NAME }} \
-              --template-file ${{ env.TEMPLATE_FILE }} \
-              --parameters secretValue=${{ secrets.SECRET_VALUE }} \
-              --parameters pythonVersion=${{ env.PYTHON_VERSION }}
+            MAX_RETRIES=5
+
+            for ATTEMPT in $(seq 1 $MAX_RETRIES); do
+              echo "Deployment attempt $ATTEMPT of $MAX_RETRIES..."
+              RESULT=$(az deployment group create \
+                --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+                --name ${{ env.DEPLOYMENT_NAME }} \
+                --template-file ${{ env.TEMPLATE_FILE }} \
+                --parameters secretValue=${{ secrets.SECRET_VALUE }} \
+                --parameters pythonVersion=${{ env.PYTHON_VERSION }} \
+                2>&1) && break
+
+              echo "Attempt $ATTEMPT failed: $RESULT"
+
+              # Calculate backoff: 60, 90, 120, 150s
+              RETRY_DELAY=$(( 60 + (ATTEMPT - 1) * 30 ))
+
+              # If Key Vault soft-delete conflict, purge it
+              if echo "$RESULT" | grep -q "already exists in deleted state"; then
+                echo "Purging soft-deleted Key Vaults..."
+                DELETED_KVS=$(az keyvault list-deleted --query "[].name" -o tsv 2>/dev/null || true)
+                for KV in $DELETED_KVS; do
+                  echo "  Purging Key Vault: $KV"
+                  timeout 90 az keyvault purge --name "$KV" 2>/dev/null || echo "  Purge failed/timed out for $KV"
+                done
+                echo "Waiting 30s for Key Vault purge to propagate..."
+                sleep 30
+                RETRY_DELAY=0
+              fi
+
+              if [ "$ATTEMPT" -lt "$MAX_RETRIES" ]; then
+                if [ "$RETRY_DELAY" -gt 0 ]; then
+                  echo "Waiting ${RETRY_DELAY}s before retry..."
+                  sleep $RETRY_DELAY
+                fi
+              else
+                echo "All $MAX_RETRIES attempts failed."
+                exit 1
+              fi
+            done
 
   deploy-app:
     name: Deploy Web App

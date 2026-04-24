@@ -155,33 +155,16 @@ jobs:
               --name ${{ env.RG_DEV }} \
               --template-file ${{ env.TEMPLATE_FILE }} \
               --parameters ${{ env.PARAMETERS_DIR }}/main.parameters.dev-${{ env.INSTANCE_NUMBER }}.json
-      - name: Purge soft-deleted resources
-        uses: azure/cli@v2
-        with:
-          inlineScript: |
-            echo "Checking for soft-deleted APIM services in ${{ env.RG_DEV }}..."
-            az apim deletedservice list \
-              --query "[?contains(properties.serviceId, 'resourceGroups/${{ env.RG_DEV }}/')].{name:name, location:location}" \
-              -o json 2>/dev/null | jq -r '.[] | "\(.name) \(.location)"' | while read -r SVC_NAME SVC_LOC; do
-              echo "Purging soft-deleted APIM: $SVC_NAME in $SVC_LOC"
-              az apim deletedservice purge --service-name "$SVC_NAME" --location "$SVC_LOC" || true
-            done
-            echo "Checking for soft-deleted Key Vaults in ${{ env.RG_DEV }}..."
-            az keyvault list-deleted \
-              --query "[?contains(properties.vaultId, 'resourceGroups/${{ env.RG_DEV }}/')].name" \
-              -o tsv 2>/dev/null | while read -r KV_NAME; do
-              echo "Purging soft-deleted Key Vault: $KV_NAME"
-              az keyvault purge --name "$KV_NAME" || true
-            done
-            echo "Soft-delete purge check complete"
       - name: Deploy APIM Dev
         id: deploy
         uses: azure/cli@v2
         with:
           inlineScript: |
             az group create --name ${{ env.RG_DEV }} --location ${{ env.LOCATION }}
-            MAX_RETRIES=3
-            RETRY_DELAY=60
+            MAX_RETRIES=5
+            SUB_ID=$(az account show --query id -o tsv)
+            LOCATION="${{ env.LOCATION }}"
+
             for ATTEMPT in $(seq 1 $MAX_RETRIES); do
               echo "Deployment attempt $ATTEMPT of $MAX_RETRIES..."
               RESULT=$(az deployment group create \
@@ -190,11 +173,61 @@ jobs:
                 --template-file ${{ env.TEMPLATE_FILE }} \
                 --parameters ${{ env.PARAMETERS_DIR }}/main.parameters.dev-${{ env.INSTANCE_NUMBER }}.json \
                 --query '{name:properties.outputs.apiManagementName.value, url:properties.outputs.apiManagementGatewayUrl.value}' \
-                -o json) && break
-              echo "Attempt $ATTEMPT failed."
+                -o json 2>&1) && break
+
+              echo "Attempt $ATTEMPT failed: $RESULT"
+
+              # Calculate backoff: 60, 90, 120, 150s
+              RETRY_DELAY=$(( 60 + (ATTEMPT - 1) * 30 ))
+
+              # If soft-delete conflict, extract service name and purge it
+              if echo "$RESULT" | grep -q "ServiceAlreadyExistsInSoftDeletedState"; then
+                SVC_NAME=$(echo "$RESULT" | sed -n 's/.*Api service \([^ ]*\) was soft-deleted.*/\1/p')
+                if [ -n "$SVC_NAME" ]; then
+                  echo "Purging soft-deleted APIM service: $SVC_NAME (location: $LOCATION)"
+                  az rest --method DELETE \
+                    --url "/subscriptions/$SUB_ID/providers/Microsoft.ApiManagement/locations/$LOCATION/deletedservices/$SVC_NAME?api-version=2022-08-01" \
+                    2>/dev/null || true
+                  echo "Waiting for purge to complete..."
+                  for i in $(seq 1 18); do
+                    STATUS=$(az rest --method GET \
+                      --url "/subscriptions/$SUB_ID/providers/Microsoft.ApiManagement/deletedservices?api-version=2022-08-01" \
+                      --query "value[?name=='$SVC_NAME'] | length(@)" -o tsv 2>/dev/null || echo "0")
+                    [ "$STATUS" = "0" ] && echo "Service $SVC_NAME purged." && break
+                    echo "  Still purging $SVC_NAME... ($i/18)"
+                    sleep 10
+                  done
+                  echo "Waiting 90s for ARM to release the service lock..."
+                  sleep 90
+                  RETRY_DELAY=0
+                fi
+              fi
+
+              # If Key Vault soft-delete conflict, purge it
+              if echo "$RESULT" | grep -q "already exists in deleted state"; then
+                echo "Purging soft-deleted Key Vaults..."
+                DELETED_KVS=$(az keyvault list-deleted --query "[].name" -o tsv 2>/dev/null || true)
+                for KV in $DELETED_KVS; do
+                  echo "  Purging Key Vault: $KV"
+                  timeout 90 az keyvault purge --name "$KV" 2>/dev/null || echo "  Purge failed/timed out for $KV"
+                done
+                echo "Waiting 30s for Key Vault purge to propagate..."
+                sleep 30
+                RETRY_DELAY=0
+              fi
+
+              # If service is locked/transitioning, wait longer for ARM to settle
+              if echo "$RESULT" | grep -q "ServiceLocked"; then
+                echo "Service is transitioning after purge. Waiting 120s for lock release..."
+                sleep 120
+                RETRY_DELAY=0
+              fi
+
               if [ "$ATTEMPT" -lt "$MAX_RETRIES" ]; then
-                echo "Waiting ${RETRY_DELAY}s before retry..."
-                sleep $RETRY_DELAY
+                if [ "$RETRY_DELAY" -gt 0 ]; then
+                  echo "Waiting ${RETRY_DELAY}s before retry..."
+                  sleep $RETRY_DELAY
+                fi
               else
                 echo "All $MAX_RETRIES attempts failed."
                 exit 1
@@ -275,33 +308,16 @@ jobs:
               --name ${{ env.RG_PROD }} \
               --template-file ${{ env.TEMPLATE_FILE }} \
               --parameters ${{ env.PARAMETERS_DIR }}/main.parameters.prod-${{ env.INSTANCE_NUMBER }}.json
-      - name: Purge soft-deleted resources
-        uses: azure/cli@v2
-        with:
-          inlineScript: |
-            echo "Checking for soft-deleted APIM services in ${{ env.RG_PROD }}..."
-            az apim deletedservice list \
-              --query "[?contains(properties.serviceId, 'resourceGroups/${{ env.RG_PROD }}/')].{name:name, location:location}" \
-              -o json 2>/dev/null | jq -r '.[] | "\(.name) \(.location)"' | while read -r SVC_NAME SVC_LOC; do
-              echo "Purging soft-deleted APIM: $SVC_NAME in $SVC_LOC"
-              az apim deletedservice purge --service-name "$SVC_NAME" --location "$SVC_LOC" || true
-            done
-            echo "Checking for soft-deleted Key Vaults in ${{ env.RG_PROD }}..."
-            az keyvault list-deleted \
-              --query "[?contains(properties.vaultId, 'resourceGroups/${{ env.RG_PROD }}/')].name" \
-              -o tsv 2>/dev/null | while read -r KV_NAME; do
-              echo "Purging soft-deleted Key Vault: $KV_NAME"
-              az keyvault purge --name "$KV_NAME" || true
-            done
-            echo "Soft-delete purge check complete"
       - name: Deploy APIM Prod
         id: deploy
         uses: azure/cli@v2
         with:
           inlineScript: |
             az group create --name ${{ env.RG_PROD }} --location ${{ env.LOCATION }}
-            MAX_RETRIES=3
-            RETRY_DELAY=60
+            MAX_RETRIES=5
+            SUB_ID=$(az account show --query id -o tsv)
+            LOCATION="${{ env.LOCATION }}"
+
             for ATTEMPT in $(seq 1 $MAX_RETRIES); do
               echo "Deployment attempt $ATTEMPT of $MAX_RETRIES..."
               RESULT=$(az deployment group create \
@@ -310,11 +326,61 @@ jobs:
                 --template-file ${{ env.TEMPLATE_FILE }} \
                 --parameters ${{ env.PARAMETERS_DIR }}/main.parameters.prod-${{ env.INSTANCE_NUMBER }}.json \
                 --query '{name:properties.outputs.apiManagementName.value, url:properties.outputs.apiManagementGatewayUrl.value}' \
-                -o json) && break
-              echo "Attempt $ATTEMPT failed."
+                -o json 2>&1) && break
+
+              echo "Attempt $ATTEMPT failed: $RESULT"
+
+              # Calculate backoff: 60, 90, 120, 150s
+              RETRY_DELAY=$(( 60 + (ATTEMPT - 1) * 30 ))
+
+              # If soft-delete conflict, extract service name and purge it
+              if echo "$RESULT" | grep -q "ServiceAlreadyExistsInSoftDeletedState"; then
+                SVC_NAME=$(echo "$RESULT" | sed -n 's/.*Api service \([^ ]*\) was soft-deleted.*/\1/p')
+                if [ -n "$SVC_NAME" ]; then
+                  echo "Purging soft-deleted APIM service: $SVC_NAME (location: $LOCATION)"
+                  az rest --method DELETE \
+                    --url "/subscriptions/$SUB_ID/providers/Microsoft.ApiManagement/locations/$LOCATION/deletedservices/$SVC_NAME?api-version=2022-08-01" \
+                    2>/dev/null || true
+                  echo "Waiting for purge to complete..."
+                  for i in $(seq 1 18); do
+                    STATUS=$(az rest --method GET \
+                      --url "/subscriptions/$SUB_ID/providers/Microsoft.ApiManagement/deletedservices?api-version=2022-08-01" \
+                      --query "value[?name=='$SVC_NAME'] | length(@)" -o tsv 2>/dev/null || echo "0")
+                    [ "$STATUS" = "0" ] && echo "Service $SVC_NAME purged." && break
+                    echo "  Still purging $SVC_NAME... ($i/18)"
+                    sleep 10
+                  done
+                  echo "Waiting 90s for ARM to release the service lock..."
+                  sleep 90
+                  RETRY_DELAY=0
+                fi
+              fi
+
+              # If Key Vault soft-delete conflict, purge it
+              if echo "$RESULT" | grep -q "already exists in deleted state"; then
+                echo "Purging soft-deleted Key Vaults..."
+                DELETED_KVS=$(az keyvault list-deleted --query "[].name" -o tsv 2>/dev/null || true)
+                for KV in $DELETED_KVS; do
+                  echo "  Purging Key Vault: $KV"
+                  timeout 90 az keyvault purge --name "$KV" 2>/dev/null || echo "  Purge failed/timed out for $KV"
+                done
+                echo "Waiting 30s for Key Vault purge to propagate..."
+                sleep 30
+                RETRY_DELAY=0
+              fi
+
+              # If service is locked/transitioning, wait longer for ARM to settle
+              if echo "$RESULT" | grep -q "ServiceLocked"; then
+                echo "Service is transitioning after purge. Waiting 120s for lock release..."
+                sleep 120
+                RETRY_DELAY=0
+              fi
+
               if [ "$ATTEMPT" -lt "$MAX_RETRIES" ]; then
-                echo "Waiting ${RETRY_DELAY}s before retry..."
-                sleep $RETRY_DELAY
+                if [ "$RETRY_DELAY" -gt 0 ]; then
+                  echo "Waiting ${RETRY_DELAY}s before retry..."
+                  sleep $RETRY_DELAY
+                fi
               else
                 echo "All $MAX_RETRIES attempts failed."
                 exit 1
