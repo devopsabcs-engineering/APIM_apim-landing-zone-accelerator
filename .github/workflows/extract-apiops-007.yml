@@ -1,7 +1,7 @@
 name: Extract APIops 007
 
 # Dev-only extraction-to-PR. Projects approved API policy edits made in the dev-007 portal into
-# artifacts.007/apis/*/policy.xml and opens a PR. Raw extraction is evidence only, never committed.
+# artifacts.007/{apis,products}/*/policy.xml and opens a PR. Raw extraction is evidence only, never committed.
 
 on:
   workflow_dispatch:
@@ -148,14 +148,14 @@ jobs:
             return
           }
           foreach ($relative in $files) {
-            if ($relative -notmatch '^apis/[a-z0-9][a-z0-9\-]*/policy\.xml$') { throw "Unexpected projected path '$relative'." }
+            if ($relative -notmatch '^(apis|products)/[a-z0-9][a-z0-9\-]*/policy\.xml$') { throw "Unexpected projected path '$relative'." }
             $target = Join-Path 'artifacts.007' $relative
             if (-not (Test-Path -LiteralPath $target)) { throw "Projected policy '$relative' does not exist in the bundle." }
             Copy-Item -LiteralPath (Join-Path $projection $relative) -Destination $target -Force
           }
           $changed = @(git status --porcelain --untracked-files=all)
           foreach ($line in $changed) {
-            if ($line -notmatch '^ M artifacts\.007/apis/[a-z0-9][a-z0-9\-]*/policy\.xml$') { throw "Unexpected working tree change: $line" }
+            if ($line -notmatch '^ M artifacts\.007/(apis|products)/[a-z0-9][a-z0-9\-]*/policy\.xml$') { throw "Unexpected working tree change: $line" }
           }
           'changed=true' | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           $lines = @('## APIM 007 dev extraction', '', 'Projected policy changes:', '')
@@ -188,7 +188,9 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: projected-policies
-          path: artifacts.007/apis/*/policy.xml
+          path: |
+            artifacts.007/apis/*/policy.xml
+            artifacts.007/products/*/policy.xml
           if-no-files-found: error
           retention-days: 14
 
@@ -201,13 +203,13 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git switch -c "$BRANCH"
-          git add -- artifacts.007/apis/*/policy.xml
-          git commit -m 'chore: project dev-007 API policy edits into artifacts.007'
+          git add -- 'artifacts.007/apis/*/policy.xml' 'artifacts.007/products/*/policy.xml'
+          git commit -m 'chore: project dev-007 policy edits into artifacts.007'
           auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
           git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" push origin "$BRANCH"
           body="Projected from a fresh dev-007 extraction by run $GITHUB_RUN_ID.
 
-          * Only \`artifacts.007/apis/*/policy.xml\` files changed.
+          * Only \`artifacts.007/apis/*/policy.xml\` and \`artifacts.007/products/*/policy.xml\` files changed.
           * Checks ran in the extraction job: semantic extraction comparison, Pester, and \`Test-Apim007Bundle.ps1 -Mode Candidate\`.
           * Merging creates a new frozen candidate that repeats dev validation before prod approval."
           # Organization or enterprise policy can block GITHUB_TOKEN from creating pull requests.

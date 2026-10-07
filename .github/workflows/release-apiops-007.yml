@@ -640,8 +640,28 @@ jobs:
           $null = & (Join-Path $scripts 'Compare-Apim007Extraction.ps1') -ExtractionPath (Join-Path $env:RUNNER_TEMP 'verify-1') `
             -BundlePath (Join-Path $env:CAND_DIR 'artifacts.007') -InventoryPath (Join-Path $env:CAND_DIR 'configuration.007.expected-inventory.json') `
             -OverridesPath $env:OVERRIDES_FILE -GatewayUrl $env:GATEWAY_URL
-          $null = & (Join-Path $scripts 'Test-Apim007ServiceState.ps1') -ResourceGroup $env:APIM_RG -ServiceName $env:APIM_NAME -Mode Verify `
-            -BaselinePath (Join-Path $env:RUNNER_TEMP 'service-baseline.json')
+          $stateScript = Join-Path $scripts 'Test-Apim007ServiceState.ps1'
+          $stateArgs = @{ ResourceGroup = $env:APIM_RG; ServiceName = $env:APIM_NAME; Mode = 'Verify'; BaselinePath = (Join-Path $env:RUNNER_TEMP 'service-baseline.json') }
+          # Older candidates (rollback) carry an older script without per-product checks.
+          if ((Get-Command $stateScript).Parameters.ContainsKey('InventoryPath')) { $stateArgs.InventoryPath = Join-Path $env:CAND_DIR 'configuration.007.expected-inventory.json' }
+          $null = & $stateScript @stateArgs
+
+      - name: AI gateway subscriptions and tests
+        shell: pwsh
+        run: |
+          $scripts = Join-Path $env:CAND_DIR 'scripts/apim-007'
+          $settings = Join-Path $env:CAND_DIR 'configuration.007.ai-settings.json'
+          if (-not (Test-Path -LiteralPath (Join-Path $scripts 'Test-Apim007AiGateway.ps1')) -or -not (Test-Path -LiteralPath $settings)) {
+            Write-Output 'Candidate has no AI gateway; skipping.'
+            return
+          }
+          $null = & (Join-Path $scripts 'Set-Apim007TeamSubscriptions.ps1') -ResourceGroup $env:APIM_RG -ServiceName $env:APIM_NAME -SettingsPath $settings -Environment $env:TARGET_ENV
+          $aiId = az deployment group show --resource-group $env:APIM_RG --name "apim007-apim-$($env:TARGET_ENV)" --query properties.outputs.applicationInsightsId.value -o tsv --only-show-errors
+          $workspaceId = az resource show --ids $aiId --query properties.WorkspaceResourceId -o tsv --only-show-errors
+          $customerId = az monitor log-analytics workspace show --ids $workspaceId --query customerId -o tsv --only-show-errors
+          $evidence = & (Join-Path $scripts 'Test-Apim007AiGateway.ps1') -ManifestPath $env:MANIFEST_PATH -SettingsPath $settings `
+            -PolicyPath (Join-Path $env:CAND_DIR 'artifacts.007/apis/ai-gateway/policy.xml') -WorkspaceCustomerId $customerId
+          "AI_EVIDENCE=$((@($evidence.PSObject.Properties | ForEach-Object { "$($_.Name)=$($_.Value)" })) -join '; ')" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Gateway tests
         shell: pwsh
@@ -695,6 +715,7 @@ jobs:
             manifestSha256   = $env:MANIFEST_SHA256
             overridesSha256  = $env:OVERRIDES_SHA256
             apiVersion       = $env:CAND_API_VERSION
+            aiEvidence       = $(if ($env:AI_EVIDENCE) { $env:AI_EVIDENCE } else { 'not in candidate' })
             runId            = $env:GITHUB_RUN_ID
             runAttempt       = $env:GITHUB_RUN_ATTEMPT
             completedUtc     = [datetime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')
@@ -909,6 +930,16 @@ jobs:
             "| Prod APIM | $($env:APIM_NAME) |",
             "| Gateway | $($env:GATEWAY_URL) |"
           )
+          $manifest = Get-Content -Raw -LiteralPath $env:MANIFEST_PATH | ConvertFrom-Json
+          if ($manifest.PSObject.Properties['ai'] -and $manifest.ai) {
+            $lines += "| AI chat model | $($manifest.ai.chatModel) |"
+            $settingsPath = Join-Path $env:CAND_DIR 'configuration.007.ai-settings.json'
+            if (Test-Path -LiteralPath $settingsPath) {
+              $prodAi = (Get-Content -Raw -LiteralPath $settingsPath | ConvertFrom-Json).environments.prod
+              $lines += "| AI safety threshold | $($prodAi.safetyThreshold) |"
+              $lines += foreach ($team in $prodAi.teams.PSObject.Properties) { "| AI $($team.Name) limits | $($team.Value.tokensPerMinute) TPM, $($team.Value.dailyTokenQuota) per day |" }
+            }
+          }
           $lines += foreach ($key in $outputs.Keys) { "| $key | $($outputs[$key]) |" }
           $lines | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
 
@@ -1168,8 +1199,28 @@ jobs:
           $null = & (Join-Path $scripts 'Compare-Apim007Extraction.ps1') -ExtractionPath (Join-Path $env:RUNNER_TEMP 'verify-1') `
             -BundlePath (Join-Path $env:CAND_DIR 'artifacts.007') -InventoryPath (Join-Path $env:CAND_DIR 'configuration.007.expected-inventory.json') `
             -OverridesPath $env:OVERRIDES_FILE -GatewayUrl $env:GATEWAY_URL
-          $null = & (Join-Path $scripts 'Test-Apim007ServiceState.ps1') -ResourceGroup $env:APIM_RG -ServiceName $env:APIM_NAME -Mode Verify `
-            -BaselinePath (Join-Path $env:RUNNER_TEMP 'service-baseline.json')
+          $stateScript = Join-Path $scripts 'Test-Apim007ServiceState.ps1'
+          $stateArgs = @{ ResourceGroup = $env:APIM_RG; ServiceName = $env:APIM_NAME; Mode = 'Verify'; BaselinePath = (Join-Path $env:RUNNER_TEMP 'service-baseline.json') }
+          # Older candidates (rollback) carry an older script without per-product checks.
+          if ((Get-Command $stateScript).Parameters.ContainsKey('InventoryPath')) { $stateArgs.InventoryPath = Join-Path $env:CAND_DIR 'configuration.007.expected-inventory.json' }
+          $null = & $stateScript @stateArgs
+
+      - name: AI gateway subscriptions and tests
+        shell: pwsh
+        run: |
+          $scripts = Join-Path $env:CAND_DIR 'scripts/apim-007'
+          $settings = Join-Path $env:CAND_DIR 'configuration.007.ai-settings.json'
+          if (-not (Test-Path -LiteralPath (Join-Path $scripts 'Test-Apim007AiGateway.ps1')) -or -not (Test-Path -LiteralPath $settings)) {
+            Write-Output 'Candidate has no AI gateway; skipping.'
+            return
+          }
+          $null = & (Join-Path $scripts 'Set-Apim007TeamSubscriptions.ps1') -ResourceGroup $env:APIM_RG -ServiceName $env:APIM_NAME -SettingsPath $settings -Environment $env:TARGET_ENV
+          $aiId = az deployment group show --resource-group $env:APIM_RG --name "apim007-apim-$($env:TARGET_ENV)" --query properties.outputs.applicationInsightsId.value -o tsv --only-show-errors
+          $workspaceId = az resource show --ids $aiId --query properties.WorkspaceResourceId -o tsv --only-show-errors
+          $customerId = az monitor log-analytics workspace show --ids $workspaceId --query customerId -o tsv --only-show-errors
+          $evidence = & (Join-Path $scripts 'Test-Apim007AiGateway.ps1') -ManifestPath $env:MANIFEST_PATH -SettingsPath $settings `
+            -PolicyPath (Join-Path $env:CAND_DIR 'artifacts.007/apis/ai-gateway/policy.xml') -WorkspaceCustomerId $customerId
+          "AI_EVIDENCE=$((@($evidence.PSObject.Properties | ForEach-Object { "$($_.Name)=$($_.Value)" })) -join '; ')" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Gateway tests
         shell: pwsh
@@ -1214,6 +1265,7 @@ jobs:
             manifestSha256   = $env:MANIFEST_SHA256
             overridesSha256  = $env:OVERRIDES_SHA256
             apiVersion       = $env:CAND_API_VERSION
+            aiEvidence       = $(if ($env:AI_EVIDENCE) { $env:AI_EVIDENCE } else { 'not in candidate' })
             runId            = $env:GITHUB_RUN_ID
             runAttempt       = $env:GITHUB_RUN_ATTEMPT
             completedUtc     = [datetime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')
