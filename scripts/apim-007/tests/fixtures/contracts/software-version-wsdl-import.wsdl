@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<wsdl:definitions xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:tns="http://tempuri.org/" targetNamespace="http://tempuri.org/">
+  <wsdl:import namespace="http://tempuri.org/types" location="http://localhost:8080/SoftwareVersionService.asmx?wsdl=wsdl1" />
+  <wsdl:service name="ISoftwareVersionService">
+    <wsdl:port name="BasicHttpBinding" binding="tns:BasicHttpBinding">
+      <soap:address location="http://localhost:8080/SoftwareVersionService.asmx" />
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>
