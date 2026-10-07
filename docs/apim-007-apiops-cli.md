@@ -13,19 +13,26 @@ keywords:
 ## Status
 
 > [!NOTE]
-> Baseline A is deployed and validated in dev-007 and prod-007 (2026-10-07). The A-to-B change, rollback, extraction, failure tests and teardown rehearsal in the demo script have not been run yet.
+> Runtime acceptance passed on 2026-10-07: baseline A, the A-to-B promotion, extraction, rollback, roll forward, both failure tests and the dev teardown rehearsal all ran against dev-007 and prod-007.
 
-| Evidence                   | Value                                                                                       |
-|----------------------------|---------------------------------------------------------------------------------------------|
-| Contract capture run       | `37554025334`                                                                               |
-| Baseline A release run     | `37610973282` (all jobs passed, prod approved by `emmanuelknafo`)                           |
-| Candidate source SHA       | `51da660` (app version `1.0.20954.0`)                                                       |
-| dev-007 gateway            | `https://apim-dev-007-uovzcyp6yypu2.azure-api.net`, `x-demo-environment: dev-007`           |
-| prod-007 gateway           | `https://apim-prod-007-p4afmw2tk5j4m.azure-api.net`, `x-demo-environment: prod-007`         |
-| Release header             | `x-demo-release: baseline-a` in both environments                                           |
-| Prod self-review           | `prevent_self_review=false` (solo presenter, reduced control)                               |
+| Evidence                       | Value                                                                                                   |
+|--------------------------------|---------------------------------------------------------------------------------------------------------|
+| Contract capture run           | `37554025334`                                                                                           |
+| Baseline A release             | Run `37610973282`, candidate `apim007-candidate-6-51da660`, `x-demo-release: baseline-a` in both        |
+| A-to-B promotion               | Run `37616892784`: dev showed `candidate-b` while prod still showed `baseline-a`; prod after approval   |
+| Extraction to pull request     | Run `37618679494` projected a dev portal header edit into `apis/weather/policy.xml` on a pushed branch  |
+| Rollback by candidate tag      | Run `37618926825` to `apim007-candidate-6-51da660`; both environments back to `baseline-a`              |
+| Extraction refusal             | Run `37619952350` failed with "dev is not running main" while dev ran the rollback                      |
+| Roll forward                   | Run `37620134897` from `main`; both environments back to `candidate-b`                                  |
+| Unknown and untrusted tags     | Runs `37621756882` (no release) and `37621889176` (not in history) failed before any write               |
+| Simulated dev gate failure     | Run `37622061716`: dev `dirty`, prod jobs skipped; reconciled by run `37622712361`                      |
+| Dev teardown rehearsal         | Run `37624727789`; prod untouched; Owner purge and AcrPull cleanup; restored by infra run `37626106546` |
+| Final state                    | Run `37626771947`: both `clean` on `apim007-candidate-14-f77793e`, gateway tests pass                   |
+| dev-007 gateway                | `https://apim-dev-007-uovzcyp6yypu2.azure-api.net`                                                      |
+| prod-007 gateway               | `https://apim-prod-007-p4afmw2tk5j4m.azure-api.net`                                                     |
+| Prod self-review               | `prevent_self_review=false` (solo presenter, reduced control)                                           |
 
-Issues found and fixed during the first runtime runs: leftover native exit codes after tolerated `az` not-found lookups, `approvalRequired` rejected on a product without subscriptions, and server defaults in the extraction comparison (`isAgent`, omitted `http` API type, the built-in `administrators` product group).
+Issues found and fixed during the runtime runs: leftover native exit codes after tolerated `az` not-found lookups, `approvalRequired` rejected on a product without subscriptions, server defaults in the extraction comparison (`isAgent`, omitted `http` API type, the built-in `administrators` product group), `peter-evans/create-pull-request` missing from the organization allowed-actions list, and a teardown plan ID collapsed to a string.
 
 ## Purpose
 
@@ -289,7 +296,7 @@ The job refuses to run unless the dev release state is `clean` and the bundle, o
 1. Edit one policy header on a dev-007 API in the portal.
 2. Dispatch `extract-apiops-007.yml`.
 3. The job extracts with the ownership filter, scans for credential-like content, uploads the raw extraction as the `dev-007-extraction` artifact (evidence only, never committed), compares it with the bundle and projects only allowed policy edits.
-4. With no drift, the summary reports "No drift". Otherwise the job runs Pester and the `Candidate` bundle check, uploads the projected policies as the `projected-policies` artifact, then opens a pull request on `apim007/extract-<run_id>` limited to the changed policy files. In this repository the enterprise policy blocks `GITHUB_TOKEN` from creating pull requests, so the step pushes the branch and then fails softly; open the pull request from that branch manually.
+4. With no drift, the summary reports "No drift". Otherwise the job runs Pester and the `Candidate` bundle check, uploads the projected policies as the `projected-policies` artifact, commits them with git to a new branch `apim007/extract-<run_id>` and attempts `gh pr create`. In this repository the enterprise policy blocks `GITHUB_TOKEN` from creating pull requests, so the step logs a warning and you open the pull request from that branch manually.
 5. Pull requests created with `GITHUB_TOKEN` do not trigger workflows, so the pull request body states that checks ran in the extraction job. Close the pull request, or merge it as a new candidate that repeats dev validation before prod approval.
 
 Endpoint, operation or schema drift fails the comparison instead of being normalized away.
