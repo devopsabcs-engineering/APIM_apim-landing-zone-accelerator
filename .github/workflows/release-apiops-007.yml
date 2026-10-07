@@ -319,9 +319,6 @@ jobs:
 
       - name: Publish candidate release
         id: release
-        env:
-          # Temporary: trace the GitHub API calls (gh redacts the Authorization header).
-          GH_DEBUG: api
         run: |
           set -euo pipefail
           tag="apim007-candidate-$GITHUB_RUN_NUMBER-${SOURCE_SHA:0:7}"
@@ -654,7 +651,9 @@ jobs:
         run: |
           $scripts = Join-Path $env:CAND_DIR 'scripts/apim-007'
           $settings = Join-Path $env:CAND_DIR 'configuration.007.ai-settings.json'
-          if (-not (Test-Path -LiteralPath (Join-Path $scripts 'Test-Apim007AiGateway.ps1')) -or -not (Test-Path -LiteralPath $settings)) {
+          # The AI gateway is part of the candidate only when its inventory declares the AI settings.
+          $inventory = Get-Content -Raw -LiteralPath (Join-Path $env:CAND_DIR 'configuration.007.expected-inventory.json') | ConvertFrom-Json
+          if (-not $inventory.PSObject.Properties['aiSettings'] -or -not (Test-Path -LiteralPath (Join-Path $scripts 'Test-Apim007AiGateway.ps1'))) {
             Write-Output 'Candidate has no AI gateway; skipping.'
             return
           }
@@ -934,7 +933,8 @@ jobs:
             "| Gateway | $($env:GATEWAY_URL) |"
           )
           $manifest = Get-Content -Raw -LiteralPath $env:MANIFEST_PATH | ConvertFrom-Json
-          if ($manifest.PSObject.Properties['ai'] -and $manifest.ai) {
+          $candidateInventory = Get-Content -Raw -LiteralPath (Join-Path $env:CAND_DIR 'configuration.007.expected-inventory.json') | ConvertFrom-Json
+          if ($manifest.PSObject.Properties['ai'] -and $manifest.ai -and $candidateInventory.PSObject.Properties['aiSettings']) {
             $lines += "| AI chat model | $($manifest.ai.chatModel) |"
             $settingsPath = Join-Path $env:CAND_DIR 'configuration.007.ai-settings.json'
             if (Test-Path -LiteralPath $settingsPath) {
@@ -1213,7 +1213,9 @@ jobs:
         run: |
           $scripts = Join-Path $env:CAND_DIR 'scripts/apim-007'
           $settings = Join-Path $env:CAND_DIR 'configuration.007.ai-settings.json'
-          if (-not (Test-Path -LiteralPath (Join-Path $scripts 'Test-Apim007AiGateway.ps1')) -or -not (Test-Path -LiteralPath $settings)) {
+          # The AI gateway is part of the candidate only when its inventory declares the AI settings.
+          $inventory = Get-Content -Raw -LiteralPath (Join-Path $env:CAND_DIR 'configuration.007.expected-inventory.json') | ConvertFrom-Json
+          if (-not $inventory.PSObject.Properties['aiSettings'] -or -not (Test-Path -LiteralPath (Join-Path $scripts 'Test-Apim007AiGateway.ps1'))) {
             Write-Output 'Candidate has no AI gateway; skipping.'
             return
           }
