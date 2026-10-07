@@ -93,7 +93,7 @@ Describe 'Test-Apim007Gateway' {
 
     It 'fails when a gateway header does not match' {
         $headers = @{ 'x-demo-environment' = 'dev-007'; 'x-demo-release' = 'baseline-a'; 'x-demo-backend-host' = 'app-apim007-weather-dev.azurewebsites.net' }
-        Mock Invoke-Apim007Http { New-FakeResponse -Uri $Uri -Headers $Headers -ResponseHeaders @{ 'X-Demo-Environment' = @('prod-007'); 'x-demo-release' = @('baseline-a') } }
+        Mock Invoke-Apim007Http { New-FakeResponse -Uri $Uri -Headers $Headers -ResponseHeaders @{ 'X-Demo-Environment' = @('prod-007'); 'x-demo-release' = @('baseline-a'); 'x-demo-backend-host' = @('app-apim007-weather-dev.azurewebsites.net') } }
         { Invoke-Apim007FunctionalCheck -WeatherBaseUrl 'https://g.example/weather' -SoapServiceUrl 'https://g.example/software-version' -WsdlInfo $script:WsdlInfo `
                 -ExpectedVersion $script:Version -ExpectedWeatherHeaders $headers } | Should -Throw "*header 'x-demo-environment'*"
     }

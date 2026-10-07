@@ -164,7 +164,8 @@ jobs:
           az config set bicep.check_version=False --only-show-errors | Out-Null
           az bicep install --only-show-errors
           if ($LASTEXITCODE -ne 0) { throw 'az bicep install failed' }
-          $bicep = Join-Path $HOME '.azure/bin/bicep'
+          $bicep = (Get-Command bicep -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1).Source
+          if (-not $bicep) { $bicep = Join-Path $HOME '.azure/bin/bicep' }
           & $bicep --version
           $failed = 0
           foreach ($f in Get-ChildItem -Path infra/apim-demo-007 -Filter '*.bicep' -File) {
