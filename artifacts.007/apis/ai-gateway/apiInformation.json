@@ -1,0 +1,1 @@
+{"properties":{"displayName":"AI Gateway","path":"ai","protocols":["https"],"type":"http","serviceUrl":"https://ai-foundry.invalid/openai/deployments/chat","subscriptionRequired":true,"subscriptionKeyParameterNames":{"header":"api-key","query":"subscription-key"}}}

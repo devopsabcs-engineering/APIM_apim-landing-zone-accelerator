@@ -1,0 +1,1 @@
+{"properties":{"title":"AI Foundry chat deployment","protocol":"http","url":"https://ai-foundry.invalid/openai/deployments/chat","tls":{"validateCertificateChain":true,"validateCertificateName":true}}}
