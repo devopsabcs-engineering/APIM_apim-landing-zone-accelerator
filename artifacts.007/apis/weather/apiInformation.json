@@ -1,0 +1,1 @@
+{"properties":{"displayName":"Weather","path":"weather","protocols":["https"],"type":"http","serviceUrl":"https://weather.invalid","subscriptionRequired":false}}
