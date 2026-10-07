@@ -250,6 +250,19 @@ Expect `x-demo-environment` to show the target environment, `x-demo-release` to 
 
 The AI gateway adds an Azure OpenAI chat API to the same promotion flow. The policies, products and named values live in the bundle and promote like any other API; only the values differ per environment.
 
+> [!NOTE]
+> AI gateway runtime acceptance passed on 2026-10-07 in dev-007 and prod-007.
+
+| Evidence                      | Value                                                                                                      |
+|-------------------------------|------------------------------------------------------------------------------------------------------------|
+| AI provisioning               | Infra runs `37652034002` (dev) and `37652742332` (prod): AI accounts, data roles, blocklist by infra identity |
+| Baseline AI release           | Run `37660072964`: T1-T5 passed in dev and prod (401 / 200 / 429 / 403 / token metrics), `baseline-ai`       |
+| AI A-to-B promotion           | Run `37663312626`: dev returned `ai-b` while prod returned `baseline-ai`; prod `ai-b` after approval; prod retail daily quota 40000 |
+| Extraction                    | Run `37665255654`: no drift with product policies owned                                                    |
+| Product policy projection     | Run `37665497460`: a dev edit of `team-retail` was projected into branch `apim007/extract-37665497460`        |
+| Showback (`Total Tokens`)     | dev: team-finance 1661, team-retail 170; prod: team-finance 1097, team-retail 70                           |
+| Rejected deployment           | Run `37658029033`: candidate carried AI scripts without the AI bundle; prod was rejected and the step guard fixed |
+
 ### AI resources
 
 `infra-apim-007.yml` deploys `infra/apim-demo-007/ai.bicep` as `apim007-ai-<env>` into `rg-apim-demo-007-<env>-apim` (location `canadaeast`):
