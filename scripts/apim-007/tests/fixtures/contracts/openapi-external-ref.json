@@ -1,0 +1,11 @@
+{
+  "openapi": "3.0.1",
+  "info": { "title": "WeatherApi", "version": "1.0" },
+  "paths": {
+    "/WeatherForecast": {
+      "get": {
+        "responses": { "200": { "description": "Success", "content": { "application/json": { "schema": { "$ref": "https://example.com/schemas/forecast.json" } } } } }
+      }
+    }
+  }
+}

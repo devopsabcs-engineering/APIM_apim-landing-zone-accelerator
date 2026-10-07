@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<wsdl:definitions xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:tns="http://tempuri.org/" targetNamespace="http://tempuri.org/">
+  <wsdl:types>
+    <xsd:schema targetNamespace="http://tempuri.org/Imports">
+      <xsd:import schemaLocation="http://localhost:8080/SoftwareVersionService.asmx?xsd=xsd0" namespace="http://tempuri.org/" />
+    </xsd:schema>
+  </wsdl:types>
+  <wsdl:service name="ISoftwareVersionService">
+    <wsdl:port name="BasicHttpBinding" binding="tns:BasicHttpBinding">
+      <soap:address location="http://localhost:8080/SoftwareVersionService.asmx" />
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

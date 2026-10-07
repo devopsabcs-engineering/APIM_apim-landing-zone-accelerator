@@ -1,0 +1,13 @@
+{
+  "apis": [
+    { "name": "software-version", "properties": { "serviceUrl": "https://app-apim007-soap-dev.azurewebsites.net/SoftwareVersionService.asmx" } },
+    { "name": "weather", "properties": { "serviceUrl": "https://app-apim007-weather-dev.azurewebsites.net" } }
+  ],
+  "backends": [
+    { "name": "software-version-backend", "properties": { "url": "https://app-apim007-soap-dev.azurewebsites.net/SoftwareVersionService.asmx" } },
+    { "name": "weather-backend", "properties": { "url": "https://app-apim007-weather-dev.azurewebsites.net" } }
+  ],
+  "namedValues": [
+    { "name": "demo-environment", "properties": { "value": "dev-007" } }
+  ]
+}

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<wsdl:definitions xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:tns="http://tempuri.org/" xmlns:ser="http://schemas.microsoft.com/2003/10/Serialization/" xmlns:q1="http://schemas.datacontract.org/2004/07/AddressBook.Service.SOAP.Domain" targetNamespace="http://tempuri.org/" name="ISoftwareVersionService">
+  <wsdl:types>
+    <xsd:schema elementFormDefault="qualified" targetNamespace="http://schemas.datacontract.org/2004/07/AddressBook.Service.SOAP.Domain">
+      <xsd:complexType name="SoftwareVersion">
+        <xsd:sequence>
+          <xsd:element minOccurs="0" name="Build" type="xsd:int" />
+          <xsd:element minOccurs="0" name="Id" type="xsd:long" />
+          <xsd:element minOccurs="0" name="Major" type="xsd:int" />
+          <xsd:element minOccurs="0" name="Minor" type="xsd:int" />
+          <xsd:element minOccurs="0" name="Revision" type="xsd:int" />
+          <xsd:element minOccurs="0" name="SemanticVersion" nillable="true" type="xsd:string" />
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="ArrayOfSoftwareVersion">
+        <xsd:sequence>
+          <xsd:element minOccurs="0" maxOccurs="unbounded" name="SoftwareVersion" nillable="true" type="q1:SoftwareVersion" />
+        </xsd:sequence>
+      </xsd:complexType>
+    </xsd:schema>
+    <xsd:schema elementFormDefault="qualified" targetNamespace="http://tempuri.org/">
+      <xsd:import namespace="http://schemas.datacontract.org/2004/07/AddressBook.Service.SOAP.Domain" />
+      <xsd:element name="GetSoftwareVersion"><xsd:complexType><xsd:sequence /></xsd:complexType></xsd:element>
+      <xsd:element name="GetSoftwareVersionResponse"><xsd:complexType><xsd:sequence><xsd:element minOccurs="0" name="GetSoftwareVersionResult" nillable="true" type="q1:SoftwareVersion" /></xsd:sequence></xsd:complexType></xsd:element>
+      <xsd:element name="GetAllSoftwareVersions"><xsd:complexType><xsd:sequence /></xsd:complexType></xsd:element>
+      <xsd:element name="GetAllSoftwareVersionsResponse"><xsd:complexType><xsd:sequence><xsd:element minOccurs="0" name="GetAllSoftwareVersionsResult" nillable="true" type="q1:ArrayOfSoftwareVersion" /></xsd:sequence></xsd:complexType></xsd:element>
+    </xsd:schema>
+  </wsdl:types>
+  <wsdl:message name="ISoftwareVersionService_GetSoftwareVersion_InputMessage"><wsdl:part name="parameters" element="tns:GetSoftwareVersion" /></wsdl:message>
+  <wsdl:message name="ISoftwareVersionService_GetSoftwareVersion_OutputMessage"><wsdl:part name="parameters" element="tns:GetSoftwareVersionResponse" /></wsdl:message>
+  <wsdl:message name="ISoftwareVersionService_GetAllSoftwareVersions_InputMessage"><wsdl:part name="parameters" element="tns:GetAllSoftwareVersions" /></wsdl:message>
+  <wsdl:message name="ISoftwareVersionService_GetAllSoftwareVersions_OutputMessage"><wsdl:part name="parameters" element="tns:GetAllSoftwareVersionsResponse" /></wsdl:message>
+  <wsdl:portType name="ISoftwareVersionService">
+    <wsdl:operation name="GetSoftwareVersion">
+      <wsdl:input message="tns:ISoftwareVersionService_GetSoftwareVersion_InputMessage" />
+      <wsdl:output message="tns:ISoftwareVersionService_GetSoftwareVersion_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="GetAllSoftwareVersions">
+      <wsdl:input message="tns:ISoftwareVersionService_GetAllSoftwareVersions_InputMessage" />
+      <wsdl:output message="tns:ISoftwareVersionService_GetAllSoftwareVersions_OutputMessage" />
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="BasicHttpBinding" type="tns:ISoftwareVersionService">
+    <soap:binding transport="http://schemas.xmlsoap.org/soap/http" />
+    <wsdl:operation name="GetSoftwareVersion">
+      <soap:operation soapAction="http://tempuri.org/ISoftwareVersionService/GetSoftwareVersion" style="document" />
+      <wsdl:input><soap:body use="literal" /></wsdl:input>
+      <wsdl:output><soap:body use="literal" /></wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetAllSoftwareVersions">
+      <soap:operation soapAction="http://tempuri.org/ISoftwareVersionService/GetAllSoftwareVersions" style="document" />
+      <wsdl:input><soap:body use="literal" /></wsdl:input>
+      <wsdl:output><soap:body use="literal" /></wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="ISoftwareVersionService">
+    <wsdl:port name="BasicHttpBinding" binding="tns:BasicHttpBinding">
+      <soap:address location="https://software-version.invalid/SoftwareVersionService.asmx" />
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

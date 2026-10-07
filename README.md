@@ -44,6 +44,7 @@ GitHub Actions
 |----------|-----|-------------|---------|
 | 005 | Premium (Classic v1) | Dev + Prod | Legacy with VNet, workspaces |
 | 006 | BasicV2 | Dev + Prod | Modern, cost-efficient |
+| 007 | BasicV2 | Dev + Prod | APIops CLI promotion lab ([runbook](docs/apim-007-apiops-cli.md)) |
 
 ## Quick Start
 

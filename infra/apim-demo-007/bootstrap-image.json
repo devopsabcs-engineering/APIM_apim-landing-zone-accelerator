@@ -1,0 +1,7 @@
+{
+    "image": "mcr.microsoft.com/dotnet/samples@sha256:4682284c8c2f87d426ff2ee27319705af02620e36e486b450ab080d9c83cbad9",
+    "tag": "aspnetapp-8.0",
+    "port": 8080,
+    "approvedBy": "emmanuelknafo",
+    "approvedOn": "2026-10-06"
+}

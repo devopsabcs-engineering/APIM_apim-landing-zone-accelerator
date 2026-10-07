@@ -1,0 +1,27 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "environmentName": {
+            "value": "dev"
+        },
+        "instanceNumber": {
+            "value": "007"
+        },
+        "location": {
+            "value": "canadacentral"
+        },
+        "publisherEmail": {
+            "value": "admin@MngEnvMCAP675646.onmicrosoft.com"
+        },
+        "publisherName": {
+            "value": "Emmanuel Knafo"
+        },
+        "sku": {
+            "value": "BasicV2"
+        },
+        "releasePrincipalId": {
+            "value": "00000000-0000-0000-0000-000000000000"
+        }
+    }
+}

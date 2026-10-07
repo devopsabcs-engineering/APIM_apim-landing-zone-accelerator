@@ -1,0 +1,267 @@
+name: Validate APIM 007
+
+# Credential-free PR checks for the APIM 007 apiops-cli demo. Every check is skipped
+# until the files it validates exist, so the workflow is safe to merge first.
+
+on:
+  pull_request:
+    paths:
+      - 'artifacts.007/**'
+      - 'configuration.007.*'
+      - 'infra/apim-demo-007/**'
+      - 'scripts/apim-007/**'
+      - 'scripts/apim-007-setup/**'
+      - 'tools/apiops-cli/**'
+      - '.github/workflows/*-007.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-apim-007-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  APIOPS_CLI_VERSION: '1.0.4'
+  ACTIONLINT_VERSION: '1.7.12'
+  ACTIONLINT_SHA256: '8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8'
+
+jobs:
+  repo-guards:
+    name: Legacy path, SHA pin and forbidden pattern guards
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Legacy path guard
+        if: github.event_name == 'pull_request'
+        shell: pwsh
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          $changed = git diff --name-only "origin/$env:BASE_REF...HEAD"
+          if ($LASTEXITCODE -ne 0) { throw "git diff against origin/$env:BASE_REF failed" }
+          $legacy = @(
+            '^src/',
+            '^infra/appservice/',
+            '^infra/api-management-basicv2/',
+            '^\.github/workflows/(?!.*-007\.yml$)',
+            '^artifacts\.dev-',
+            '^artifacts\.prod-',
+            '^configuration\..*-00[56]'
+          )
+          $violations = @($changed | Where-Object { $path = $_; $legacy | Where-Object { $path -match $_ } })
+          if ($violations.Count -gt 0) {
+            $violations | ForEach-Object { Write-Output "::error file=$_::Legacy path must not change in a 007 PR: $_" }
+            exit 1
+          }
+          Write-Output "No legacy paths changed ($(@($changed).Count) files checked)."
+
+      - name: SHA pin check
+        shell: pwsh
+        run: |
+          $files = @(Get-ChildItem -Path .github/workflows -Filter '*-007.yml' -File)
+          $bad = 0
+          foreach ($f in $files) {
+            $n = 0
+            foreach ($line in Get-Content -LiteralPath $f.FullName) {
+              $n++
+              if ($line -match '^\s*(-\s*)?uses:\s*(?<ref>\S+)') {
+                $ref = $Matches.ref
+                if ($ref -like './*') { continue }
+                if ($ref -notmatch '^[^@\s]+@[0-9a-f]{40}$' -or $line -notmatch '#\s*\S+') {
+                  Write-Output "::error file=.github/workflows/$($f.Name),line=$n::Action must be pinned to a full commit SHA with the tag in a trailing comment: $ref"
+                  $bad++
+                }
+              }
+            }
+          }
+          if ($bad -gt 0) { exit 1 }
+          Write-Output "All actions SHA-pinned in $($files.Count) workflow file(s)."
+
+      - name: Forbidden pattern scan
+        shell: pwsh
+        run: |
+          $self = '.github/workflows/validate-apim-007.yml'
+          $roots = @('infra/apim-demo-007', 'scripts/apim-007', 'scripts/apim-007-setup', 'tools/apiops-cli', 'artifacts.007')
+          $files = @()
+          foreach ($r in $roots) {
+            if (Test-Path -LiteralPath $r) {
+              $files += Get-ChildItem -LiteralPath $r -Recurse -File |
+                Where-Object { $_.FullName -notmatch '[\\/](node_modules|tests)[\\/]' -and $_.Name -ne 'package-lock.json' }
+            }
+          }
+          $files += Get-ChildItem -Path . -Filter 'configuration.007.*' -File
+          $files += Get-ChildItem -Path .github/workflows -Filter '*-007.yml' -File
+          $rules = @(
+            @{ Pattern = '--delete-unmatched'; Scope = '.*' },
+            @{ Pattern = '--commit-id'; Scope = '.*' },
+            @{ Pattern = '\bnpx\b'; Scope = '.*' },
+            @{ Pattern = 'toJSON\(\s*secrets\s*\)'; Scope = '.*' },
+            @{ Pattern = 'listCredentials'; Scope = '.*' },
+            @{ Pattern = 'adminUserEnabled:\s*true'; Scope = '.*' },
+            @{ Pattern = 'DOCKER_REGISTRY_SERVER_PASSWORD'; Scope = '.*' },
+            @{ Pattern = ':latest\b'; Scope = '.*' },
+            @{ Pattern = 'deletedservices'; Scope = '.*' },
+            @{ Pattern = '(keyvault|deletedservice)\s+purge'; Scope = '.*' },
+            @{ Pattern = 'purge'; Scope = '^(infra/apim-demo-007/|\.github/workflows/)' },
+            @{ Pattern = 'Microsoft\.KeyVault'; Scope = '^infra/apim-demo-007/' },
+            @{ Pattern = 'authorizationServers'; Scope = '^infra/apim-demo-007/' }
+          )
+          $root = (Get-Location).Path
+          $hits = 0
+          foreach ($f in ($files | Sort-Object FullName -Unique)) {
+            $rel = [IO.Path]::GetRelativePath($root, $f.FullName) -replace '\\', '/'
+            if ($rel -eq $self) { continue }
+            foreach ($rule in $rules) {
+              if ($rel -notmatch $rule.Scope) { continue }
+              Select-String -LiteralPath $f.FullName -Pattern $rule.Pattern -CaseSensitive:$false | ForEach-Object {
+                Write-Output "::error file=$rel,line=$($_.LineNumber)::Forbidden pattern '$($rule.Pattern)'"
+                $hits++
+              }
+            }
+          }
+          if ($hits -gt 0) { exit 1 }
+          Write-Output "No forbidden patterns found."
+
+      - name: Install actionlint (pinned, hash verified)
+        run: |
+          set -euo pipefail
+          archive="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl -fsSL -o "$RUNNER_TEMP/$archive" "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/${archive}"
+          echo "${ACTIONLINT_SHA256}  $RUNNER_TEMP/$archive" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP" actionlint
+
+      - name: actionlint
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(.github/workflows/*-007.yml)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No 007 workflows found."
+            exit 0
+          fi
+          "$RUNNER_TEMP/actionlint" -color "${files[@]}"
+
+  infra:
+    name: Bicep build, lint and JSON checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Bicep build and lint
+        if: hashFiles('infra/apim-demo-007/*.bicep') != ''
+        shell: pwsh
+        run: |
+          az config set bicep.check_version=False --only-show-errors | Out-Null
+          az bicep install --only-show-errors
+          if ($LASTEXITCODE -ne 0) { throw 'az bicep install failed' }
+          $bicep = (Get-Command bicep -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1).Source
+          if (-not $bicep) { $bicep = Join-Path $HOME '.azure/bin/bicep' }
+          & $bicep --version
+          $failed = 0
+          foreach ($f in Get-ChildItem -Path infra/apim-demo-007 -Filter '*.bicep' -File) {
+            Write-Output "== $($f.Name)"
+            $out = & $bicep build $f.FullName --stdout 2>&1
+            if ($LASTEXITCODE -ne 0) { Write-Output ($out | Out-String); $failed++; continue }
+            $diag = @($out | Where-Object { "$_" -match '\.bicep\(\d+,\d+\)\s*:\s*(Warning|Error)' })
+            $lint = & $bicep lint $f.FullName 2>&1
+            if ($LASTEXITCODE -ne 0) { Write-Output ($lint | Out-String); $failed++ }
+            $diag += @($lint | Where-Object { "$_" -match '\.bicep\(\d+,\d+\)\s*:\s*(Warning|Error)' })
+            if ($diag.Count -gt 0) {
+              $diag | Sort-Object -Unique | ForEach-Object { Write-Output "::error::$_" }
+              $failed++
+            }
+          }
+          if ($failed -gt 0) { exit 1 }
+
+      - name: JSON parse and bootstrap image check
+        shell: pwsh
+        run: |
+          $json = @()
+          if (Test-Path -LiteralPath infra/apim-demo-007) { $json += Get-ChildItem -Path infra/apim-demo-007 -Filter '*.json' -File }
+          $json += Get-ChildItem -Path . -Filter 'configuration.007.*.json' -File
+          foreach ($f in $json) { Get-Content -LiteralPath $f.FullName -Raw | ConvertFrom-Json | Out-Null }
+          Write-Output "Parsed $($json.Count) JSON file(s)."
+
+          $bootstrap = 'infra/apim-demo-007/bootstrap-image.json'
+          if (Test-Path -LiteralPath $bootstrap) {
+            $b = Get-Content -LiteralPath $bootstrap -Raw | ConvertFrom-Json
+            if ($b.image -notmatch '^[a-z0-9.\-]+/[a-z0-9._/\-]+@sha256:[0-9a-f]{64}$') { throw "bootstrap image must be digest-pinned: $($b.image)" }
+            if ($b.port -ne 8080) { throw "bootstrap port must be 8080" }
+            foreach ($k in 'approvedBy', 'approvedOn') {
+              if ([string]::IsNullOrWhiteSpace($b.$k) -or $b.$k -eq 'PENDING') { throw "bootstrap-image.json '$k' must be recorded before merge" }
+            }
+          }
+
+  tooling:
+    name: APIops CLI tooling
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        if: hashFiles('tools/apiops-cli/package-lock.json') != ''
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+
+      - name: npm ci and version check
+        if: hashFiles('tools/apiops-cli/package-lock.json') != ''
+        working-directory: tools/apiops-cli
+        run: |
+          set -euo pipefail
+          provenance="$GITHUB_WORKSPACE/scripts/apim-007/Test-Apim007LockfileProvenance.ps1"
+          if [ -f "$provenance" ]; then
+            pwsh -NoProfile -File "$provenance" -LockfilePath package-lock.json
+          else
+            echo "::warning::Lockfile provenance script not present yet; skipped."
+          fi
+          npm ci --ignore-scripts --no-audit --no-fund
+          test -x node_modules/.bin/apiops
+          actual="$(node_modules/.bin/apiops --version | tr -d '[:space:]')"
+          if [ "$actual" != "$APIOPS_CLI_VERSION" ]; then
+            echo "::error::apiops version '$actual' does not equal $APIOPS_CLI_VERSION"
+            exit 1
+          fi
+          echo "apiops $actual"
+
+  scripts:
+    name: Pester and bundle validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Pester
+        if: hashFiles('scripts/apim-007/tests/**') != ''
+        shell: pwsh
+        run: |
+          Import-Module Pester -MinimumVersion 5.0.0
+          $config = New-PesterConfiguration
+          $config.Run.Path = 'scripts/apim-007/tests'
+          $config.Run.Exit = $true
+          $config.Output.Verbosity = 'Detailed'
+          Invoke-Pester -Configuration $config
+
+      - name: Bundle validation
+        if: hashFiles('scripts/apim-007/Test-Apim007Bundle.ps1') != '' && hashFiles('configuration.007.expected-inventory.json') != '' && hashFiles('artifacts.007/**') != ''
+        shell: pwsh
+        run: |
+          $specs = @('artifacts.007/apis/weather/specification.json', 'artifacts.007/apis/software-version/specification.wsdl')
+          $mode = if (@($specs | Where-Object { Test-Path -LiteralPath $_ }).Count -eq $specs.Count) { 'Candidate' } else { 'Authoring' }
+          Write-Output "Bundle validation mode: $mode"
+          ./scripts/apim-007/Test-Apim007Bundle.ps1 -BundlePath artifacts.007 -InventoryPath configuration.007.expected-inventory.json -Mode $mode

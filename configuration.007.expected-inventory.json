@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "bundleRoot": "artifacts.007",
+  "files": [
+    "apis/software-version/apiInformation.json",
+    "apis/software-version/policy.xml",
+    "apis/software-version/specification.wsdl",
+    "apis/weather/apiInformation.json",
+    "apis/weather/policy.xml",
+    "apis/weather/specification.json",
+    "backends/software-version-backend/backendInformation.json",
+    "backends/weather-backend/backendInformation.json",
+    "namedValues/demo-environment/namedValueInformation.json",
+    "products/demo/apis.json",
+    "products/demo/productInformation.json"
+  ],
+  "ownershipFilter": {
+    "path": "configuration.007.ownership.yaml",
+    "sha256": "F632D609F5D40A95D1F5158249846EA2720FFE056E9E73F2AA3E7F92E8E46897"
+  },
+  "resources": {
+    "apis": {
+      "weather": {
+        "type": "http",
+        "path": "weather",
+        "operations": ["GET /WeatherForecast", "GET /api/Version"]
+      },
+      "software-version": {
+        "type": "soap",
+        "path": "software-version",
+        "operations": ["GetSoftwareVersion", "GetAllSoftwareVersions"]
+      }
+    },
+    "backends": ["weather-backend", "software-version-backend"],
+    "namedValues": ["demo-environment"],
+    "products": {
+      "demo": {
+        "apis": ["weather", "software-version"],
+        "groups": []
+      }
+    }
+  },
+  "overrideTargets": [
+    "apis.weather.serviceUrl",
+    "apis.software-version.serviceUrl",
+    "backends.weather-backend.url",
+    "backends.software-version-backend.url",
+    "namedValues.demo-environment.value"
+  ],
+  "allowedBundleSentinels": [".invalid", "UNCONFIGURED"],
+  "forbiddenNames": ["instrumentationKey", "apimlogger", "apim007-release-state"],
+  "forbiddenPaths": ["policy.xml", "subscriptions/", "groups/", "loggers/", "diagnostics/", "workspaces/", "gateways/"]
+}

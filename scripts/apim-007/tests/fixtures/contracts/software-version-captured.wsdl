@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<wsdl:definitions xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:tns="http://tempuri.org/" targetNamespace="http://tempuri.org/" name="ISoftwareVersionService">
+  <wsdl:types>
+    <xsd:schema elementFormDefault="qualified" targetNamespace="http://tempuri.org/">
+      <xsd:element name="GetSoftwareVersion"><xsd:complexType><xsd:sequence /></xsd:complexType></xsd:element>
+      <xsd:element name="GetAllSoftwareVersions"><xsd:complexType><xsd:sequence /></xsd:complexType></xsd:element>
+    </xsd:schema>
+  </wsdl:types>
+  <wsdl:message name="GetSoftwareVersion_InputMessage"><wsdl:part name="parameters" element="tns:GetSoftwareVersion" /></wsdl:message>
+  <wsdl:message name="GetAllSoftwareVersions_InputMessage"><wsdl:part name="parameters" element="tns:GetAllSoftwareVersions" /></wsdl:message>
+  <wsdl:portType name="ISoftwareVersionService">
+    <wsdl:operation name="GetSoftwareVersion"><wsdl:input message="tns:GetSoftwareVersion_InputMessage" /></wsdl:operation>
+    <wsdl:operation name="GetAllSoftwareVersions"><wsdl:input message="tns:GetAllSoftwareVersions_InputMessage" /></wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="BasicHttpBinding" type="tns:ISoftwareVersionService">
+    <soap:binding transport="http://schemas.xmlsoap.org/soap/http" />
+    <wsdl:operation name="GetSoftwareVersion"><soap:operation soapAction="http://tempuri.org/ISoftwareVersionService/GetSoftwareVersion" style="document" /></wsdl:operation>
+    <wsdl:operation name="GetAllSoftwareVersions"><soap:operation soapAction="http://tempuri.org/ISoftwareVersionService/GetAllSoftwareVersions" style="document" /></wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="ISoftwareVersionService">
+    <wsdl:port name="BasicHttpBinding" binding="tns:BasicHttpBinding">
+      <soap:address location="http://localhost:8080/SoftwareVersionService.asmx" />
+    </wsdl:port>
+    <wsdl:port name="BasicHttpBinding12" binding="tns:BasicHttpBinding">
+      <soap12:address location="http://localhost:8080/SoftwareVersionService.asmx" />
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

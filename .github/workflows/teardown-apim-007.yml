@@ -1,0 +1,167 @@
+name: Teardown APIM 007
+
+# Removes one 007 environment's APIM and backend hosting by exact resource ID, derived from the
+# fixed deployments apim007-apim-<env> and apim007-backends-<env>. Keeps resource groups, role
+# assignments, the shared registry and every legacy resource. Never removes soft-delete records.
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to tear down'
+        required: true
+        type: choice
+        options:
+          - dev
+          - prod
+      confirm:
+        description: 'Type delete-apim-007-<environment> to confirm'
+        required: true
+        type: string
+
+permissions: {}
+
+jobs:
+  teardown:
+    name: Teardown ${{ inputs.environment }}-007
+    if: ${{ vars.APIM007_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment == 'prod' && 'prod-007-teardown' || 'dev-007-teardown' }}
+    concurrency:
+      group: apim-007-${{ inputs.environment }}-writes
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      TARGET_ENV: ${{ inputs.environment }}
+      CONFIRM: ${{ inputs.confirm }}
+      EXPECTED_TENANT_ID: ${{ vars.EXPECTED_TENANT_ID }}
+      EXPECTED_SUBSCRIPTION_ID: ${{ vars.EXPECTED_SUBSCRIPTION_ID }}
+    steps:
+      - name: Verify confirmation
+        run: |
+          set -euo pipefail
+          case "$TARGET_ENV" in
+            dev|prod) ;;
+            *) echo "::error::Unsupported environment."; exit 1 ;;
+          esac
+          if [ "$CONFIRM" != "delete-apim-007-$TARGET_ENV" ]; then
+            echo "::error::Confirmation does not equal delete-apim-007-$TARGET_ENV; nothing was changed."
+            exit 1
+          fi
+          {
+            echo "APIM_RG=rg-apim-demo-007-$TARGET_ENV-apim"
+            echo "BACKEND_RG=rg-apim-demo-007-$TARGET_ENV-backends"
+          } >> "$GITHUB_ENV"
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Azure login
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Assert tenant and subscription
+        run: |
+          set -euo pipefail
+          : "${EXPECTED_TENANT_ID:?EXPECTED_TENANT_ID is not set}"
+          : "${EXPECTED_SUBSCRIPTION_ID:?EXPECTED_SUBSCRIPTION_ID is not set}"
+          tenant="$(az account show --query tenantId -o tsv)"
+          subscription="$(az account show --query id -o tsv)"
+          if [ "$tenant" != "$EXPECTED_TENANT_ID" ] || [ "$subscription" != "$EXPECTED_SUBSCRIPTION_ID" ]; then
+            echo "::error::Signed-in tenant or subscription does not match the environment variables."
+            exit 1
+          fi
+
+      - name: Build exact resource inventory
+        shell: pwsh
+        run: |
+          $result = & ./scripts/apim-007/Get-Apim007TargetManifest.ps1 -Environment $env:TARGET_ENV -OutputPath (Join-Path $env:RUNNER_TEMP 'manifest.json')
+          $m = Get-Content -Raw -LiteralPath $result.Path | ConvertFrom-Json
+
+          function Get-AzJson([string[]]$Arguments) {
+            $output = & az @Arguments --only-show-errors -o json
+            if ($LASTEXITCODE -ne 0) { throw "az $($Arguments[0..1] -join ' ') failed." }
+            return ($output -join "`n" | ConvertFrom-Json)
+          }
+
+          $apimOutputs = (Get-AzJson @('deployment', 'group', 'show', '--resource-group', $env:APIM_RG, '--name', "apim007-apim-$($env:TARGET_ENV)")).properties.outputs
+          $appInsightsId = [string]$apimOutputs.applicationInsightsId.value
+          $workspaceId = [string](Get-AzJson @('resource', 'show', '--ids', $appInsightsId)).properties.WorkspaceResourceId
+          $planIds = @(foreach ($app in $m.backends.apps.PSObject.Properties.Value) { [string](Get-AzJson @('resource', 'show', '--ids', $app.id)).properties.serverFarmId }) | Sort-Object -Unique
+          if (@($planIds).Count -ne 1) { throw 'Backend apps do not share exactly one App Service plan.' }
+
+          $ordered = [System.Collections.Generic.List[object]]::new()
+          foreach ($app in $m.backends.apps.PSObject.Properties.Value) { $ordered.Add([pscustomobject]@{ Id = [string]$app.id; ResourceGroup = $env:BACKEND_RG }) }
+          $ordered.Add([pscustomobject]@{ Id = [string]$planIds[0]; ResourceGroup = $env:BACKEND_RG })
+          $ordered.Add([pscustomobject]@{ Id = [string]$m.apim.id; ResourceGroup = $env:APIM_RG })
+          $ordered.Add([pscustomobject]@{ Id = $appInsightsId; ResourceGroup = $env:APIM_RG })
+          $ordered.Add([pscustomobject]@{ Id = $workspaceId; ResourceGroup = $env:APIM_RG })
+
+          $prefix = "/subscriptions/$($env:EXPECTED_SUBSCRIPTION_ID)/resourceGroups/"
+          foreach ($item in $ordered) {
+            if (-not $item.Id.StartsWith("$prefix$($item.ResourceGroup)/providers/", [StringComparison]::OrdinalIgnoreCase)) {
+              throw "Resource '$($item.Id)' is outside $($item.ResourceGroup)."
+            }
+            if ($item.Id -match '[*?]') { throw "Resource ID '$($item.Id)' contains a wildcard." }
+            $tags = (Get-AzJson @('resource', 'show', '--ids', $item.Id)).tags
+            if (-not $tags -or $tags.apimDemo -ne '007' -or $tags.environment -ne $env:TARGET_ENV) {
+              throw "Resource '$($item.Id)' is not tagged apimDemo=007 and environment=$($env:TARGET_ENV)."
+            }
+          }
+          $inventory = [ordered]@{
+            resourceIds  = @($ordered | ForEach-Object Id)
+            apimName     = $m.apim.name
+            apimLocation = $m.apim.location
+            principalIds = @($m.backends.apps.PSObject.Properties.Value | ForEach-Object principalId)
+          }
+          [IO.File]::WriteAllText((Join-Path $env:RUNNER_TEMP 'teardown-inventory.json'), ($inventory | ConvertTo-Json), [Text.UTF8Encoding]::new($false))
+          $lines = @("## APIM 007 $($env:TARGET_ENV) teardown inventory", '')
+          $lines += foreach ($id in $inventory.resourceIds) { "* $id" }
+          $lines | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+
+      - name: Remove resources by ID
+        run: |
+          set -euo pipefail
+          mapfile -t ids < <(jq -r '.resourceIds[]' "$RUNNER_TEMP/teardown-inventory.json")
+          for id in "${ids[@]}"; do
+            echo "Removing $id"
+            az resource delete --ids "$id" --only-show-errors
+          done
+
+      - name: Verify removal
+        run: |
+          set -euo pipefail
+          mapfile -t ids < <(jq -r '.resourceIds[]' "$RUNNER_TEMP/teardown-inventory.json")
+          remaining=0
+          for id in "${ids[@]}"; do
+            if az resource show --ids "$id" --only-show-errors > /dev/null 2>&1; then
+              echo "::error::$id still exists."
+              remaining=$((remaining + 1))
+            fi
+          done
+          if [ "$remaining" -gt 0 ]; then exit 1; fi
+          echo "All inventoried resources are gone."
+
+      - name: Owner follow-up summary
+        if: ${{ always() }}
+        shell: pwsh
+        run: |
+          $path = Join-Path $env:RUNNER_TEMP 'teardown-inventory.json'
+          if (-not (Test-Path -LiteralPath $path)) { return }
+          $inventory = Get-Content -Raw -LiteralPath $path | ConvertFrom-Json
+          $lines = @(
+            '', '### Owner follow-up', '',
+            "* APIM '$($inventory.apimName)' in '$($inventory.apimLocation)' is retained in soft-delete state. Re-creating the same name requires the Owner-run recovery procedure in the APIM 007 runbook; this workflow never removes soft-delete records.",
+            '* The Log Analytics workspace enters its soft-delete retention window.',
+            '* Resource groups, release role assignments and the shared registry are kept.',
+            '* AcrPull assignments on the shared registry for these principal IDs are now orphaned (Owner cleanup):'
+          )
+          $lines += foreach ($principal in $inventory.principalIds) { "  * $principal" }
+          $lines | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
