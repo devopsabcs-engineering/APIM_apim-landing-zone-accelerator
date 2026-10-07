@@ -406,7 +406,7 @@ All writes to one environment share a concurrency group (`apim-007-dev-writes` o
 
 `teardown-apim-007.yml` removes one environment's APIM and backend hosting.
 
-1. Dispatch it with `environment=dev` (or `prod`) and `confirm=delete-apim-007-dev` (or `delete-apim-007-prod`). Prod teardown requires reviewer approval.
+1. Dispatch it with `environment=dev` (or `prod`, or `all` for both) and `confirm=delete-apim-007-dev` (or `delete-apim-007-prod`, `delete-apim-007-all`). `all` runs one job per environment. Prod teardown requires reviewer approval.
 2. The job derives the exact IDs of both apps, the App Service plan, APIM, Application Insights, the Log Analytics workspace and, when `apim007-ai-<env>` exists, the two AI accounts from the fixed deployments, verifies each one carries `apimDemo=007` and the matching `environment` tag in the expected resource group, removes them by ID and verifies they are gone.
 3. Resource groups, release role assignments, identities, the budget and the shared registry are kept. Legacy 005 and 006 resources are never selected.
 
