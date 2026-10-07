@@ -740,7 +740,11 @@ function Enable-ActionsPullRequestPermission {
         return
     }
     if (Test-ShouldProcess -Target $GitHubRepository -Action 'Allow GitHub Actions to create and approve pull requests') {
-        $null = Invoke-Gh -Arguments @('api', '-X', 'PUT', "repos/$GitHubRepository/actions/permissions/workflow", '-f', "default_workflow_permissions=$($current.default_workflow_permissions)", '-F', 'can_approve_pull_request_reviews=true')
+        $result = Invoke-Gh -Arguments @('api', '-X', 'PUT', "repos/$GitHubRepository/actions/permissions/workflow", '-f', "default_workflow_permissions=$($current.default_workflow_permissions)", '-F', 'can_approve_pull_request_reviews=true') -AllowFailure -Raw
+        if ($null -eq $result) {
+            Write-Warning 'Actions cannot be allowed to create pull requests (blocked by organization or enterprise policy). extract-apiops-007.yml uploads the extraction as an artifact; open the pull request manually.'
+            return
+        }
         Write-Info 'Actions pull request permission enabled'
     }
 }
