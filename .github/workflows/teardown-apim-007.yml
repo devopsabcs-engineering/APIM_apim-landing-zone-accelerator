@@ -1,8 +1,9 @@
 name: Teardown APIM 007
 
-# Removes one 007 environment's APIM and backend hosting by exact resource ID, derived from the
-# fixed deployments apim007-apim-<env> and apim007-backends-<env>. Keeps resource groups, role
-# assignments, the shared registry and every legacy resource. Never removes soft-delete records.
+# Removes one 007 environment's APIM, backend hosting and AI accounts by exact resource ID, derived
+# from the fixed deployments apim007-apim-<env>, apim007-backends-<env> and apim007-ai-<env>. Keeps
+# resource groups, role assignments, the shared registry and every legacy resource. Never removes
+# soft-delete records.
 
 on:
   workflow_dispatch:
@@ -103,6 +104,11 @@ jobs:
           $ordered.Add([pscustomobject]@{ Id = [string]$m.apim.id; ResourceGroup = $env:APIM_RG })
           $ordered.Add([pscustomobject]@{ Id = $appInsightsId; ResourceGroup = $env:APIM_RG })
           $ordered.Add([pscustomobject]@{ Id = $workspaceId; ResourceGroup = $env:APIM_RG })
+          $aiAccounts = @()
+          if ($m.PSObject.Properties['ai'] -and $m.ai) {
+            $aiAccounts = @([string]$m.ai.aiServicesId, [string]$m.ai.contentSafetyId)
+            foreach ($id in $aiAccounts) { $ordered.Add([pscustomobject]@{ Id = $id; ResourceGroup = $env:APIM_RG }) }
+          }
 
           $prefix = "/subscriptions/$($env:EXPECTED_SUBSCRIPTION_ID)/resourceGroups/"
           foreach ($item in $ordered) {
@@ -120,6 +126,7 @@ jobs:
             apimName     = $m.apim.name
             apimLocation = $m.apim.location
             principalIds = @($m.backends.apps.PSObject.Properties.Value | ForEach-Object principalId)
+            aiAccounts   = @($aiAccounts | ForEach-Object { ($_ -split '/')[-1] })
           }
           [IO.File]::WriteAllText((Join-Path $env:RUNNER_TEMP 'teardown-inventory.json'), ($inventory | ConvertTo-Json), [Text.UTF8Encoding]::new($false))
           $lines = @("## APIM 007 $($env:TARGET_ENV) teardown inventory", '')
@@ -164,4 +171,7 @@ jobs:
             '* AcrPull assignments on the shared registry for these principal IDs are now orphaned (Owner cleanup):'
           )
           $lines += foreach ($principal in $inventory.principalIds) { "  * $principal" }
+          if (@($inventory.aiAccounts).Count -gt 0) {
+            $lines += "* AI accounts stay soft-deleted for 48 hours and block re-creation of the same names; see 'Soft-deleted AI accounts' in the APIM 007 runbook (Owner): $(@($inventory.aiAccounts) -join ', ')"
+          }
           $lines | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8

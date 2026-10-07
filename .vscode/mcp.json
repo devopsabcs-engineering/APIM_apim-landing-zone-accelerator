@@ -7,7 +7,7 @@
     "ado": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "@azure-devops/mcp", "${input:ado_org}"]
+      "args": ["-y", "@azure-devops/mcp", "${input:ado_org}", "--authentication", "azcli", "--tenant", "a34c69c7-8959-474a-9690-e98bfb0b55c6"]
     }
   },
   "inputs": [

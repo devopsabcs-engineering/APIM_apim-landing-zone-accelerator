@@ -123,6 +123,8 @@ $Roles = @{
     WebsiteContributor       = 'de139f84-1756-47ae-9be6-808fbbe84772'
     AcrPush                  = '8311e382-0749-4cb8-b61a-304f252e45ec'
     AcrPull                  = '7f951dda-4ed3-4680-a7ca-43fe172d538d'
+    CognitiveServicesOpenAiUser = '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
+    CognitiveServicesUser    = 'a97b65f3-24c7-4388-baec-2e87135dc908'
 }
 
 $Rg = [ordered]@{
@@ -250,25 +252,31 @@ function Get-RgScope {
     return "/subscriptions/$SubscriptionId/resourceGroups/$Name"
 }
 
+function Get-RoleAssignmentClause {
+    param([string]$Source, [string[]]$RoleDefinitionIds, [string[]]$PrincipalIds, [string]$PrincipalType)
+    $clauses = @("@$Source[Microsoft.Authorization/roleAssignments:RoleDefinitionId] ForAnyOfAnyValues:GuidEquals {$($RoleDefinitionIds -join ', ')}")
+    if ($PrincipalIds) { $clauses += "@$Source[Microsoft.Authorization/roleAssignments:PrincipalId] ForAnyOfAnyValues:GuidEquals {$($PrincipalIds -join ', ')}" }
+    if ($PrincipalType) { $clauses += "@$Source[Microsoft.Authorization/roleAssignments:PrincipalType] ForAnyOfAnyValues:StringEqualsIgnoreCase {'$PrincipalType'}" }
+    return ($clauses -join ' AND ')
+}
+
 function New-RoleAssignmentCondition {
+    # -OrRules adds alternatives: each hashtable has RoleDefinitionIds and optional PrincipalIds/PrincipalType.
     param(
         [Parameter(Mandatory = $true)][string[]]$RoleDefinitionIds,
         [string[]]$PrincipalIds,
-        [string]$PrincipalType
+        [string]$PrincipalType,
+        [hashtable[]]$OrRules
     )
-    $roleSet = $RoleDefinitionIds -join ', '
-    $write = @("@Request[Microsoft.Authorization/roleAssignments:RoleDefinitionId] ForAnyOfAnyValues:GuidEquals {$roleSet}")
-    $delete = @("@Resource[Microsoft.Authorization/roleAssignments:RoleDefinitionId] ForAnyOfAnyValues:GuidEquals {$roleSet}")
-    if ($PrincipalIds) {
-        $principalSet = $PrincipalIds -join ', '
-        $write += "@Request[Microsoft.Authorization/roleAssignments:PrincipalId] ForAnyOfAnyValues:GuidEquals {$principalSet}"
-        $delete += "@Resource[Microsoft.Authorization/roleAssignments:PrincipalId] ForAnyOfAnyValues:GuidEquals {$principalSet}"
+    $parts = @{}
+    foreach ($source in 'Request', 'Resource') {
+        $rules = @(Get-RoleAssignmentClause -Source $source -RoleDefinitionIds $RoleDefinitionIds -PrincipalIds $PrincipalIds -PrincipalType $PrincipalType)
+        foreach ($rule in @($OrRules | Where-Object { $_ })) {
+            $rules += Get-RoleAssignmentClause -Source $source -RoleDefinitionIds $rule['RoleDefinitionIds'] -PrincipalIds $rule['PrincipalIds'] -PrincipalType $rule['PrincipalType']
+        }
+        $parts[$source] = if ($rules.Count -eq 1) { $rules[0] } else { ($rules | ForEach-Object { "($_)" }) -join ' OR ' }
     }
-    if ($PrincipalType) {
-        $write += "@Request[Microsoft.Authorization/roleAssignments:PrincipalType] ForAnyOfAnyValues:StringEqualsIgnoreCase {'$PrincipalType'}"
-        $delete += "@Resource[Microsoft.Authorization/roleAssignments:PrincipalType] ForAnyOfAnyValues:StringEqualsIgnoreCase {'$PrincipalType'}"
-    }
-    return "((!(ActionMatches{'Microsoft.Authorization/roleAssignments/write'})) OR ($($write -join ' AND '))) AND ((!(ActionMatches{'Microsoft.Authorization/roleAssignments/delete'})) OR ($($delete -join ' AND ')))"
+    return "((!(ActionMatches{'Microsoft.Authorization/roleAssignments/write'})) OR ($($parts.Request))) AND ((!(ActionMatches{'Microsoft.Authorization/roleAssignments/delete'})) OR ($($parts.Resource)))"
 }
 
 #endregion
@@ -370,7 +378,7 @@ function Get-OidcSubject {
 
 function Register-ResourceProviders {
     Write-Section 'Resource providers'
-    foreach ($ns in 'Microsoft.ApiManagement', 'Microsoft.Web', 'Microsoft.ContainerRegistry', 'Microsoft.Insights', 'Microsoft.OperationalInsights', 'Microsoft.ManagedIdentity', 'Microsoft.Consumption') {
+    foreach ($ns in 'Microsoft.ApiManagement', 'Microsoft.Web', 'Microsoft.ContainerRegistry', 'Microsoft.Insights', 'Microsoft.OperationalInsights', 'Microsoft.ManagedIdentity', 'Microsoft.Consumption', 'Microsoft.CognitiveServices') {
         $provider = Invoke-Az -Arguments @('provider', 'show', '--namespace', $ns)
         if ($provider.registrationState -eq 'Registered') {
             Write-Info "$ns registered"
@@ -432,6 +440,7 @@ function Show-CostEstimate {
         }
     }
     $rows | Format-Table -AutoSize | Out-String | Write-Host
+    Write-Info 'AI gateway (per environment, canadaeast): Azure OpenAI gpt-4o Standard and Content Safety S0 are pay per use with no fixed monthly fee; demo traffic is a few thousand tokens per release.'
     Write-Info "Budget: $BudgetAmount per month for resources tagged apimDemo=007, alerts to $BudgetAlertEmail, expires $($ExpiresOn.ToString('yyyy-MM-dd'))."
 }
 
@@ -575,19 +584,23 @@ function Sync-RoleAssignment {
     }
     $existing = @(Invoke-Az -Arguments @('role', 'assignment', 'list', '--scope', $Scope, '--role', $roleId) -AllowFailure)
     $match = $existing | Where-Object { $_ -and $_.principalId -eq $Identity.PrincipalId -and $_.scope -ieq $Scope } | Select-Object -First 1
+    $name = Get-DeterministicGuid -Seed "$Scope|$($Identity.PrincipalId)|$roleId"
     if ($match) {
         $actual = if ($match.PSObject.Properties['condition']) { [string]$match.condition } else { '' }
-        if (($actual -replace '\s', '') -ne ([string]$Condition -replace '\s', '')) {
-            Write-Warning "$label exists with a different condition; review it manually."
-        }
-        else {
+        if (($actual -replace '\s', '') -eq ([string]$Condition -replace '\s', '')) {
             Write-Info "$label present"
+            return
         }
-        return
+        if (-not $Condition -or -not $actual) {
+            Write-Warning "$label exists with a different condition; review it manually."
+            return
+        }
+        # Same role, principal and scope: update the condition of the existing assignment in place.
+        if (-not (Test-ShouldProcess -Target $label -Action "Update role assignment condition to: $Condition")) { return }
+        $name = [string]$match.name
     }
-    if (-not (Test-ShouldProcess -Target $label -Action $(if ($Condition) { "Assign role with condition: $Condition" } else { 'Assign role' }))) { return }
+    elseif (-not (Test-ShouldProcess -Target $label -Action $(if ($Condition) { "Assign role with condition: $Condition" } else { 'Assign role' }))) { return }
 
-    $name = Get-DeterministicGuid -Seed "$Scope|$($Identity.PrincipalId)|$roleId"
     $properties = @{
         roleDefinitionId = "/subscriptions/$SubscriptionId/providers/Microsoft.Authorization/roleDefinitions/$roleId"
         principalId      = $Identity.PrincipalId
@@ -809,10 +822,16 @@ function Invoke-InitialStage {
         $release = $ids["$($prefix)Release"]
         $teardown = $ids["$($prefix)Teardown"]
         $envScopes = @((Get-RgScope $Rg["$($prefix)Apim"]), (Get-RgScope $Rg["$($prefix)Backends"]))
-        $releaseCondition = New-RoleAssignmentCondition -RoleDefinitionIds @($Roles.ApimServiceContributor, $Roles.Reader, $Roles.WebsiteContributor) -PrincipalIds @($release.PrincipalId)
+        $releaseRoles = @($Roles.ApimServiceContributor, $Roles.Reader, $Roles.WebsiteContributor)
+        $releaseCondition = New-RoleAssignmentCondition -RoleDefinitionIds $releaseRoles -PrincipalIds @($release.PrincipalId)
+        # ai.bicep (APIM resource group) grants the APIM managed identity and the infra identity
+        # Cognitive Services data roles; the APIM identity changes when APIM is recreated.
+        $apimCondition = New-RoleAssignmentCondition -RoleDefinitionIds $releaseRoles -PrincipalIds @($release.PrincipalId) `
+            -OrRules @(@{ RoleDefinitionIds = @($Roles.CognitiveServicesOpenAiUser, $Roles.CognitiveServicesUser); PrincipalType = 'ServicePrincipal' })
         foreach ($scope in $envScopes) {
+            $condition = if ($scope -eq (Get-RgScope $Rg["$($prefix)Apim"])) { $apimCondition } else { $releaseCondition }
             Sync-RoleAssignment -Identity $infra -RoleName 'Contributor' -Scope $scope
-            Sync-RoleAssignment -Identity $infra -RoleName 'RbacAdministrator' -Scope $scope -Condition $releaseCondition
+            Sync-RoleAssignment -Identity $infra -RoleName 'RbacAdministrator' -Scope $scope -Condition $condition
             Sync-RoleAssignment -Identity $teardown -RoleName 'Contributor' -Scope $scope
         }
     }

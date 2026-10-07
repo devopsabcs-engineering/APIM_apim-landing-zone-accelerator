@@ -54,5 +54,7 @@ The environment script runs in two stages around the provisioning workflow:
 
 The `Initial` stage sets the repository variable `APIM007_ENABLED=true` as its last step, so the 007 workflows stay inactive until setup completes. Passing `-PreventSelfReview $false` lets a solo presenter approve their own prod release; the script records that reduced control in `APIM007_PREVENT_SELF_REVIEW`.
 
+The AI gateway needs the `Microsoft.CognitiveServices` provider and an infra RBAC Administrator condition on each APIM resource group that also allows the Cognitive Services OpenAI User and Cognitive Services User roles for service principals. Environments set up before the AI gateway need one more `Initial` run; the script updates the existing condition in place.
+
 > [!NOTE]
 > The script refuses to continue when any `rg-apim-demo-007-*` resource group exists without the `apimDemo=007` tag. It never deletes resources.

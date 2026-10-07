@@ -1,0 +1,27 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environmentName": {
+      "value": "dev"
+    },
+    "aiLocation": {
+      "value": "canadaeast"
+    },
+    "apimName": {
+      "value": "SET-BY-WORKFLOW"
+    },
+    "chatModelName": {
+      "value": "gpt-4o"
+    },
+    "chatModelVersion": {
+      "value": "2024-11-20"
+    },
+    "chatSkuName": {
+      "value": "Standard"
+    },
+    "chatCapacity": {
+      "value": 10
+    }
+  }
+}
