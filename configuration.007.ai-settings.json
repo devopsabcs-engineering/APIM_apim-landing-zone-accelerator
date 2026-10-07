@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "blocklistName": "apim007-demo",
+  "blocklistFixtureTerm": "apim007-blocked-demo-term",
+  "environments": {
+    "dev": {
+      "safetyThreshold": 4,
+      "teams": {
+        "team-retail": { "tokensPerMinute": 2000, "dailyTokenQuota": 20000 },
+        "team-finance": { "tokensPerMinute": 300, "dailyTokenQuota": 3000 }
+      }
+    },
+    "prod": {
+      "safetyThreshold": 4,
+      "teams": {
+        "team-retail": { "tokensPerMinute": 5000, "dailyTokenQuota": 50000 },
+        "team-finance": { "tokensPerMinute": 500, "dailyTokenQuota": 20000 }
+      }
+    }
+  }
+}

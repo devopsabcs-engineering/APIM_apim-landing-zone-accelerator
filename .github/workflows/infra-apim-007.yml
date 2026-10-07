@@ -328,6 +328,34 @@ jobs:
             echo "AcrPull assigned to $key."
           done
 
+      - name: Deploy AI services
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $apimName = az deployment group show --resource-group $env:APIM_RG --name "apim007-apim-$($env:TARGET_ENV)" --query properties.outputs.apimName.value -o tsv --only-show-errors
+          if ($apimName -notmatch '^apim-[a-z]+-007-[a-z0-9]+$') { throw 'APIM deployment output apimName is missing or unexpected.' }
+          # The signed-in workload identity writes the content safety blocklist; read its object ID
+          # from the token claims without printing the token.
+          $token = az account get-access-token --query accessToken -o tsv --only-show-errors
+          $payload = $token.Split('.')[1].Replace('-', '+').Replace('_', '/')
+          $payload = $payload.PadRight($payload.Length + ((4 - $payload.Length % 4) % 4), '=')
+          $infraPrincipalId = ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($payload)) | ConvertFrom-Json).oid
+          Remove-Variable token, payload
+          if ($infraPrincipalId -notmatch '^[0-9a-f-]{36}$') { throw 'Could not resolve the infra principal object ID.' }
+          $writers = ConvertTo-Json -InputObject @($infraPrincipalId) -Compress
+          $common = @('--resource-group', $env:APIM_RG, '--name', "apim007-ai-$($env:TARGET_ENV)", '--template-file', "$($env:BICEP_DIR)/ai.bicep",
+            '--parameters', "@$($env:BICEP_DIR)/ai.parameters.$($env:TARGET_ENV).json",
+            '--parameters', "apimName=$apimName", "blocklistWriterPrincipalIds=$writers")
+          az deployment group what-if @common --only-show-errors
+          $outputs = az deployment group create @common --query properties.outputs -o json --only-show-errors | ConvertFrom-Json
+          "AI_CS_ENDPOINT=$($outputs.contentSafetyEndpoint.value)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "AI_CHAT_MODEL=$($outputs.chatModel.value)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Content safety blocklist
+        shell: pwsh
+        run: ./scripts/apim-007/Set-Apim007SafetyBlocklist.ps1 -Endpoint $env:AI_CS_ENDPOINT -SettingsPath configuration.007.ai-settings.json
+
       - name: Target manifest summary
         shell: pwsh
         run: |
@@ -344,6 +372,9 @@ jobs:
             "| Software-version backend | $($manifest.backends.apps.'software-version'.httpsBaseUrl) |",
             "| Weather image | $($env:WEATHER_FX) |",
             "| Software-version image | $($env:SOAP_FX) |",
+            "| AI chat endpoint | $(if ($manifest.PSObject.Properties['ai']) { $manifest.ai.chatUrl } else { 'not deployed' }) |",
+            "| AI chat model | $($env:AI_CHAT_MODEL) |",
+            "| Content safety endpoint | $(if ($manifest.PSObject.Properties['ai']) { $manifest.ai.contentSafetyUrl } else { 'not deployed' }) |",
             "| Manifest SHA256 | $($result.Sha256) |"
           )
           $lines | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8

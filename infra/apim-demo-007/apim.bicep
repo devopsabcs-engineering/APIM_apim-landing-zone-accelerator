@@ -99,6 +99,8 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
   properties: {
     Application_Type: 'web'
     WorkspaceResourceId: logAnalyticsWorkspace.id
+    #disable-next-line BCP037
+    CustomMetricsOptedInType: 'WithDimensions'
   }
 }
 
@@ -123,6 +125,32 @@ resource apimLogger 'Microsoft.ApiManagement/service/loggers@2024-06-01-preview'
     loggerType: 'applicationInsights'
     credentials: {
       instrumentationKey: '{{${namedValueAppInsightsSecret.name}}}'
+    }
+  }
+}
+
+// Bicep-owned; llm-emit-token-metric needs metrics enabled. Bodies are never logged.
+resource apimDiagnostic 'Microsoft.ApiManagement/service/diagnostics@2024-06-01-preview' = {
+  parent: apiManagement
+  name: 'applicationinsights'
+  properties: {
+    loggerId: apimLogger.id
+    alwaysLog: 'allErrors'
+    httpCorrelationProtocol: 'W3C'
+    verbosity: 'information'
+    logClientIp: false
+    metrics: true
+    sampling: {
+      samplingType: 'fixed'
+      percentage: 100
+    }
+    frontend: {
+      request: { body: { bytes: 0 } }
+      response: { body: { bytes: 0 } }
+    }
+    backend: {
+      request: { body: { bytes: 0 } }
+      response: { body: { bytes: 0 } }
     }
   }
 }
@@ -153,3 +181,4 @@ output location string = location
 output resourceGroupId string = resourceGroup().id
 output applicationInsightsId string = applicationInsights.id
 output loggerId string = apimLogger.id
+output diagnosticId string = apimDiagnostic.id
