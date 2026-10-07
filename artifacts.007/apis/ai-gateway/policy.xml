@@ -1,0 +1,41 @@
+<policies>
+<inbound>
+<base />
+<set-header name="api-key" exists-action="delete" />
+<set-header name="Ocp-Apim-Subscription-Key" exists-action="delete" />
+<set-query-parameter name="subscription-key" exists-action="delete" />
+<set-backend-service backend-id="ai-foundry" />
+<authentication-managed-identity resource="https://cognitiveservices.azure.com" />
+<llm-content-safety backend-id="ai-content-safety" shield-prompt="true">
+<categories output-type="EightSeverityLevels">
+<category name="Hate" threshold="{{ai-safety-threshold}}" />
+<category name="SelfHarm" threshold="{{ai-safety-threshold}}" />
+<category name="Sexual" threshold="{{ai-safety-threshold}}" />
+<category name="Violence" threshold="{{ai-safety-threshold}}" />
+</categories>
+<blocklists>
+<id>{{ai-safety-blocklist}}</id>
+</blocklists>
+</llm-content-safety>
+<llm-emit-token-metric namespace="apim007">
+<dimension name="API ID" />
+<dimension name="Subscription ID" />
+<dimension name="Product ID" />
+</llm-emit-token-metric>
+</inbound>
+<backend><base /></backend>
+<outbound><base /><set-header name="x-demo-environment" exists-action="override"><value>{{demo-environment}}</value></set-header><set-header name="x-demo-release" exists-action="override"><value>baseline-ai</value></set-header><set-header name="x-demo-backend-host" exists-action="override"><value>@(context.Request.Url.Host)</value></set-header></outbound>
+<on-error>
+<base />
+<choose>
+<when condition="@(context.LastError != null &amp;&amp; (context.LastError.Source == &quot;llm-content-safety&quot; || context.LastError.Reason == &quot;ContentSafetyPolicyViolated&quot;))">
+<return-response>
+<set-status code="403" reason="Forbidden" />
+<set-header name="x-content-safety-decision" exists-action="override"><value>blocked</value></set-header>
+<set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+<set-body>{"error":"content_safety_violation"}</set-body>
+</return-response>
+</when>
+</choose>
+</on-error>
+</policies>

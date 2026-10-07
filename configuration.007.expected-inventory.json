@@ -2,21 +2,41 @@
   "schemaVersion": 1,
   "bundleRoot": "artifacts.007",
   "files": [
+    "apis/ai-gateway/apiInformation.json",
+    "apis/ai-gateway/policy.xml",
+    "apis/ai-gateway/specification.json",
     "apis/software-version/apiInformation.json",
     "apis/software-version/policy.xml",
     "apis/software-version/specification.wsdl",
     "apis/weather/apiInformation.json",
     "apis/weather/policy.xml",
     "apis/weather/specification.json",
+    "backends/ai-content-safety/backendInformation.json",
+    "backends/ai-foundry/backendInformation.json",
     "backends/software-version-backend/backendInformation.json",
     "backends/weather-backend/backendInformation.json",
+    "namedValues/ai-safety-blocklist/namedValueInformation.json",
+    "namedValues/ai-safety-threshold/namedValueInformation.json",
+    "namedValues/ai-team-finance-daily-quota/namedValueInformation.json",
+    "namedValues/ai-team-finance-tpm/namedValueInformation.json",
+    "namedValues/ai-team-retail-daily-quota/namedValueInformation.json",
+    "namedValues/ai-team-retail-tpm/namedValueInformation.json",
     "namedValues/demo-environment/namedValueInformation.json",
     "products/demo/apis.json",
-    "products/demo/productInformation.json"
+    "products/demo/productInformation.json",
+    "products/team-finance/apis.json",
+    "products/team-finance/policy.xml",
+    "products/team-finance/productInformation.json",
+    "products/team-retail/apis.json",
+    "products/team-retail/policy.xml",
+    "products/team-retail/productInformation.json"
   ],
   "ownershipFilter": {
     "path": "configuration.007.ownership.yaml",
-    "sha256": "F632D609F5D40A95D1F5158249846EA2720FFE056E9E73F2AA3E7F92E8E46897"
+    "sha256": "59918AC2D258B3874D8B35BC2BA6433475C38C70F5994BE039A26BA74D222091"
+  },
+  "aiSettings": {
+    "path": "configuration.007.ai-settings.json"
   },
   "resources": {
     "apis": {
@@ -29,23 +49,56 @@
         "type": "soap",
         "path": "software-version",
         "operations": ["GetSoftwareVersion", "GetAllSoftwareVersions"]
+      },
+      "ai-gateway": {
+        "type": "http",
+        "path": "ai",
+        "operations": ["POST /chat/completions"],
+        "authoredSpecification": true
       }
     },
-    "backends": ["weather-backend", "software-version-backend"],
-    "namedValues": ["demo-environment"],
+    "backends": ["weather-backend", "software-version-backend", "ai-foundry", "ai-content-safety"],
+    "namedValues": [
+      "demo-environment",
+      "ai-team-retail-tpm",
+      "ai-team-retail-daily-quota",
+      "ai-team-finance-tpm",
+      "ai-team-finance-daily-quota",
+      "ai-safety-threshold",
+      "ai-safety-blocklist"
+    ],
     "products": {
       "demo": {
         "apis": ["weather", "software-version"],
         "groups": []
+      },
+      "team-retail": {
+        "apis": ["ai-gateway"],
+        "groups": [],
+        "policy": true
+      },
+      "team-finance": {
+        "apis": ["ai-gateway"],
+        "groups": [],
+        "policy": true
       }
     }
   },
   "overrideTargets": [
     "apis.weather.serviceUrl",
     "apis.software-version.serviceUrl",
+    "apis.ai-gateway.serviceUrl",
     "backends.weather-backend.url",
     "backends.software-version-backend.url",
-    "namedValues.demo-environment.value"
+    "backends.ai-foundry.url",
+    "backends.ai-content-safety.url",
+    "namedValues.demo-environment.value",
+    "namedValues.ai-team-retail-tpm.value",
+    "namedValues.ai-team-retail-daily-quota.value",
+    "namedValues.ai-team-finance-tpm.value",
+    "namedValues.ai-team-finance-daily-quota.value",
+    "namedValues.ai-safety-threshold.value",
+    "namedValues.ai-safety-blocklist.value"
   ],
   "allowedBundleSentinels": [".invalid", "UNCONFIGURED"],
   "forbiddenNames": ["instrumentationKey", "apimlogger", "apim007-release-state"],

@@ -1,0 +1,1 @@
+{"properties":{"title":"AI Content Safety","protocol":"http","url":"https://ai-content-safety.invalid","tls":{"validateCertificateChain":true,"validateCertificateName":true},"credentials":{"managedIdentity":{"resource":"https://cognitiveservices.azure.com"}}}}
