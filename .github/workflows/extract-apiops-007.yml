@@ -183,8 +183,21 @@ jobs:
         run: |
           $null = & ./scripts/apim-007/Test-Apim007Bundle.ps1 -BundlePath artifacts.007 -InventoryPath configuration.007.expected-inventory.json -Mode Candidate
 
+      - name: Upload projected policies
+        if: ${{ steps.project.outputs.changed == 'true' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: projected-policies
+          path: artifacts.007/apis/*/policy.xml
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Create pull request
         if: ${{ steps.project.outputs.changed == 'true' }}
+        id: pr
+        # Organization or enterprise policy can block GITHUB_TOKEN from creating pull requests.
+        # The pushed branch and the projected-policies artifact remain for a manual pull request.
+        continue-on-error: true
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         with:
           token: ${{ github.token }}
