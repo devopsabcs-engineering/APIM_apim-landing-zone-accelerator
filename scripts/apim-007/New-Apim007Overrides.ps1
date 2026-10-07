@@ -19,13 +19,17 @@ Override file. Default <RUNNER_TEMP or temp>/apim007-overrides-<env>.json.
 
 .PARAMETER SoapServicePath
 Path appended to the SOAP backend base URL.
+
+.PARAMETER SettingsPath
+AI settings file. Default: inventory aiSettings.path resolved next to the inventory.
 #>
 [CmdletBinding()]
 param(
     [string]$ManifestPath,
     [string]$InventoryPath,
     [string]$OutputPath,
-    [string]$SoapServicePath = '/SoftwareVersionService.asmx'
+    [string]$SoapServicePath = '/SoftwareVersionService.asmx',
+    [string]$SettingsPath
 )
 
 Set-StrictMode -Version Latest
@@ -53,11 +57,36 @@ function Assert-Apim007OverrideUrl {
     if ($uri.Host -ne $ExpectedHost) { throw "Override '$Target' host does not match the manifest backend host." }
 }
 
+function Get-Apim007AiOverrideSources {
+    param($Manifest, $Settings)
+    $sources = @{}
+    $aiProperty = $Manifest.PSObject.Properties['ai']
+    if ($aiProperty -and $aiProperty.Value) {
+        $ai = $aiProperty.Value
+        $sources['apis.ai-gateway.serviceUrl'] = @{ Value = [string]$ai.chatUrl; Host = [string]$ai.aiServicesHost }
+        $sources['backends.ai-foundry.url'] = @{ Value = [string]$ai.chatUrl; Host = [string]$ai.aiServicesHost }
+        $sources['backends.ai-content-safety.url'] = @{ Value = [string]$ai.contentSafetyUrl; Host = [string]$ai.contentSafetyHost }
+    }
+    if ($Settings) {
+        $envProperty = $Settings.environments.PSObject.Properties[[string]$Manifest.environment]
+        if (-not $envProperty) { throw "AI settings have no '$($Manifest.environment)' environment." }
+        $environment = $envProperty.Value
+        foreach ($team in $environment.teams.PSObject.Properties) {
+            $sources["namedValues.ai-$($team.Name)-tpm.value"] = @{ Value = [string]$team.Value.tokensPerMinute; Pattern = '^[1-9][0-9]{1,6}$' }
+            $sources["namedValues.ai-$($team.Name)-daily-quota.value"] = @{ Value = [string]$team.Value.dailyTokenQuota; Pattern = '^[1-9][0-9]{1,8}$' }
+        }
+        $sources['namedValues.ai-safety-threshold.value'] = @{ Value = [string]$environment.safetyThreshold; Pattern = '^[0-7]$' }
+        $sources['namedValues.ai-safety-blocklist.value'] = @{ Value = [string]$Settings.blocklistName; Pattern = '^[a-z0-9][a-z0-9-]{2,63}$' }
+    }
+    return $sources
+}
+
 function New-Apim007OverrideDocument {
     param(
         [Parameter(Mandatory)]$Manifest,
         [Parameter(Mandatory)][hashtable]$Inventory,
-        [string]$SoapServicePath = '/SoftwareVersionService.asmx'
+        [string]$SoapServicePath = '/SoftwareVersionService.asmx',
+        $Settings
     )
     if ($Manifest.schemaVersion -ne 1 -or $Manifest.environment -notin 'dev', 'prod') { throw 'Manifest schemaVersion or environment is invalid.' }
     $gatewayUri = $null
@@ -72,11 +101,16 @@ function New-Apim007OverrideDocument {
         'apis.software-version.serviceUrl'      = @{ Value = $soapUrl; Host = [string]$soap.defaultHostName }
         'backends.weather-backend.url'          = @{ Value = $weatherBase; Host = [string]$weather.defaultHostName }
         'backends.software-version-backend.url' = @{ Value = $soapUrl; Host = [string]$soap.defaultHostName }
-        'namedValues.demo-environment.value'    = @{ Value = "$($Manifest.environment)-007"; Host = $null }
+        'namedValues.demo-environment.value'    = @{ Value = "$($Manifest.environment)-007"; Host = $null; Pattern = '^(dev|prod)-007$' }
     }
+    $aiSources = Get-Apim007AiOverrideSources -Manifest $Manifest -Settings $Settings
+    foreach ($key in $aiSources.Keys) { $sources[$key] = $aiSources[$key] }
 
     $sections = [ordered]@{ apis = [ordered]@{}; backends = [ordered]@{}; namedValues = [ordered]@{} }
     foreach ($target in $Inventory.overrideTargets) {
+        if ($target -match '\.ai-' -and -not $sources.ContainsKey($target)) {
+            throw "Override target '$target' needs deployment apim007-ai-$($Manifest.environment) and the AI settings file."
+        }
         if ($target -notmatch $script:Apim007TargetPattern -or -not $sources.ContainsKey($target)) { throw "Unknown override target '$target'." }
         $section = $Matches[1]; $name = $Matches[2]; $property = $Matches[3]
         $known = switch ($section) {
@@ -86,10 +120,10 @@ function New-Apim007OverrideDocument {
         if (-not $known) { throw "Override target '$target' does not match an inventory resource." }
 
         $value = [string]$sources[$target].Value
-        if ($sources[$target].Host) {
+        if ($sources[$target]['Host']) {
             Assert-Apim007OverrideUrl -Url $value -Target $target -GatewayHost $gatewayUri.Host -ExpectedHost $sources[$target].Host -Sentinels $Inventory.allowedBundleSentinels
         }
-        elseif ($value -notmatch '^(dev|prod)-007$' -or $value -in $Inventory.allowedBundleSentinels) {
+        elseif ($value -cnotmatch $sources[$target].Pattern -or $value -in $Inventory.allowedBundleSentinels) {
             throw "Override '$target' has an invalid value."
         }
         if (-not $sections[$section].Contains($name)) { $sections[$section][$name] = [ordered]@{} }
@@ -111,11 +145,16 @@ function New-Apim007OverridesMain {
         [Parameter(Mandatory)][string]$ManifestPath,
         [Parameter(Mandatory)][string]$InventoryPath,
         [string]$OutputPath,
-        [string]$SoapServicePath = '/SoftwareVersionService.asmx'
+        [string]$SoapServicePath = '/SoftwareVersionService.asmx',
+        [string]$SettingsPath
     )
     $manifest = Get-Content -Raw -LiteralPath $ManifestPath | ConvertFrom-Json
     $inventory = Get-Content -Raw -LiteralPath $InventoryPath | ConvertFrom-Json -AsHashtable
-    $document = New-Apim007OverrideDocument -Manifest $manifest -Inventory $inventory -SoapServicePath $SoapServicePath
+    if (-not $SettingsPath -and $inventory.ContainsKey('aiSettings')) {
+        $SettingsPath = Join-Path (Split-Path -Parent (Resolve-Path -LiteralPath $InventoryPath).ProviderPath) $inventory.aiSettings.path
+    }
+    $settings = if ($SettingsPath) { Get-Content -Raw -LiteralPath $SettingsPath | ConvertFrom-Json } else { $null }
+    $document = New-Apim007OverrideDocument -Manifest $manifest -Inventory $inventory -SoapServicePath $SoapServicePath -Settings $settings
     $json = (($document | ConvertTo-Json -Depth 10) -replace "`r`n", "`n") + "`n"
 
     if (-not $OutputPath) {

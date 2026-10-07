@@ -11,8 +11,8 @@ Product API links must equal the inventory and product groups must be empty (exc
 under apis/*/operations and apis/*/schemas are tolerated; specification files in other formats
 are validated for presence and ignored. Policies are compared after XML whitespace normalization.
 
-Without -Project any drift fails. With -Project, changed apis/*/policy.xml files are written to
-the projection directory and any other drift fails.
+Without -Project any drift fails. With -Project, changed apis/*/policy.xml and products/*/policy.xml
+files are written to the projection directory and any other drift fails.
 
 .PARAMETER ExtractionPath
 Fresh extraction directory.
@@ -50,7 +50,7 @@ $script:Apim007IgnoredProperties = @{
         'provisioningState', 'apiVersion', 'apiVersionDescription', 'apiVersionSetId', 'apiType', 'description', 'contact', 'license', 'termsOfServiceUrl', 'isAgent')
     backends    = @('provisioningState')
     namedValues = @('provisioningState', 'tags', 'keyVault')
-    products    = @('provisioningState', 'terms', 'subscriptionsLimit')
+    products    = @('provisioningState', 'terms', 'subscriptionsLimit', 'approvalRequired', 'authenticationType', 'application', 'groups')
 }
 $script:HttpMethods = @('get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace')
 
@@ -82,7 +82,8 @@ function ConvertTo-Apim007CanonicalJson {
     param($Value)
     if ($null -eq $Value) { return 'null' }
     if ($Value -is [System.Collections.IDictionary]) {
-        $keys = [string[]]@($Value.Keys)
+        # Null-valued properties (for example clientId or bearer) are server defaults, not configuration.
+        $keys = [string[]]@($Value.Keys | Where-Object { $null -ne $Value[$_] })
         [Array]::Sort($keys, [StringComparer]::Ordinal)
         return '{' + ((@(foreach ($key in $keys) { (ConvertTo-Json -InputObject $key -Compress) + ':' + (ConvertTo-Apim007CanonicalJson $Value[$key]) })) -join ',') + '}'
     }
@@ -191,7 +192,7 @@ function Get-Apim007ExtractedOperation {
             if ($properties.Contains('displayName') -and $properties.displayName) { [string]$properties.displayName } else { $directory.Name }
         }
         else {
-            $template = [string]$properties.urlTemplate
+            $template = ([string]$properties.urlTemplate -split '\?', 2)[0]
             if (-not $template.StartsWith('/')) { $template = "/$template" }
             "$(([string]$properties.method).ToUpperInvariant()) $template"
         }
@@ -298,7 +299,7 @@ function Compare-Apim007ExtractionCore {
         if ($bundleHasPolicy -and -not $extractHasPolicy) { $drift.Add("$context/policy.xml is missing.") }
         elseif ($extractHasPolicy -and -not $bundleHasPolicy) { $drift.Add("$context/policy.xml is not owned by the bundle.") }
         elseif ($extractHasPolicy -and (Get-Apim007NormalizedXml -Path $bundlePolicy) -cne (Get-Apim007NormalizedXml -Path $extractedPolicy)) {
-            $policyChanges.Add([pscustomobject]@{ Api = $apiName; Path = $extractedPolicy })
+            $policyChanges.Add([pscustomobject]@{ Api = $apiName; Relative = "apis/$apiName/policy.xml"; Path = $extractedPolicy })
         }
 
         $allowedEndpoints = @($(if ($overrides.ContainsKey('serviceUrl')) { $overrides.serviceUrl }))
@@ -339,7 +340,17 @@ function Compare-Apim007ExtractionCore {
         if (-not (Test-Path -LiteralPath $directory)) { continue }
         $context = "products/$productName"
         foreach ($relative in Get-Apim007ChildRelativePath -Root $directory) {
-            if ($relative -notin 'productInformation.json', 'apis.json', 'groups.json') { $drift.Add("$context contains unexpected file '$relative'.") }
+            if ($relative -notin 'productInformation.json', 'apis.json', 'groups.json', 'policy.xml') { $drift.Add("$context contains unexpected file '$relative'.") }
+        }
+        $productInventory = $resources.products[$productName]
+        $ownsPolicy = $productInventory -is [System.Collections.IDictionary] -and $productInventory.Contains('policy') -and [bool]$productInventory.policy
+        $bundlePolicy = Join-Path $BundlePath "$context/policy.xml"
+        $extractedPolicy = Join-Path $directory 'policy.xml'
+        $extractHasPolicy = Test-Path -LiteralPath $extractedPolicy
+        if ($ownsPolicy -and -not $extractHasPolicy) { $drift.Add("$context/policy.xml is missing.") }
+        elseif ($extractHasPolicy -and -not $ownsPolicy) { $drift.Add("$context/policy.xml is not owned by the bundle.") }
+        elseif ($extractHasPolicy -and (Get-Apim007NormalizedXml -Path $bundlePolicy) -cne (Get-Apim007NormalizedXml -Path $extractedPolicy)) {
+            $policyChanges.Add([pscustomobject]@{ Api = $null; Relative = "$context/policy.xml"; Path = $extractedPolicy })
         }
         $infoPath = Join-Path $directory 'productInformation.json'
         if (-not (Test-Path -LiteralPath $infoPath)) { $drift.Add("$context/productInformation.json is missing.") }
@@ -347,7 +358,6 @@ function Compare-Apim007ExtractionCore {
             Compare-Apim007Property -Expected (Get-Apim007Properties -Path (Join-Path $BundlePath "$context/productInformation.json")) `
                 -Actual (Get-Apim007Properties -Path $infoPath) -Overrides @{} -IgnoredKeys $script:Apim007IgnoredProperties.products -Context $context -Drift $drift
         }
-        $productInventory = $resources.products[$productName]
         $apisPath = Join-Path $directory 'apis.json'
         $linkedApis = if (Test-Path -LiteralPath $apisPath) {
             @(foreach ($item in @(Read-Apim007JsonFile -Path $apisPath)) { if ($item -is [System.Collections.IDictionary]) { [string]$item.name } else { [string]$item } })
@@ -382,7 +392,7 @@ function Compare-Apim007ExtractionMain {
     $drift = [System.Collections.Generic.List[string]]::new()
     foreach ($item in $result.Drift) { $drift.Add($item) }
     if (-not $Project) {
-        foreach ($change in $result.PolicyChanges) { $drift.Add("apis/$($change.Api)/policy.xml differs from the bundle.") }
+        foreach ($change in $result.PolicyChanges) { $drift.Add("$($change.Relative) differs from the bundle.") }
     }
     if ($drift.Count -gt 0) { throw ("Extraction comparison failed ({0} item(s)):`n - {1}" -f $drift.Count, ($drift -join "`n - ")) }
 
@@ -390,10 +400,10 @@ function Compare-Apim007ExtractionMain {
     if ($Project) {
         $null = New-Item -ItemType Directory -Path $Project -Force
         $projected = @(foreach ($change in $result.PolicyChanges) {
-                $destination = Join-Path $Project "apis/$($change.Api)/policy.xml"
+                $destination = Join-Path $Project $change.Relative
                 $null = New-Item -ItemType Directory -Path (Split-Path -Parent $destination) -Force
                 Copy-Item -LiteralPath $change.Path -Destination $destination -Force
-                "apis/$($change.Api)/policy.xml"
+                $change.Relative
             })
     }
     Write-Information -MessageData "Extraction matches the inventory; $($result.PolicyChanges.Count) policy change(s)." -InformationAction Continue

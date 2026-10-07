@@ -87,6 +87,7 @@ function Get-Apim007CandidateSourceList {
     foreach ($file in $Inventory.files) { $files.Add("$($Inventory.bundleRoot)/$file") }
     $files.Add($Inventory.ownershipFilter.path)
     $files.Add($InventoryRelativePath)
+    if ($Inventory.ContainsKey('aiSettings')) { $files.Add($Inventory.aiSettings.path) }
     $files.Add('tools/apiops-cli/package.json')
     $files.Add('tools/apiops-cli/package-lock.json')
     foreach ($scriptFile in Get-ChildItem -LiteralPath (Join-Path $Root 'scripts/apim-007') -Filter '*.ps1' -File) {
