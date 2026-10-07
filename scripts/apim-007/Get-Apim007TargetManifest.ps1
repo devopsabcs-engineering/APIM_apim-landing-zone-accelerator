@@ -53,7 +53,7 @@ function Invoke-Az {
         $exitCode = $LASTEXITCODE
         if ($exitCode -ne 0) {
             $errorText = Get-Content -Raw -LiteralPath $errorFile
-            if ($AllowNotFound -and $errorText -match '(?i)not ?found') { return $null }
+            if ($AllowNotFound -and $errorText -match '(?i)not ?found') { $global:LASTEXITCODE = 0; return $null }
             $firstLine = @(($errorText -split "`n") | Where-Object { $_.Trim() } | Select-Object -First 1)
             throw "az $($Arguments[0..1] -join ' ') failed (exit $exitCode): $firstLine"
         }
