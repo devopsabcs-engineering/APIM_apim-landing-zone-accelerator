@@ -41,6 +41,12 @@ gh workflow run teardown-apim-007.yml --repo $Repo -f environment=dev -f confirm
 
 Le démantèlement de la prod exige `confirm=delete-apim-007-prod` et l'approbation d'un réviseur sur `prod-007-teardown`.
 
+Pour supprimer les deux environnements en une seule exécution, choisissez `all`. L'exécution lance un travail par environnement; le travail de prod attend toujours son réviseur :
+
+```powershell
+gh workflow run teardown-apim-007.yml --repo $Repo -f environment=all -f confirm=delete-apim-007-all
+```
+
 ### Étape 2 : Lire l'inventaire et le résultat
 
 ```powershell
@@ -70,7 +76,7 @@ Restaurez ensuite l'environnement avec `infra-apim-007.yml` (`target=dev`) et un
 
 ### Étape 4 : Tout nettoyer à la fin
 
-1. Démantelez `prod` et `dev`.
+1. Démantelez les deux environnements (`environment=all`).
 2. Supprimez les cinq groupes de ressources `rg-apim-demo-007-*` dans le portail (cela supprime aussi les identités et le registre).
 3. Supprimez le budget et les neuf environnements GitHub.
 

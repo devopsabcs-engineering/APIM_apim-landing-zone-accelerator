@@ -1,22 +1,23 @@
 name: Teardown APIM 007
 
-# Removes one 007 environment's APIM, backend hosting and AI accounts by exact resource ID, derived
-# from the fixed deployments apim007-apim-<env>, apim007-backends-<env> and apim007-ai-<env>. Keeps
-# resource groups, role assignments, the shared registry and every legacy resource. Never removes
-# soft-delete records.
+# Removes the APIM, backend hosting and AI accounts of one 007 environment (or both with 'all') by
+# exact resource ID, derived from the fixed deployments apim007-apim-<env>, apim007-backends-<env>
+# and apim007-ai-<env>. Keeps resource groups, role assignments, the shared registry and every
+# legacy resource. Never removes soft-delete records.
 
 on:
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Environment to tear down'
+        description: 'Environment to tear down (all = dev and prod)'
         required: true
         type: choice
         options:
           - dev
           - prod
+          - all
       confirm:
-        description: 'Type delete-apim-007-<environment> to confirm'
+        description: 'Type delete-apim-007-<environment> to confirm (delete-apim-007-all for both)'
         required: true
         type: string
 
@@ -24,18 +25,23 @@ permissions: {}
 
 jobs:
   teardown:
-    name: Teardown ${{ inputs.environment }}-007
+    name: Teardown ${{ matrix.target }}-007
     if: ${{ vars.APIM007_ENABLED == 'true' }}
     runs-on: ubuntu-latest
-    environment: ${{ inputs.environment == 'prod' && 'prod-007-teardown' || 'dev-007-teardown' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJSON(inputs.environment == 'all' && '["dev","prod"]' || format('["{0}"]', inputs.environment)) }}
+    environment: ${{ matrix.target == 'prod' && 'prod-007-teardown' || 'dev-007-teardown' }}
     concurrency:
-      group: apim-007-${{ inputs.environment }}-writes
+      group: apim-007-${{ matrix.target }}-writes
       cancel-in-progress: false
     permissions:
       contents: read
       id-token: write
     env:
-      TARGET_ENV: ${{ inputs.environment }}
+      TARGET_ENV: ${{ matrix.target }}
+      REQUESTED: ${{ inputs.environment }}
       CONFIRM: ${{ inputs.confirm }}
       EXPECTED_TENANT_ID: ${{ vars.EXPECTED_TENANT_ID }}
       EXPECTED_SUBSCRIPTION_ID: ${{ vars.EXPECTED_SUBSCRIPTION_ID }}
@@ -47,8 +53,8 @@ jobs:
             dev|prod) ;;
             *) echo "::error::Unsupported environment."; exit 1 ;;
           esac
-          if [ "$CONFIRM" != "delete-apim-007-$TARGET_ENV" ]; then
-            echo "::error::Confirmation does not equal delete-apim-007-$TARGET_ENV; nothing was changed."
+          if [ "$CONFIRM" != "delete-apim-007-$REQUESTED" ]; then
+            echo "::error::Confirmation does not equal delete-apim-007-$REQUESTED; nothing was changed."
             exit 1
           fi
           {
