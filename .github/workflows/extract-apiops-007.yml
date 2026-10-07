@@ -1,0 +1,203 @@
+name: Extract APIops 007
+
+# Dev-only extraction-to-PR. Projects approved API policy edits made in the dev-007 portal into
+# artifacts.007/apis/*/policy.xml and opens a PR. Raw extraction is evidence only, never committed.
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  extract:
+    name: Extract dev-007
+    if: ${{ vars.APIM007_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    environment: dev-007
+    concurrency:
+      group: apim-007-dev-writes
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TARGET_ENV: dev
+      APIM_RG: rg-apim-demo-007-dev-apim
+      EXPECTED_TENANT_ID: ${{ vars.EXPECTED_TENANT_ID }}
+      EXPECTED_SUBSCRIPTION_ID: ${{ vars.EXPECTED_SUBSCRIPTION_ID }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+
+      - name: Install APIops CLI from lockfile
+        working-directory: tools/apiops-cli
+        run: |
+          set -euo pipefail
+          pwsh -NoProfile -File "$GITHUB_WORKSPACE/scripts/apim-007/Test-Apim007LockfileProvenance.ps1" -LockfilePath package-lock.json
+          npm ci --ignore-scripts --no-audit --no-fund
+          expected="$(jq -r '.dependencies["@azure-tools/apiops-cli"]' package.json)"
+          test -x node_modules/.bin/apiops
+          actual="$(node_modules/.bin/apiops --version | tr -d '[:space:]')"
+          if [ "$actual" != "$expected" ]; then
+            echo "::error::apiops version '$actual' does not equal $expected"
+            exit 1
+          fi
+          echo "APIOPS=$GITHUB_WORKSPACE/tools/apiops-cli/node_modules/.bin/apiops" >> "$GITHUB_ENV"
+
+      - name: Azure login
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Assert tenant and subscription
+        run: |
+          set -euo pipefail
+          : "${EXPECTED_TENANT_ID:?EXPECTED_TENANT_ID is not set}"
+          : "${EXPECTED_SUBSCRIPTION_ID:?EXPECTED_SUBSCRIPTION_ID is not set}"
+          tenant="$(az account show --query tenantId -o tsv)"
+          subscription="$(az account show --query id -o tsv)"
+          if [ "$tenant" != "$EXPECTED_TENANT_ID" ] || [ "$subscription" != "$EXPECTED_SUBSCRIPTION_ID" ]; then
+            echo "::error::Signed-in tenant or subscription does not match the environment variables."
+            exit 1
+          fi
+
+      - name: Target manifest and overrides
+        shell: pwsh
+        run: |
+          $manifest = & ./scripts/apim-007/Get-Apim007TargetManifest.ps1 -Environment $env:TARGET_ENV -OutputPath (Join-Path $env:RUNNER_TEMP 'manifest.json')
+          $m = Get-Content -Raw -LiteralPath $manifest.Path | ConvertFrom-Json
+          $overrides = & ./scripts/apim-007/New-Apim007Overrides.ps1 -ManifestPath $manifest.Path -InventoryPath configuration.007.expected-inventory.json `
+            -OutputPath (Join-Path $env:RUNNER_TEMP 'overrides.json')
+          $values = [ordered]@{ APIM_NAME = $m.apim.name; GATEWAY_URL = $m.apim.gatewayUrl; OVERRIDES_FILE = $overrides.Path }
+          foreach ($key in $values.Keys) {
+            if ([string]$values[$key] -notmatch '^[A-Za-z0-9:/._\-]+$') { throw "Value $key is invalid." }
+            "$key=$($values[$key])" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          }
+
+      - name: Require dev to run main
+        shell: pwsh
+        run: |
+          $result = & ./scripts/apim-007/Get-Apim007ReleaseState.ps1 -ResourceGroup $env:APIM_RG -ServiceName $env:APIM_NAME -Environment $env:TARGET_ENV
+          $state = $result.state
+          if (-not $state -or $state.status -ne 'clean') { throw 'dev is not running main; release main first (dev release state is not clean).' }
+          if ($state.sourceSha -notmatch '^[0-9a-f]{40}$') { throw 'dev release state has no valid source SHA.' }
+          git cat-file -e "$($state.sourceSha)^{commit}" 2>$null
+          if ($LASTEXITCODE -ne 0) { throw 'dev release source commit is not in main history; release main first.' }
+          git diff --quiet $state.sourceSha HEAD -- artifacts.007 configuration.007.ownership.yaml configuration.007.expected-inventory.json tools/apiops-cli scripts/apim-007
+          if ($LASTEXITCODE -ne 0) { throw 'dev is not running main; release main first.' }
+          Write-Output "dev runs $($state.candidateTag) built from $($state.sourceSha), content-equal to main."
+
+      - name: Extract
+        run: |
+          set -euo pipefail
+          test -x "$APIOPS"
+          unset COMMIT_ID
+          export AZURE_API_VERSION=2025-09-01-preview
+          "$APIOPS" --subscription-id "$EXPECTED_SUBSCRIPTION_ID" extract \
+            --resource-group "$APIM_RG" --service-name "$APIM_NAME" \
+            --output "$RUNNER_TEMP/extract" \
+            --filter configuration.007.ownership.yaml --no-transitive
+
+      - name: Secret scan
+        run: |
+          set -euo pipefail
+          pattern='(\bsig=|AccountKey=|\bBearer[[:space:]]|password|\{#|REDACTED|-----BEGIN)'
+          hits="$(grep -rliE "$pattern" "$RUNNER_TEMP/extract" || true)"
+          if [ -n "$hits" ]; then
+            while IFS= read -r file; do
+              echo "::error::Credential-like content in extracted file ${file#"$RUNNER_TEMP/extract/"}"
+            done <<<"$hits"
+            exit 1
+          fi
+          echo "No credential-like content found."
+
+      - name: Upload raw extraction (evidence)
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dev-007-extraction
+          path: ${{ runner.temp }}/extract
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Compare and project
+        id: project
+        shell: pwsh
+        run: |
+          $projection = Join-Path $env:RUNNER_TEMP 'projection'
+          $result = & ./scripts/apim-007/Compare-Apim007Extraction.ps1 -ExtractionPath (Join-Path $env:RUNNER_TEMP 'extract') `
+            -BundlePath artifacts.007 -InventoryPath configuration.007.expected-inventory.json -OverridesPath $env:OVERRIDES_FILE `
+            -GatewayUrl $env:GATEWAY_URL -Project $projection
+          $files = @($result.ProjectedFiles)
+          if ($files.Count -eq 0) {
+            'changed=false' | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+            @('## APIM 007 dev extraction', '', 'No drift: dev-007 matches artifacts.007.') | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            return
+          }
+          foreach ($relative in $files) {
+            if ($relative -notmatch '^apis/[a-z0-9][a-z0-9\-]*/policy\.xml$') { throw "Unexpected projected path '$relative'." }
+            $target = Join-Path 'artifacts.007' $relative
+            if (-not (Test-Path -LiteralPath $target)) { throw "Projected policy '$relative' does not exist in the bundle." }
+            Copy-Item -LiteralPath (Join-Path $projection $relative) -Destination $target -Force
+          }
+          $changed = @(git status --porcelain --untracked-files=all)
+          foreach ($line in $changed) {
+            if ($line -notmatch '^ M artifacts\.007/apis/[a-z0-9][a-z0-9\-]*/policy\.xml$') { throw "Unexpected working tree change: $line" }
+          }
+          'changed=true' | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          $lines = @('## APIM 007 dev extraction', '', 'Projected policy changes:', '')
+          $lines += foreach ($relative in $files) { "* artifacts.007/$relative" }
+          $lines | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+
+      - name: Pester
+        if: ${{ steps.project.outputs.changed == 'true' }}
+        shell: pwsh
+        run: |
+          Import-Module Pester -MinimumVersion 5.0.0
+          Push-Location $env:RUNNER_TEMP
+          try {
+            $config = New-PesterConfiguration
+            $config.Run.Path = Join-Path $env:GITHUB_WORKSPACE 'scripts/apim-007/tests'
+            $config.Run.Exit = $true
+            $config.Output.Verbosity = 'Normal'
+            Invoke-Pester -Configuration $config
+          }
+          finally { Pop-Location }
+
+      - name: Validate bundle (Candidate)
+        if: ${{ steps.project.outputs.changed == 'true' }}
+        shell: pwsh
+        run: |
+          $null = & ./scripts/apim-007/Test-Apim007Bundle.ps1 -BundlePath artifacts.007 -InventoryPath configuration.007.expected-inventory.json -Mode Candidate
+
+      - name: Create pull request
+        if: ${{ steps.project.outputs.changed == 'true' }}
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ github.token }}
+          base: main
+          branch: apim007/extract-${{ github.run_id }}
+          add-paths: |
+            artifacts.007/apis/*/policy.xml
+          commit-message: 'chore: project dev-007 API policy edits into artifacts.007'
+          title: 'APIM 007: project dev-007 API policy edits'
+          body: |
+            Projected from a fresh dev-007 extraction by run ${{ github.run_id }}.
+
+            * Only `artifacts.007/apis/*/policy.xml` files changed.
+            * Checks ran in the extraction job (workflows do not run on PRs created with GITHUB_TOKEN): semantic extraction comparison, Pester, and `Test-Apim007Bundle.ps1 -Mode Candidate`.
+            * Merging creates a new frozen candidate that repeats dev validation before prod approval.
+          delete-branch: true

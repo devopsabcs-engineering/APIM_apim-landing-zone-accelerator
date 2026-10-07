@@ -1,0 +1,349 @@
+name: Infra APIM 007
+
+# Hosting-only provisioning for the APIM 007 apiops-cli demo. Never switches an existing app's
+# image and never deploys a release candidate; release images are owned by release-apiops-007.yml.
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Target to provision'
+        required: true
+        type: choice
+        options:
+          - shared
+          - dev
+          - prod
+
+permissions: {}
+
+env:
+  BICEP_DIR: infra/apim-demo-007
+  SHARED_RG: rg-apim-demo-007-shared
+
+jobs:
+  validate:
+    name: Bicep build
+    if: ${{ vars.APIM007_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Bicep build
+        run: |
+          set -euo pipefail
+          az config set bicep.check_version=False --only-show-errors > /dev/null
+          az bicep install --only-show-errors
+          for f in "$BICEP_DIR"/*.bicep; do
+            echo "== $f"
+            az bicep build --file "$f" --stdout > /dev/null
+          done
+
+  shared:
+    name: Shared registry
+    needs: [validate]
+    if: ${{ vars.APIM007_ENABLED == 'true' && inputs.target == 'shared' }}
+    runs-on: ubuntu-latest
+    environment: apim-007-shared-infra
+    concurrency:
+      group: apim-007-shared-writes
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      EXPECTED_TENANT_ID: ${{ vars.EXPECTED_TENANT_ID }}
+      EXPECTED_SUBSCRIPTION_ID: ${{ vars.EXPECTED_SUBSCRIPTION_ID }}
+      PUSH_PRINCIPAL_ID: ${{ vars.PUSH_PRINCIPAL_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Bicep
+        run: |
+          set -euo pipefail
+          az config set bicep.check_version=False --only-show-errors > /dev/null
+          az bicep install --only-show-errors
+
+      - name: Azure login
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Assert tenant and subscription
+        run: |
+          set -euo pipefail
+          : "${EXPECTED_TENANT_ID:?EXPECTED_TENANT_ID is not set}"
+          : "${EXPECTED_SUBSCRIPTION_ID:?EXPECTED_SUBSCRIPTION_ID is not set}"
+          tenant="$(az account show --query tenantId -o tsv)"
+          subscription="$(az account show --query id -o tsv)"
+          if [ "$tenant" != "$EXPECTED_TENANT_ID" ] || [ "$subscription" != "$EXPECTED_SUBSCRIPTION_ID" ]; then
+            echo "::error::Signed-in tenant or subscription does not match the environment variables."
+            exit 1
+          fi
+
+      - name: Verify shared resource group ownership
+        run: |
+          set -euo pipefail
+          if [[ ! "$PUSH_PRINCIPAL_ID" =~ ^[0-9a-f-]{36}$ ]]; then
+            echo "::error::PUSH_PRINCIPAL_ID is missing or not a GUID."
+            exit 1
+          fi
+          tag="$(az group show --name "$SHARED_RG" --query 'tags.apimDemo' -o tsv)"
+          if [ "$tag" != "007" ]; then
+            echo "::error::$SHARED_RG must exist with tag apimDemo=007 (created by the setup script)."
+            exit 1
+          fi
+
+      - name: What-if
+        run: |
+          set -euo pipefail
+          az deployment group what-if \
+            --resource-group "$SHARED_RG" \
+            --name apim007-registry \
+            --template-file "$BICEP_DIR/registry.bicep" \
+            --parameters "@$BICEP_DIR/registry.parameters.json" \
+            --parameters pushPrincipalId="$PUSH_PRINCIPAL_ID"
+
+      - name: Deploy registry
+        run: |
+          set -euo pipefail
+          outputs="$(az deployment group create \
+            --resource-group "$SHARED_RG" \
+            --name apim007-registry \
+            --template-file "$BICEP_DIR/registry.bicep" \
+            --parameters "@$BICEP_DIR/registry.parameters.json" \
+            --parameters pushPrincipalId="$PUSH_PRINCIPAL_ID" \
+            --query properties.outputs -o json)"
+          {
+            echo "## APIM 007 shared registry"
+            echo ""
+            echo "| Output | Value |"
+            echo "| --- | --- |"
+            echo "| registryName | $(jq -r '.registryName.value' <<<"$outputs") |"
+            echo "| registryLoginServer | $(jq -r '.registryLoginServer.value' <<<"$outputs") |"
+            echo ""
+            echo "Next: run the setup script stage PostRegistry, then provision dev and prod."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  provision:
+    name: Provision ${{ inputs.target }}
+    needs: [validate]
+    if: ${{ vars.APIM007_ENABLED == 'true' && inputs.target != 'shared' }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.target == 'prod' && 'prod-007-infra' || 'dev-007-infra' }}
+    concurrency:
+      group: apim-007-${{ inputs.target }}-writes
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      TARGET_ENV: ${{ inputs.target }}
+      EXPECTED_TENANT_ID: ${{ vars.EXPECTED_TENANT_ID }}
+      EXPECTED_SUBSCRIPTION_ID: ${{ vars.EXPECTED_SUBSCRIPTION_ID }}
+      RELEASE_PRINCIPAL_ID: ${{ vars.RELEASE_PRINCIPAL_ID }}
+      REGISTRY_NAME: ${{ vars.REGISTRY_NAME }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Resolve target
+        run: |
+          set -euo pipefail
+          case "$TARGET_ENV" in
+            dev|prod) ;;
+            *) echo "::error::Unsupported target '$TARGET_ENV'."; exit 1 ;;
+          esac
+          if [[ ! "$RELEASE_PRINCIPAL_ID" =~ ^[0-9a-f-]{36}$ ]]; then
+            echo "::error::RELEASE_PRINCIPAL_ID is missing or not a GUID."
+            exit 1
+          fi
+          if [[ ! "$REGISTRY_NAME" =~ ^[a-z0-9]{5,50}$ ]]; then
+            echo "::error::REGISTRY_NAME is missing or invalid (run setup stage PostRegistry)."
+            exit 1
+          fi
+          image="$(jq -r '.image' "$BICEP_DIR/bootstrap-image.json")"
+          approved_by="$(jq -r '.approvedBy' "$BICEP_DIR/bootstrap-image.json")"
+          if [[ ! "$image" =~ ^[a-z0-9.-]+/[a-z0-9._/-]+@sha256:[0-9a-f]{64}$ ]]; then
+            echo "::error::bootstrap-image.json image must be digest-pinned."
+            exit 1
+          fi
+          if [ -z "$approved_by" ] || [ "$approved_by" = "PENDING" ] || [ "$approved_by" = "null" ]; then
+            echo "::error::bootstrap-image.json has no recorded approver."
+            exit 1
+          fi
+          {
+            echo "APIM_RG=rg-apim-demo-007-$TARGET_ENV-apim"
+            echo "BACKEND_RG=rg-apim-demo-007-$TARGET_ENV-backends"
+            echo "BOOTSTRAP_IMAGE=$image"
+          } >> "$GITHUB_ENV"
+
+      - name: Install Bicep
+        run: |
+          set -euo pipefail
+          az config set bicep.check_version=False --only-show-errors > /dev/null
+          az bicep install --only-show-errors
+
+      - name: Azure login
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Assert tenant and subscription
+        run: |
+          set -euo pipefail
+          : "${EXPECTED_TENANT_ID:?EXPECTED_TENANT_ID is not set}"
+          : "${EXPECTED_SUBSCRIPTION_ID:?EXPECTED_SUBSCRIPTION_ID is not set}"
+          tenant="$(az account show --query tenantId -o tsv)"
+          subscription="$(az account show --query id -o tsv)"
+          if [ "$tenant" != "$EXPECTED_TENANT_ID" ] || [ "$subscription" != "$EXPECTED_SUBSCRIPTION_ID" ]; then
+            echo "::error::Signed-in tenant or subscription does not match the environment variables."
+            exit 1
+          fi
+
+      - name: Verify resource group ownership
+        run: |
+          set -euo pipefail
+          for rg in "$APIM_RG" "$BACKEND_RG"; do
+            tags="$(az group show --name "$rg" --query 'tags' -o json)"
+            if [ "$(jq -r '.apimDemo // empty' <<<"$tags")" != "007" ] || [ "$(jq -r '.environment // empty' <<<"$tags")" != "$TARGET_ENV" ]; then
+              echo "::error::$rg must exist with tags apimDemo=007 and environment=$TARGET_ENV (created by the setup script)."
+              exit 1
+            fi
+          done
+
+      - name: Resolve current backend images
+        run: |
+          set -euo pipefail
+          fx_pattern='^DOCKER\|[a-z0-9.-]+(:[0-9]+)?/[a-z0-9._/-]+@sha256:[0-9a-f]{64}$'
+          resolve() {
+            local key="$1" prefix names count fx
+            prefix="app-apim007-$TARGET_ENV-$key-"
+            names="$(az webapp list --resource-group "$BACKEND_RG" --query "[?starts_with(name, '$prefix')].name" -o tsv)"
+            count="$(grep -c . <<<"$names" || true)"
+            if [ "$count" -eq 0 ]; then
+              echo "DOCKER|$BOOTSTRAP_IMAGE"
+              return
+            fi
+            if [ "$count" -ne 1 ]; then
+              echo "::error::Expected at most one app with prefix $prefix in $BACKEND_RG; found $count." >&2
+              return 1
+            fi
+            fx="$(az webapp config show --resource-group "$BACKEND_RG" --name "$names" --query linuxFxVersion -o tsv)"
+            if [[ ! "$fx" =~ $fx_pattern ]]; then
+              echo "::error::Existing app $names has a linuxFxVersion that is not digest-pinned; reconcile before provisioning." >&2
+              return 1
+            fi
+            echo "$fx"
+          }
+          weather_fx="$(resolve weather)"
+          soap_fx="$(resolve software-version)"
+          {
+            echo "WEATHER_FX=$weather_fx"
+            echo "SOAP_FX=$soap_fx"
+          } >> "$GITHUB_ENV"
+          echo "Weather linuxFxVersion: $weather_fx"
+          echo "Software-version linuxFxVersion: $soap_fx"
+
+      - name: What-if
+        run: |
+          set -euo pipefail
+          az deployment group what-if \
+            --resource-group "$APIM_RG" \
+            --name "apim007-apim-$TARGET_ENV" \
+            --template-file "$BICEP_DIR/apim.bicep" \
+            --parameters "@$BICEP_DIR/apim.parameters.$TARGET_ENV.json" \
+            --parameters releasePrincipalId="$RELEASE_PRINCIPAL_ID"
+          az deployment group what-if \
+            --resource-group "$BACKEND_RG" \
+            --name "apim007-backends-$TARGET_ENV" \
+            --template-file "$BICEP_DIR/backends.bicep" \
+            --parameters "@$BICEP_DIR/backends.parameters.$TARGET_ENV.json" \
+            --parameters releasePrincipalId="$RELEASE_PRINCIPAL_ID" \
+            --parameters weatherLinuxFxVersion="$WEATHER_FX" softwareVersionLinuxFxVersion="$SOAP_FX"
+
+      - name: Deploy APIM and backends
+        run: |
+          set -euo pipefail
+          deploy() {
+            local name="$1"; shift
+            local err="$RUNNER_TEMP/$name.err"
+            if ! az deployment group create --name "$name" "$@" --output none 2> "$err"; then
+              cat "$err" >&2
+              if grep -Eqi 'soft.?delet|ServiceAlreadyExists|NameNotAvailable|Conflict' "$err"; then
+                echo "::error::Deployment $name hit a name conflict or a soft-delete record. No automatic recovery is performed; follow the APIM 007 runbook (Owner-run recovery)."
+              fi
+              return 1
+            fi
+          }
+          deploy "apim007-apim-$TARGET_ENV" \
+            --resource-group "$APIM_RG" \
+            --template-file "$BICEP_DIR/apim.bicep" \
+            --parameters "@$BICEP_DIR/apim.parameters.$TARGET_ENV.json" \
+            --parameters releasePrincipalId="$RELEASE_PRINCIPAL_ID"
+          deploy "apim007-backends-$TARGET_ENV" \
+            --resource-group "$BACKEND_RG" \
+            --template-file "$BICEP_DIR/backends.bicep" \
+            --parameters "@$BICEP_DIR/backends.parameters.$TARGET_ENV.json" \
+            --parameters releasePrincipalId="$RELEASE_PRINCIPAL_ID" \
+            --parameters weatherLinuxFxVersion="$WEATHER_FX" softwareVersionLinuxFxVersion="$SOAP_FX"
+
+      - name: Grant AcrPull to backend identities
+        run: |
+          set -euo pipefail
+          acr_pull_role='7f951dda-4ed3-4680-a7ca-43fe172d538d'
+          registry_id="/subscriptions/$EXPECTED_SUBSCRIPTION_ID/resourceGroups/$SHARED_RG/providers/Microsoft.ContainerRegistry/registries/$REGISTRY_NAME"
+          outputs="$(az deployment group show --resource-group "$BACKEND_RG" --name "apim007-backends-$TARGET_ENV" --query properties.outputs -o json)"
+          for key in weatherPrincipalId softwareVersionPrincipalId; do
+            principal="$(jq -r --arg k "$key" '.[$k].value' <<<"$outputs")"
+            if [[ ! "$principal" =~ ^[0-9a-f-]{36}$ ]]; then
+              echo "::error::Backend output $key is not a principal ID."
+              exit 1
+            fi
+            existing="$(az role assignment list --assignee-object-id "$principal" --role "$acr_pull_role" --scope "$registry_id" --query 'length(@)' -o tsv)"
+            if [ "$existing" -gt 0 ]; then
+              echo "AcrPull already assigned to $key."
+              continue
+            fi
+            az role assignment create \
+              --role "$acr_pull_role" \
+              --assignee-object-id "$principal" \
+              --assignee-principal-type ServicePrincipal \
+              --scope "$registry_id" \
+              --output none
+            echo "AcrPull assigned to $key."
+          done
+
+      - name: Target manifest summary
+        shell: pwsh
+        run: |
+          $result = & ./scripts/apim-007/Get-Apim007TargetManifest.ps1 -Environment $env:TARGET_ENV -OutputPath (Join-Path $env:RUNNER_TEMP 'manifest.json')
+          $manifest = Get-Content -Raw -LiteralPath $result.Path | ConvertFrom-Json
+          $lines = @(
+            "## APIM 007 $($env:TARGET_ENV) target manifest",
+            '',
+            '| Item | Value |',
+            '| --- | --- |',
+            "| APIM | $($manifest.apim.name) ($($manifest.apim.location)) |",
+            "| Gateway | $($manifest.apim.gatewayUrl) |",
+            "| Weather backend | $($manifest.backends.apps.weather.httpsBaseUrl) |",
+            "| Software-version backend | $($manifest.backends.apps.'software-version'.httpsBaseUrl) |",
+            "| Weather image | $($env:WEATHER_FX) |",
+            "| Software-version image | $($env:SOAP_FX) |",
+            "| Manifest SHA256 | $($result.Sha256) |"
+          )
+          $lines | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8

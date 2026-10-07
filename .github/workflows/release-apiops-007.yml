@@ -1,0 +1,1239 @@
+name: Release APIops 007
+
+# Builds one frozen candidate (bundle, tooling lockfile, scripts, image digests), deploys it to
+# dev-007, plans prod-007, and after approval deploys the same candidate to prod-007.
+# Trust ordering in every credentialed release job:
+#   (a) reviewed workflow checkout, (b) release asset download, (c) same-run hash check,
+#   (d) azure/login and tenant check, (e) rollback history check, (f) Test-Apim007Candidate,
+#   (g) only then candidate extraction, tooling install from its lockfile and candidate scripts.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'artifacts.007/**'
+      - 'configuration.007.*'
+      - 'tools/apiops-cli/**'
+      - 'scripts/apim-007/**'
+      - '!scripts/apim-007/tests/**'
+  workflow_dispatch:
+    inputs:
+      capture_contracts_only:
+        description: 'Only capture and upload the normalized API contracts, then stop'
+        required: false
+        type: boolean
+        default: false
+      rollback_candidate_tag:
+        description: 'Redeploy a previous clean candidate (release tag apim007-candidate-<run>-<sha>)'
+        required: false
+        type: string
+        default: ''
+      simulate_dev_gate_failure:
+        description: 'Expect a wrong x-demo-release value in the dev gateway test so dev fails after publish'
+        required: false
+        type: boolean
+        default: false
+
+permissions: {}
+
+env:
+  WEATHER_REPOSITORY: apim007-weather
+  SOAP_REPOSITORY: apim007-soap
+  SOAP_SERVICE_PATH: /SoftwareVersionService.asmx
+
+jobs:
+  build-candidate:
+    name: Build candidate
+    if: ${{ vars.APIM007_ENABLED == 'true' && inputs.rollback_candidate_tag == '' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      source_sha: ${{ steps.version.outputs.source_sha }}
+      app_version: ${{ steps.version.outputs.app_version }}
+    env:
+      CAPTURE_ONLY: ${{ inputs.capture_contracts_only }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+
+      - name: Install APIops CLI from lockfile
+        working-directory: tools/apiops-cli
+        run: |
+          set -euo pipefail
+          pwsh -NoProfile -File "$GITHUB_WORKSPACE/scripts/apim-007/Test-Apim007LockfileProvenance.ps1" -LockfilePath package-lock.json
+          npm ci --ignore-scripts --no-audit --no-fund
+          expected="$(jq -r '.dependencies["@azure-tools/apiops-cli"]' package.json)"
+          test -x node_modules/.bin/apiops
+          actual="$(node_modules/.bin/apiops --version | tr -d '[:space:]')"
+          if [ "$actual" != "$expected" ]; then
+            echo "::error::apiops version '$actual' does not equal $expected"
+            exit 1
+          fi
+
+      - name: Derive version
+        id: version
+        run: |
+          set -euo pipefail
+          if [[ ! "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Unexpected source SHA."
+            exit 1
+          fi
+          build=$(( 16#${GITHUB_SHA:0:4} % 65535 ))
+          {
+            echo "source_sha=$GITHUB_SHA"
+            echo "app_version=1.0.$build.0"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "SEM_VER=1.0.$build"
+            echo "APP_VERSION=1.0.$build.0"
+          } >> "$GITHUB_ENV"
+
+      - name: Build images
+        run: |
+          set -euo pipefail
+          docker build --pull \
+            --file src/WeatherApiSoln/WeatherApi/Dockerfile \
+            --build-arg "GitVersion_SemVer=$SEM_VER" \
+            --build-arg "GitVersion_AssemblySemFileVer=$APP_VERSION" \
+            --build-arg "GitVersion_AssemblySemVer=$APP_VERSION" \
+            --tag "$WEATHER_REPOSITORY:$GITHUB_SHA" \
+            src/WeatherApiSoln
+          docker build --pull \
+            --file src/soap-service-dotnetcore-example/AddressBook.Service.SOAP/Dockerfile \
+            --build-arg "GitVersion_SemVer=$SEM_VER" \
+            --build-arg "GitVersion_AssemblySemFileVer=$APP_VERSION" \
+            --build-arg "GitVersion_AssemblySemVer=$APP_VERSION" \
+            --tag "$SOAP_REPOSITORY:$GITHUB_SHA" \
+            src/soap-service-dotnetcore-example
+
+      - name: Run images locally
+        run: |
+          set -euo pipefail
+          docker run -d --name apim007-weather -p 127.0.0.1:18080:8080 "$WEATHER_REPOSITORY:$GITHUB_SHA"
+          docker run -d --name apim007-soap -p 127.0.0.1:18081:8080 "$SOAP_REPOSITORY:$GITHUB_SHA"
+          for url in "http://127.0.0.1:18080/api/Version" "http://127.0.0.1:18081/api/Version"; do
+            ready=false
+            for _ in $(seq 1 30); do
+              if curl -fsS -o /dev/null "$url"; then ready=true; break; fi
+              sleep 2
+            done
+            if [ "$ready" != "true" ]; then
+              echo "::error::$url did not become ready."
+              exit 1
+            fi
+          done
+
+      - name: Capture and normalize contracts
+        shell: pwsh
+        run: |
+          $raw = Join-Path $env:RUNNER_TEMP 'contracts-raw'
+          $captured = Join-Path $env:RUNNER_TEMP 'captured-contracts'
+          $null = New-Item -ItemType Directory -Path $raw -Force
+          Invoke-WebRequest -Uri 'http://127.0.0.1:18080/swagger/v1/swagger.json' -OutFile (Join-Path $raw 'weather.json') -MaximumRedirection 0
+          Invoke-WebRequest -Uri "http://127.0.0.1:18081$($env:SOAP_SERVICE_PATH)?wsdl" -OutFile (Join-Path $raw 'software-version.wsdl') -MaximumRedirection 0
+          $null = & ./scripts/apim-007/ConvertTo-Apim007NeutralContract.ps1 -InputPath (Join-Path $raw 'weather.json') `
+            -OutputPath (Join-Path $captured 'apis/weather/specification.json') -Format OpenApiJson
+          $null = & ./scripts/apim-007/ConvertTo-Apim007NeutralContract.ps1 -InputPath (Join-Path $raw 'software-version.wsdl') `
+            -OutputPath (Join-Path $captured 'apis/software-version/specification.wsdl') -Format Wsdl
+
+      - name: Test images locally
+        shell: pwsh
+        run: |
+          $wsdl = Join-Path $env:RUNNER_TEMP 'captured-contracts/apis/software-version/specification.wsdl'
+          $null = & ./scripts/apim-007/Test-Apim007Backend.ps1 -WeatherBaseUrl 'http://127.0.0.1:18080' `
+            -SoapServiceUrl "http://127.0.0.1:18081$($env:SOAP_SERVICE_PATH)" -WsdlPath $wsdl `
+            -ExpectedVersion $env:APP_VERSION -RetryCount 5 -RetryDelaySeconds 3
+
+      - name: Compare contracts with the bundle
+        id: contracts
+        run: |
+          set -euo pipefail
+          match=true
+          for spec in apis/weather/specification.json apis/software-version/specification.wsdl; do
+            if [ ! -f "artifacts.007/$spec" ] || ! cmp -s "$RUNNER_TEMP/captured-contracts/$spec" "artifacts.007/$spec"; then
+              echo "::warning::artifacts.007/$spec is missing or differs from the captured contract."
+              match=false
+            fi
+          done
+          echo "match=$match" >> "$GITHUB_OUTPUT"
+
+      - name: Upload captured contracts
+        if: ${{ steps.contracts.outputs.match != 'true' || inputs.capture_contracts_only }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: captured-contracts
+          path: ${{ runner.temp }}/captured-contracts
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Fail on contract drift
+        if: ${{ steps.contracts.outputs.match != 'true' && !inputs.capture_contracts_only }}
+        run: |
+          echo "::error::Committed specifications do not match the captured contracts. Download the captured-contracts artifact, commit it to artifacts.007 in a reviewed PR, and release again."
+          exit 1
+
+      - name: Validate bundle (Candidate)
+        if: ${{ !inputs.capture_contracts_only }}
+        shell: pwsh
+        run: |
+          $null = & ./scripts/apim-007/Test-Apim007Bundle.ps1 -BundlePath artifacts.007 -InventoryPath configuration.007.expected-inventory.json -Mode Candidate
+
+      - name: Save images
+        if: ${{ !inputs.capture_contracts_only }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/images"
+          docker save "$WEATHER_REPOSITORY:$GITHUB_SHA" "$SOAP_REPOSITORY:$GITHUB_SHA" | gzip > "$RUNNER_TEMP/images/images.tar.gz"
+
+      - name: Upload images
+        if: ${{ !inputs.capture_contracts_only }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: candidate-images
+          path: ${{ runner.temp }}/images/images.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Container logs on failure
+        if: ${{ failure() }}
+        run: |
+          docker logs --tail 50 apim007-weather || true
+          docker logs --tail 50 apim007-soap || true
+
+  push-images:
+    name: Push images
+    needs: [build-candidate]
+    if: ${{ vars.APIM007_ENABLED == 'true' && !cancelled() && needs.build-candidate.result == 'success' && !inputs.capture_contracts_only }}
+    runs-on: ubuntu-latest
+    environment: apim-007-build
+    permissions:
+      contents: read
+      id-token: write
+      actions: read
+    outputs:
+      weather_image: ${{ steps.push.outputs.weather_image }}
+      soap_image: ${{ steps.push.outputs.soap_image }}
+    env:
+      SOURCE_SHA: ${{ needs.build-candidate.outputs.source_sha }}
+      EXPECTED_TENANT_ID: ${{ vars.EXPECTED_TENANT_ID }}
+      EXPECTED_SUBSCRIPTION_ID: ${{ vars.EXPECTED_SUBSCRIPTION_ID }}
+      REGISTRY_LOGIN_SERVER: ${{ vars.REGISTRY_LOGIN_SERVER }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download images
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: candidate-images
+          path: ${{ runner.temp }}/images
+
+      - name: Azure login
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Assert tenant and subscription
+        run: |
+          set -euo pipefail
+          : "${EXPECTED_TENANT_ID:?EXPECTED_TENANT_ID is not set}"
+          : "${EXPECTED_SUBSCRIPTION_ID:?EXPECTED_SUBSCRIPTION_ID is not set}"
+          tenant="$(az account show --query tenantId -o tsv)"
+          subscription="$(az account show --query id -o tsv)"
+          if [ "$tenant" != "$EXPECTED_TENANT_ID" ] || [ "$subscription" != "$EXPECTED_SUBSCRIPTION_ID" ]; then
+            echo "::error::Signed-in tenant or subscription does not match the environment variables."
+            exit 1
+          fi
+
+      - name: Push images by digest
+        id: push
+        run: |
+          set -euo pipefail
+          if [[ ! "$REGISTRY_LOGIN_SERVER" =~ ^[a-z0-9]+\.azurecr\.io$ ]]; then
+            echo "::error::REGISTRY_LOGIN_SERVER is missing or invalid."
+            exit 1
+          fi
+          if [[ ! "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Invalid source SHA."
+            exit 1
+          fi
+          az acr login --name "$REGISTRY_LOGIN_SERVER"
+          gunzip -c "$RUNNER_TEMP/images/images.tar.gz" | docker load
+          digest_pattern="^$REGISTRY_LOGIN_SERVER/[a-z0-9._/-]+@sha256:[0-9a-f]{64}$"
+          for pair in "weather_image:$WEATHER_REPOSITORY" "soap_image:$SOAP_REPOSITORY"; do
+            output="${pair%%:*}"
+            repository="${pair#*:}"
+            remote="$REGISTRY_LOGIN_SERVER/$repository:$SOURCE_SHA"
+            docker tag "$repository:$SOURCE_SHA" "$remote"
+            docker push "$remote"
+            ref="$(docker inspect --format '{{range .RepoDigests}}{{println .}}{{end}}' "$remote" | grep -E "^$REGISTRY_LOGIN_SERVER/$repository@" | head -n 1)"
+            if [[ ! "$ref" =~ $digest_pattern ]]; then
+              echo "::error::Could not resolve a digest reference for $repository."
+              exit 1
+            fi
+            echo "$output=$ref" >> "$GITHUB_OUTPUT"
+            echo "$output: $ref"
+          done
+          docker logout "$REGISTRY_LOGIN_SERVER"
+
+  freeze:
+    name: Freeze candidate
+    needs: [build-candidate, push-images]
+    if: ${{ vars.APIM007_ENABLED == 'true' && !cancelled() && needs.build-candidate.result == 'success' && needs.push-images.result == 'success' && !inputs.capture_contracts_only }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      candidate_tag: ${{ steps.release.outputs.candidate_tag }}
+      candidate_sha256: ${{ steps.release.outputs.candidate_sha256 }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_SHA: ${{ needs.build-candidate.outputs.source_sha }}
+      WEATHER_IMAGE: ${{ needs.push-images.outputs.weather_image }}
+      SOAP_IMAGE: ${{ needs.push-images.outputs.soap_image }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Create candidate
+        shell: pwsh
+        run: |
+          $result = & ./scripts/apim-007/New-Apim007Candidate.ps1 -OutputDirectory (Join-Path $env:RUNNER_TEMP 'freeze') `
+            -SourceSha $env:SOURCE_SHA -WeatherImage $env:WEATHER_IMAGE -SoapImage $env:SOAP_IMAGE
+          "CANDIDATE_SHA256=$($result.ArchiveSha256)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Publish candidate release
+        id: release
+        run: |
+          set -euo pipefail
+          tag="apim007-candidate-$GITHUB_RUN_NUMBER-${SOURCE_SHA:0:7}"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "::error::Release $tag already exists; re-run the whole workflow to create a new candidate."
+            exit 1
+          fi
+          notes="APIM 007 frozen candidate. Source $SOURCE_SHA. candidate.tar.gz SHA256 $CANDIDATE_SHA256. Weather $WEATHER_IMAGE. SOAP $SOAP_IMAGE."
+          gh release create "$tag" \
+            "$RUNNER_TEMP/freeze/candidate.tar.gz" \
+            "$RUNNER_TEMP/freeze/candidate-manifest.json" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$SOURCE_SHA" \
+            --prerelease \
+            --title "$tag" \
+            --notes "$notes"
+          {
+            echo "candidate_tag=$tag"
+            echo "candidate_sha256=$CANDIDATE_SHA256"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "## APIM 007 candidate"
+            echo ""
+            echo "| Item | Value |"
+            echo "| --- | --- |"
+            echo "| Tag | $tag |"
+            echo "| Archive SHA256 | $CANDIDATE_SHA256 |"
+            echo "| Source | $SOURCE_SHA |"
+            echo "| Weather image | $WEATHER_IMAGE |"
+            echo "| SOAP image | $SOAP_IMAGE |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  resolve-candidate:
+    name: Resolve candidate
+    needs: [freeze]
+    if: ${{ vars.APIM007_ENABLED == 'true' && !cancelled() && !inputs.capture_contracts_only && (inputs.rollback_candidate_tag != '' || needs.freeze.result == 'success') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      candidate_tag: ${{ steps.resolve.outputs.candidate_tag }}
+      is_rollback: ${{ steps.resolve.outputs.is_rollback }}
+      expected_sha256: ${{ steps.resolve.outputs.expected_sha256 }}
+    env:
+      ROLLBACK_TAG: ${{ inputs.rollback_candidate_tag }}
+      FREEZE_TAG: ${{ needs.freeze.outputs.candidate_tag }}
+      FREEZE_SHA256: ${{ needs.freeze.outputs.candidate_sha256 }}
+    steps:
+      - name: Resolve
+        id: resolve
+        run: |
+          set -euo pipefail
+          tag_pattern='^apim007-candidate-[0-9]+-[0-9a-f]{7}$'
+          if [ -n "$ROLLBACK_TAG" ]; then
+            if [[ ! "$ROLLBACK_TAG" =~ $tag_pattern ]]; then
+              echo "::error::rollback_candidate_tag is not an apim007-candidate tag."
+              exit 1
+            fi
+            {
+              echo "candidate_tag=$ROLLBACK_TAG"
+              echo "is_rollback=true"
+              echo "expected_sha256="
+            } >> "$GITHUB_OUTPUT"
+            echo "Rollback to $ROLLBACK_TAG; the trusted hash comes from release-state history."
+          else
+            if [[ ! "$FREEZE_TAG" =~ $tag_pattern ]] || [[ ! "$FREEZE_SHA256" =~ ^[0-9a-f]{64}$ ]]; then
+              echo "::error::freeze outputs are missing or invalid."
+              exit 1
+            fi
+            {
+              echo "candidate_tag=$FREEZE_TAG"
+              echo "is_rollback=false"
+              echo "expected_sha256=$FREEZE_SHA256"
+            } >> "$GITHUB_OUTPUT"
+            echo "Same-run candidate $FREEZE_TAG."
+          fi
+
+  deploy-dev:
+    name: Deploy dev-007
+    needs: [resolve-candidate]
+    if: ${{ vars.APIM007_ENABLED == 'true' && !cancelled() && needs.resolve-candidate.result == 'success' }}
+    runs-on: ubuntu-latest
+    environment: dev-007
+    concurrency:
+      group: apim-007-dev-writes
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TARGET_ENV: dev
+      OTHER_ENV: prod
+      APIM_RG: rg-apim-demo-007-dev-apim
+      OTHER_APIM_RG: rg-apim-demo-007-prod-apim
+      CANDIDATE_TAG: ${{ needs.resolve-candidate.outputs.candidate_tag }}
+      IS_ROLLBACK: ${{ needs.resolve-candidate.outputs.is_rollback }}
+      EXPECTED_SHA256: ${{ needs.resolve-candidate.outputs.expected_sha256 }}
+      SIMULATE_GATE_FAILURE: ${{ inputs.simulate_dev_gate_failure }}
+      EXPECTED_TENANT_ID: ${{ vars.EXPECTED_TENANT_ID }}
+      EXPECTED_SUBSCRIPTION_ID: ${{ vars.EXPECTED_SUBSCRIPTION_ID }}
+    steps:
+      - name: (a) Checkout reviewed workflow commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: (b) Download candidate
+        run: |
+          set -euo pipefail
+          if [[ ! "$CANDIDATE_TAG" =~ ^apim007-candidate-[0-9]+-[0-9a-f]{7}$ ]]; then
+            echo "::error::Invalid candidate tag."
+            exit 1
+          fi
+          gh release download "$CANDIDATE_TAG" --repo "$GITHUB_REPOSITORY" --pattern candidate.tar.gz --dir "$RUNNER_TEMP/download"
+
+      - name: (c) Same-run hash check
+        run: |
+          set -euo pipefail
+          actual="$(sha256sum "$RUNNER_TEMP/download/candidate.tar.gz" | cut -d' ' -f1)"
+          if [ "$IS_ROLLBACK" != "true" ] && [ "$actual" != "$EXPECTED_SHA256" ]; then
+            echo "::error::Candidate archive SHA256 does not match the freeze job output."
+            exit 1
+          fi
+          echo "ARCHIVE_SHA256=$actual" >> "$GITHUB_ENV"
+
+      - name: (d) Azure login
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: (d) Assert tenant and subscription
+        run: |
+          set -euo pipefail
+          : "${EXPECTED_TENANT_ID:?EXPECTED_TENANT_ID is not set}"
+          : "${EXPECTED_SUBSCRIPTION_ID:?EXPECTED_SUBSCRIPTION_ID is not set}"
+          tenant="$(az account show --query tenantId -o tsv)"
+          subscription="$(az account show --query id -o tsv)"
+          if [ "$tenant" != "$EXPECTED_TENANT_ID" ] || [ "$subscription" != "$EXPECTED_SUBSCRIPTION_ID" ]; then
+            echo "::error::Signed-in tenant or subscription does not match the environment variables."
+            exit 1
+          fi
+
+      - name: Target manifest
+        shell: pwsh
+        run: |
+          $result = & ./scripts/apim-007/Get-Apim007TargetManifest.ps1 -Environment $env:TARGET_ENV -OutputPath (Join-Path $env:RUNNER_TEMP 'manifest.json')
+          $m = Get-Content -Raw -LiteralPath $result.Path | ConvertFrom-Json
+          $values = [ordered]@{
+            MANIFEST_PATH   = $result.Path
+            MANIFEST_SHA256 = $result.Sha256
+            APIM_NAME       = $m.apim.name
+            GATEWAY_URL     = $m.apim.gatewayUrl
+            BACKEND_RG      = ($m.backends.resourceGroupId -split '/')[-1]
+            WEATHER_APP     = $m.backends.apps.weather.name
+            SOAP_APP        = $m.backends.apps.'software-version'.name
+            WEATHER_URL     = $m.backends.apps.weather.httpsBaseUrl
+            SOAP_BASE_URL   = $m.backends.apps.'software-version'.httpsBaseUrl
+          }
+          foreach ($key in $values.Keys) {
+            if ([string]$values[$key] -notmatch '^[A-Za-z0-9:/._\-]+$') { throw "Manifest value $key is invalid." }
+            "$key=$($values[$key])" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          }
+
+      - name: (e) Resolve trusted candidate hash
+        shell: pwsh
+        run: |
+          $trusted = $env:EXPECTED_SHA256
+          if ($env:IS_ROLLBACK -eq 'true') {
+            $otherPath = Join-Path $env:RUNNER_TEMP "state-$($env:OTHER_ENV).json"
+            $otherName = az deployment group show --resource-group $env:OTHER_APIM_RG --name "apim007-apim-$($env:OTHER_ENV)" --query properties.outputs.apimName.value -o tsv --only-show-errors 2>$null
+            $arguments = @{
+              ResourceGroup = $env:APIM_RG; ServiceName = $env:APIM_NAME; Environment = $env:TARGET_ENV
+              CandidateTag = $env:CANDIDATE_TAG; CandidateSha256 = $env:ARCHIVE_SHA256; IsRollback = $true; Gate = $true
+            }
+            if ($LASTEXITCODE -eq 0 -and $otherName) {
+              $null = & ./scripts/apim-007/Get-Apim007ReleaseState.ps1 -ResourceGroup $env:OTHER_APIM_RG -ServiceName $otherName -Environment $env:OTHER_ENV -OutputPath $otherPath
+              $arguments.AdditionalHistoryStatePath = $otherPath
+            }
+            else { Write-Warning "$($env:OTHER_ENV) APIM deployment not readable; only $($env:TARGET_ENV) history qualifies the rollback." }
+            $null = & ./scripts/apim-007/Get-Apim007ReleaseState.ps1 @arguments
+            $trusted = $env:ARCHIVE_SHA256
+          }
+          if ($trusted -notmatch '^[0-9a-f]{64}$') { throw 'No trusted candidate hash.' }
+          "TRUSTED_SHA256=$trusted" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: (f) Verify candidate
+        shell: pwsh
+        run: |
+          $candidate = & ./scripts/apim-007/Test-Apim007Candidate.ps1 -ArchivePath (Join-Path $env:RUNNER_TEMP 'download/candidate.tar.gz') `
+            -ExpectedSha256 $env:TRUSTED_SHA256 -ExtractPath (Join-Path $env:RUNNER_TEMP 'candidate')
+          if ($candidate.ApiVersion -notmatch '^\d{4}-\d{2}-\d{2}(-preview)?$') { throw 'Candidate API version is invalid.' }
+          $build = [Convert]::ToInt32($candidate.SourceSha.Substring(0, 4), 16) % 65535
+          @(
+            "CAND_DIR=$($candidate.CandidatePath)",
+            "CAND_SOURCE_SHA=$($candidate.SourceSha)",
+            "CAND_API_VERSION=$($candidate.ApiVersion)",
+            "WEATHER_IMAGE=$($candidate.WeatherImage)",
+            "SOAP_IMAGE=$($candidate.SoapImage)",
+            "APP_VERSION=1.0.$build.0"
+          ) | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: (g) Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+
+      - name: (g) Install APIops CLI from the candidate lockfile
+        run: |
+          set -euo pipefail
+          cd "$CAND_DIR/tools/apiops-cli"
+          pwsh -NoProfile -File "$GITHUB_WORKSPACE/scripts/apim-007/Test-Apim007LockfileProvenance.ps1" -LockfilePath package-lock.json
+          npm ci --ignore-scripts --no-audit --no-fund
+          expected="$(jq -r '.apiopsCliVersion' "$CAND_DIR/candidate-manifest.json")"
+          test -x node_modules/.bin/apiops
+          actual="$(node_modules/.bin/apiops --version | tr -d '[:space:]')"
+          if [ "$actual" != "$expected" ]; then
+            echo "::error::apiops version '$actual' does not equal the candidate pin $expected"
+            exit 1
+          fi
+          echo "APIOPS=$CAND_DIR/tools/apiops-cli/node_modules/.bin/apiops" >> "$GITHUB_ENV"
+
+      - name: Release gate
+        shell: pwsh
+        run: |
+          $arguments = @{
+            ResourceGroup = $env:APIM_RG; ServiceName = $env:APIM_NAME; Environment = $env:TARGET_ENV
+            CandidateTag = $env:CANDIDATE_TAG; CandidateSha256 = $env:TRUSTED_SHA256; IsRollback = ($env:IS_ROLLBACK -eq 'true'); Gate = $true
+          }
+          $otherPath = Join-Path $env:RUNNER_TEMP "state-$($env:OTHER_ENV).json"
+          if (Test-Path -LiteralPath $otherPath) { $arguments.AdditionalHistoryStatePath = $otherPath }
+          $null = & ./scripts/apim-007/Get-Apim007ReleaseState.ps1 @arguments
+
+      - name: Mark deploying
+        shell: pwsh
+        run: |
+          'STATE_WRITTEN=true' | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          $null = & ./scripts/apim-007/Set-Apim007ReleaseState.ps1 -ResourceGroup $env:APIM_RG -ServiceName $env:APIM_NAME -Status deploying `
+            -CandidateTag $env:CANDIDATE_TAG -CandidateSha256 $env:TRUSTED_SHA256 -SourceSha $env:CAND_SOURCE_SHA
+
+      - name: Roll out candidate images
+        run: |
+          set -euo pipefail
+          for pair in "$WEATHER_APP|$WEATHER_IMAGE" "$SOAP_APP|$SOAP_IMAGE"; do
+            app="${pair%%|*}"
+            image="${pair#*|}"
+            az webapp config set --resource-group "$BACKEND_RG" --name "$app" --linux-fx-version "DOCKER|$image" --output none
+            az webapp restart --resource-group "$BACKEND_RG" --name "$app" --output none
+          done
+          for url in "$WEATHER_URL/api/Version" "$SOAP_BASE_URL/api/Version"; do
+            ready=false
+            for _ in $(seq 1 40); do
+              if curl -fsS --max-time 20 "$url" 2> /dev/null | grep -qF "$APP_VERSION"; then ready=true; break; fi
+              sleep 15
+            done
+            if [ "$ready" != "true" ]; then
+              echo "::error::$url did not report version $APP_VERSION."
+              exit 1
+            fi
+          done
+          curl -fsS --max-time 20 -o /dev/null "$SOAP_BASE_URL$SOAP_SERVICE_PATH?wsdl"
+
+      - name: Observed backend receipt
+        run: |
+          set -euo pipefail
+          for pair in "$WEATHER_APP|$WEATHER_IMAGE" "$SOAP_APP|$SOAP_IMAGE"; do
+            app="${pair%%|*}"
+            image="${pair#*|}"
+            observed="$(az webapp config show --resource-group "$BACKEND_RG" --name "$app" --query linuxFxVersion -o tsv)"
+            if [ "$observed" != "DOCKER|$image" ]; then
+              echo "::error::$app runs '$observed', not the approved candidate image."
+              exit 1
+            fi
+          done
+
+      - name: Direct backend tests
+        shell: pwsh
+        run: |
+          $null = & (Join-Path $env:CAND_DIR 'scripts/apim-007/Test-Apim007Backend.ps1') -WeatherBaseUrl $env:WEATHER_URL `
+            -SoapServiceUrl "$($env:SOAP_BASE_URL)$($env:SOAP_SERVICE_PATH)" `
+            -WsdlPath (Join-Path $env:CAND_DIR 'artifacts.007/apis/software-version/specification.wsdl') -ExpectedVersion $env:APP_VERSION
+
+      - name: Overrides and protected-state baseline
+        shell: pwsh
+        run: |
+          $scripts = Join-Path $env:CAND_DIR 'scripts/apim-007'
+          $overrides = & (Join-Path $scripts 'New-Apim007Overrides.ps1') -ManifestPath $env:MANIFEST_PATH `
+            -InventoryPath (Join-Path $env:CAND_DIR 'configuration.007.expected-inventory.json') -OutputPath (Join-Path $env:RUNNER_TEMP 'overrides.json')
+          @("OVERRIDES_FILE=$($overrides.Path)", "OVERRIDES_SHA256=$($overrides.Sha256)") | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          $null = & (Join-Path $scripts 'Test-Apim007ServiceState.ps1') -ResourceGroup $env:APIM_RG -ServiceName $env:APIM_NAME -Mode Capture `
+            -BaselinePath (Join-Path $env:RUNNER_TEMP 'service-baseline.json')
+
+      - name: APIops dry run, publish and extract
+        run: |
+          set -euo pipefail
+          test -x "$APIOPS"
+          unset COMMIT_ID
+          export AZURE_API_VERSION="$CAND_API_VERSION"
+          "$APIOPS" --subscription-id "$EXPECTED_SUBSCRIPTION_ID" publish \
+            --resource-group "$APIM_RG" --service-name "$APIM_NAME" \
+            --source "$CAND_DIR/artifacts.007" --overrides "$OVERRIDES_FILE" \
+            --filter "$CAND_DIR/configuration.007.ownership.yaml" --no-transitive --dry-run
+          "$APIOPS" --subscription-id "$EXPECTED_SUBSCRIPTION_ID" publish \
+            --resource-group "$APIM_RG" --service-name "$APIM_NAME" \
+            --source "$CAND_DIR/artifacts.007" --overrides "$OVERRIDES_FILE" \
+            --filter "$CAND_DIR/configuration.007.ownership.yaml" --no-transitive
+          "$APIOPS" --subscription-id "$EXPECTED_SUBSCRIPTION_ID" extract \
+            --resource-group "$APIM_RG" --service-name "$APIM_NAME" \
+            --output "$RUNNER_TEMP/verify-1" \
+            --filter "$CAND_DIR/configuration.007.ownership.yaml" --no-transitive
+
+      - name: Extraction comparison and service state
+        shell: pwsh
+        run: |
+          $scripts = Join-Path $env:CAND_DIR 'scripts/apim-007'
+          $null = & (Join-Path $scripts 'Compare-Apim007Extraction.ps1') -ExtractionPath (Join-Path $env:RUNNER_TEMP 'verify-1') `
+            -BundlePath (Join-Path $env:CAND_DIR 'artifacts.007') -InventoryPath (Join-Path $env:CAND_DIR 'configuration.007.expected-inventory.json') `
+            -OverridesPath $env:OVERRIDES_FILE -GatewayUrl $env:GATEWAY_URL
+          $null = & (Join-Path $scripts 'Test-Apim007ServiceState.ps1') -ResourceGroup $env:APIM_RG -ServiceName $env:APIM_NAME -Mode Verify `
+            -BaselinePath (Join-Path $env:RUNNER_TEMP 'service-baseline.json')
+
+      - name: Gateway tests
+        shell: pwsh
+        run: |
+          $arguments = @{
+            ManifestPath    = $env:MANIFEST_PATH
+            WsdlPath        = Join-Path $env:CAND_DIR 'artifacts.007/apis/software-version/specification.wsdl'
+            ExpectedVersion = $env:APP_VERSION
+            PolicyPath      = Join-Path $env:CAND_DIR 'artifacts.007/apis/weather/policy.xml'
+          }
+          if ($env:SIMULATE_GATE_FAILURE -eq 'true') {
+            Write-Warning 'simulate_dev_gate_failure: expecting a release header value the candidate does not set.'
+            $arguments.ExpectedRelease = 'simulated-dev-gate-failure'
+            $arguments.RetryCount = 2
+          }
+          $null = & (Join-Path $env:CAND_DIR 'scripts/apim-007/Test-Apim007Gateway.ps1') @arguments
+
+      - name: Second publish and gateway test
+        shell: pwsh
+        run: |
+          $env:AZURE_API_VERSION = $env:CAND_API_VERSION
+          Remove-Item Env:COMMIT_ID -ErrorAction SilentlyContinue
+          & $env:APIOPS --subscription-id $env:EXPECTED_SUBSCRIPTION_ID publish --resource-group $env:APIM_RG --service-name $env:APIM_NAME `
+            --source (Join-Path $env:CAND_DIR 'artifacts.007') --overrides $env:OVERRIDES_FILE `
+            --filter (Join-Path $env:CAND_DIR 'configuration.007.ownership.yaml') --no-transitive
+          if ($LASTEXITCODE -ne 0) { throw "Second publish failed (exit $LASTEXITCODE)." }
+          $null = & (Join-Path $env:CAND_DIR 'scripts/apim-007/Test-Apim007Gateway.ps1') -ManifestPath $env:MANIFEST_PATH `
+            -WsdlPath (Join-Path $env:CAND_DIR 'artifacts.007/apis/software-version/specification.wsdl') -ExpectedVersion $env:APP_VERSION `
+            -PolicyPath (Join-Path $env:CAND_DIR 'artifacts.007/apis/weather/policy.xml')
+
+      - name: Mark clean
+        shell: pwsh
+        run: |
+          $null = & ./scripts/apim-007/Set-Apim007ReleaseState.ps1 -ResourceGroup $env:APIM_RG -ServiceName $env:APIM_NAME -Status clean `
+            -CandidateTag $env:CANDIDATE_TAG -CandidateSha256 $env:TRUSTED_SHA256 -SourceSha $env:CAND_SOURCE_SHA
+
+      - name: Receipt
+        shell: pwsh
+        run: |
+          $receipt = [ordered]@{
+            environment      = "$($env:TARGET_ENV)-007"
+            candidateTag     = $env:CANDIDATE_TAG
+            candidateSha256  = $env:TRUSTED_SHA256
+            isRollback       = ($env:IS_ROLLBACK -eq 'true')
+            sourceSha        = $env:CAND_SOURCE_SHA
+            appVersion       = $env:APP_VERSION
+            weatherImage     = $env:WEATHER_IMAGE
+            soapImage        = $env:SOAP_IMAGE
+            apimName         = $env:APIM_NAME
+            gatewayUrl       = $env:GATEWAY_URL
+            manifestSha256   = $env:MANIFEST_SHA256
+            overridesSha256  = $env:OVERRIDES_SHA256
+            apiVersion       = $env:CAND_API_VERSION
+            runId            = $env:GITHUB_RUN_ID
+            runAttempt       = $env:GITHUB_RUN_ATTEMPT
+            completedUtc     = [datetime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')
+          }
+          $path = Join-Path $env:RUNNER_TEMP 'receipt/receipt.json'
+          $null = New-Item -ItemType Directory -Path (Split-Path -Parent $path) -Force
+          [IO.File]::WriteAllText($path, ($receipt | ConvertTo-Json), [Text.UTF8Encoding]::new($false))
+          $lines = @("## APIM 007 $($env:TARGET_ENV) release receipt", '', '| Item | Value |', '| --- | --- |')
+          $lines += foreach ($key in $receipt.Keys) { "| $key | $($receipt[$key]) |" }
+          $lines | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+
+      - name: Upload receipt
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: receipt-dev-007
+          path: ${{ runner.temp }}/receipt/receipt.json
+          if-no-files-found: error
+
+      - name: Mark dirty on failure or cancellation
+        if: ${{ (failure() || cancelled()) && env.STATE_WRITTEN == 'true' }}
+        shell: pwsh
+        run: |
+          $null = & ./scripts/apim-007/Set-Apim007ReleaseState.ps1 -ResourceGroup $env:APIM_RG -ServiceName $env:APIM_NAME -Status dirty -OnlyIfOwnedDeploying
+
+  plan-prod:
+    name: Plan prod-007
+    needs: [resolve-candidate, deploy-dev]
+    if: ${{ vars.APIM007_ENABLED == 'true' && !cancelled() && needs.resolve-candidate.result == 'success' && needs.deploy-dev.result == 'success' }}
+    runs-on: ubuntu-latest
+    environment: prod-007-plan
+    permissions:
+      contents: read
+      id-token: write
+      actions: read
+    outputs:
+      candidate_sha256: ${{ steps.plan.outputs.candidate_sha256 }}
+      prod_manifest_sha256: ${{ steps.plan.outputs.prod_manifest_sha256 }}
+      prod_override_sha256: ${{ steps.plan.outputs.prod_override_sha256 }}
+      weather_image: ${{ steps.plan.outputs.weather_image }}
+      soap_image: ${{ steps.plan.outputs.soap_image }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TARGET_ENV: prod
+      OTHER_ENV: dev
+      APIM_RG: rg-apim-demo-007-prod-apim
+      OTHER_APIM_RG: rg-apim-demo-007-dev-apim
+      CANDIDATE_TAG: ${{ needs.resolve-candidate.outputs.candidate_tag }}
+      IS_ROLLBACK: ${{ needs.resolve-candidate.outputs.is_rollback }}
+      EXPECTED_SHA256: ${{ needs.resolve-candidate.outputs.expected_sha256 }}
+      EXPECTED_TENANT_ID: ${{ vars.EXPECTED_TENANT_ID }}
+      EXPECTED_SUBSCRIPTION_ID: ${{ vars.EXPECTED_SUBSCRIPTION_ID }}
+      PREVENT_SELF_REVIEW: ${{ vars.APIM007_PREVENT_SELF_REVIEW }}
+    steps:
+      - name: (a) Checkout reviewed workflow commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: (b) Download candidate
+        run: |
+          set -euo pipefail
+          if [[ ! "$CANDIDATE_TAG" =~ ^apim007-candidate-[0-9]+-[0-9a-f]{7}$ ]]; then
+            echo "::error::Invalid candidate tag."
+            exit 1
+          fi
+          gh release download "$CANDIDATE_TAG" --repo "$GITHUB_REPOSITORY" --pattern candidate.tar.gz --dir "$RUNNER_TEMP/download"
+
+      - name: (c) Same-run hash check
+        run: |
+          set -euo pipefail
+          actual="$(sha256sum "$RUNNER_TEMP/download/candidate.tar.gz" | cut -d' ' -f1)"
+          if [ "$IS_ROLLBACK" != "true" ] && [ "$actual" != "$EXPECTED_SHA256" ]; then
+            echo "::error::Candidate archive SHA256 does not match the freeze job output."
+            exit 1
+          fi
+          echo "ARCHIVE_SHA256=$actual" >> "$GITHUB_ENV"
+
+      - name: (d) Azure login
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: (d) Assert tenant and subscription
+        run: |
+          set -euo pipefail
+          : "${EXPECTED_TENANT_ID:?EXPECTED_TENANT_ID is not set}"
+          : "${EXPECTED_SUBSCRIPTION_ID:?EXPECTED_SUBSCRIPTION_ID is not set}"
+          tenant="$(az account show --query tenantId -o tsv)"
+          subscription="$(az account show --query id -o tsv)"
+          if [ "$tenant" != "$EXPECTED_TENANT_ID" ] || [ "$subscription" != "$EXPECTED_SUBSCRIPTION_ID" ]; then
+            echo "::error::Signed-in tenant or subscription does not match the environment variables."
+            exit 1
+          fi
+
+      - name: Target manifest
+        shell: pwsh
+        run: |
+          $result = & ./scripts/apim-007/Get-Apim007TargetManifest.ps1 -Environment $env:TARGET_ENV -OutputPath (Join-Path $env:RUNNER_TEMP 'manifest.json')
+          $m = Get-Content -Raw -LiteralPath $result.Path | ConvertFrom-Json
+          $values = [ordered]@{ MANIFEST_PATH = $result.Path; MANIFEST_SHA256 = $result.Sha256; APIM_NAME = $m.apim.name; GATEWAY_URL = $m.apim.gatewayUrl }
+          foreach ($key in $values.Keys) {
+            if ([string]$values[$key] -notmatch '^[A-Za-z0-9:/._\-]+$') { throw "Manifest value $key is invalid." }
+            "$key=$($values[$key])" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          }
+
+      - name: Read dev release state
+        shell: pwsh
+        run: |
+          $otherName = az deployment group show --resource-group $env:OTHER_APIM_RG --name "apim007-apim-$($env:OTHER_ENV)" --query properties.outputs.apimName.value -o tsv --only-show-errors
+          if ($LASTEXITCODE -ne 0 -or $otherName -notmatch '^[A-Za-z0-9\-]+$') { throw 'Cannot resolve the dev APIM name.' }
+          "OTHER_APIM_NAME=$otherName" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          $null = & ./scripts/apim-007/Get-Apim007ReleaseState.ps1 -ResourceGroup $env:OTHER_APIM_RG -ServiceName $otherName -Environment $env:OTHER_ENV `
+            -OutputPath (Join-Path $env:RUNNER_TEMP "state-$($env:OTHER_ENV).json")
+
+      - name: (e) Resolve trusted candidate hash
+        shell: pwsh
+        run: |
+          $trusted = $env:EXPECTED_SHA256
+          if ($env:IS_ROLLBACK -eq 'true') {
+            $null = & ./scripts/apim-007/Get-Apim007ReleaseState.ps1 -ResourceGroup $env:APIM_RG -ServiceName $env:APIM_NAME -Environment $env:TARGET_ENV `
+              -CandidateTag $env:CANDIDATE_TAG -CandidateSha256 $env:ARCHIVE_SHA256 -IsRollback `
+              -AdditionalHistoryStatePath (Join-Path $env:RUNNER_TEMP "state-$($env:OTHER_ENV).json") -Gate
+            $trusted = $env:ARCHIVE_SHA256
+          }
+          if ($trusted -notmatch '^[0-9a-f]{64}$') { throw 'No trusted candidate hash.' }
+          "TRUSTED_SHA256=$trusted" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: (f) Verify candidate
+        shell: pwsh
+        run: |
+          $candidate = & ./scripts/apim-007/Test-Apim007Candidate.ps1 -ArchivePath (Join-Path $env:RUNNER_TEMP 'download/candidate.tar.gz') `
+            -ExpectedSha256 $env:TRUSTED_SHA256 -ExtractPath (Join-Path $env:RUNNER_TEMP 'candidate')
+          @(
+            "CAND_DIR=$($candidate.CandidatePath)",
+            "CAND_SOURCE_SHA=$($candidate.SourceSha)",
+            "WEATHER_IMAGE=$($candidate.WeatherImage)",
+            "SOAP_IMAGE=$($candidate.SoapImage)"
+          ) | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: (g) Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+
+      - name: (g) Install APIops CLI from the candidate lockfile
+        run: |
+          set -euo pipefail
+          cd "$CAND_DIR/tools/apiops-cli"
+          pwsh -NoProfile -File "$GITHUB_WORKSPACE/scripts/apim-007/Test-Apim007LockfileProvenance.ps1" -LockfilePath package-lock.json
+          npm ci --ignore-scripts --no-audit --no-fund
+          expected="$(jq -r '.apiopsCliVersion' "$CAND_DIR/candidate-manifest.json")"
+          test -x node_modules/.bin/apiops
+          actual="$(node_modules/.bin/apiops --version | tr -d '[:space:]')"
+          if [ "$actual" != "$expected" ]; then
+            echo "::error::apiops version '$actual' does not equal the candidate pin $expected"
+            exit 1
+          fi
+
+      - name: Prod overrides
+        shell: pwsh
+        run: |
+          $overrides = & (Join-Path $env:CAND_DIR 'scripts/apim-007/New-Apim007Overrides.ps1') -ManifestPath $env:MANIFEST_PATH `
+            -InventoryPath (Join-Path $env:CAND_DIR 'configuration.007.expected-inventory.json') -OutputPath (Join-Path $env:RUNNER_TEMP 'overrides.json')
+          "OVERRIDES_SHA256=$($overrides.Sha256)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Release state gates
+        shell: pwsh
+        run: |
+          $null = & ./scripts/apim-007/Get-Apim007ReleaseState.ps1 -ResourceGroup $env:OTHER_APIM_RG -ServiceName $env:OTHER_APIM_NAME -Environment $env:OTHER_ENV `
+            -CandidateTag $env:CANDIDATE_TAG -CandidateSha256 $env:TRUSTED_SHA256 -RequireCleanCandidate -Gate
+          $null = & ./scripts/apim-007/Get-Apim007ReleaseState.ps1 -ResourceGroup $env:APIM_RG -ServiceName $env:APIM_NAME -Environment $env:TARGET_ENV `
+            -CandidateTag $env:CANDIDATE_TAG -CandidateSha256 $env:TRUSTED_SHA256 -IsRollback:($env:IS_ROLLBACK -eq 'true') `
+            -AdditionalHistoryStatePath (Join-Path $env:RUNNER_TEMP "state-$($env:OTHER_ENV).json") -Gate
+
+      - name: Verify prod-007 protection
+        shell: pwsh
+        run: |
+          $environment = gh api "repos/$($env:GITHUB_REPOSITORY)/environments/prod-007" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot read the prod-007 environment.' }
+          $reviewRule = @($environment.protection_rules | Where-Object { $_.type -eq 'required_reviewers' }) | Select-Object -First 1
+          if (-not $reviewRule -or @($reviewRule.reviewers).Count -eq 0) { throw 'prod-007 has no required reviewers.' }
+          if ($env:PREVENT_SELF_REVIEW -notin 'true', 'false') { throw 'Repository variable APIM007_PREVENT_SELF_REVIEW must be true or false.' }
+          if ([string]$reviewRule.prevent_self_review -ne $env:PREVENT_SELF_REVIEW) { throw 'prod-007 prevent_self_review does not match APIM007_PREVENT_SELF_REVIEW.' }
+          if ($environment.can_admins_bypass -ne $false) { throw 'prod-007 allows administrators to bypass protection.' }
+          if (-not $environment.deployment_branch_policy -or $environment.deployment_branch_policy.custom_branch_policies -ne $true) { throw 'prod-007 must use a custom deployment branch policy.' }
+          $policies = gh api "repos/$($env:GITHUB_REPOSITORY)/environments/prod-007/deployment-branch-policies" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot read prod-007 deployment branch policies.' }
+          $names = @($policies.branch_policies | ForEach-Object { "$($_.type):$($_.name)" })
+          if ($names.Count -ne 1 -or $names[0] -notin 'branch:main', ':main') { throw "prod-007 branch policy must be exactly main (found: $($names -join ', '))." }
+          Write-Output 'prod-007 protection verified.'
+
+      - name: Plan outputs and summary
+        id: plan
+        shell: pwsh
+        run: |
+          $outputs = [ordered]@{
+            candidate_sha256     = $env:TRUSTED_SHA256
+            prod_manifest_sha256 = $env:MANIFEST_SHA256
+            prod_override_sha256 = $env:OVERRIDES_SHA256
+            weather_image        = $env:WEATHER_IMAGE
+            soap_image           = $env:SOAP_IMAGE
+          }
+          $outputs.Keys | ForEach-Object { "$_=$($outputs[$_])" } | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          $lines = @(
+            '## APIM 007 prod plan (approve deploy-prod only if this matches)', '',
+            '| Item | Value |', '| --- | --- |',
+            "| Candidate | $($env:CANDIDATE_TAG) |",
+            "| Rollback | $($env:IS_ROLLBACK) |",
+            "| Source | $($env:CAND_SOURCE_SHA) |",
+            "| Prod APIM | $($env:APIM_NAME) |",
+            "| Gateway | $($env:GATEWAY_URL) |"
+          )
+          $lines += foreach ($key in $outputs.Keys) { "| $key | $($outputs[$key]) |" }
+          $lines | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+
+  deploy-prod:
+    name: Deploy prod-007
+    needs: [resolve-candidate, plan-prod]
+    if: ${{ vars.APIM007_ENABLED == 'true' && !cancelled() && needs.resolve-candidate.result == 'success' && needs.plan-prod.result == 'success' }}
+    runs-on: ubuntu-latest
+    environment: prod-007
+    concurrency:
+      group: apim-007-prod-writes
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TARGET_ENV: prod
+      OTHER_ENV: dev
+      APIM_RG: rg-apim-demo-007-prod-apim
+      OTHER_APIM_RG: rg-apim-demo-007-dev-apim
+      CANDIDATE_TAG: ${{ needs.resolve-candidate.outputs.candidate_tag }}
+      IS_ROLLBACK: ${{ needs.resolve-candidate.outputs.is_rollback }}
+      EXPECTED_SHA256: ${{ needs.resolve-candidate.outputs.expected_sha256 }}
+      PLAN_CANDIDATE_SHA256: ${{ needs.plan-prod.outputs.candidate_sha256 }}
+      PLAN_MANIFEST_SHA256: ${{ needs.plan-prod.outputs.prod_manifest_sha256 }}
+      PLAN_OVERRIDE_SHA256: ${{ needs.plan-prod.outputs.prod_override_sha256 }}
+      PLAN_WEATHER_IMAGE: ${{ needs.plan-prod.outputs.weather_image }}
+      PLAN_SOAP_IMAGE: ${{ needs.plan-prod.outputs.soap_image }}
+      EXPECTED_TENANT_ID: ${{ vars.EXPECTED_TENANT_ID }}
+      EXPECTED_SUBSCRIPTION_ID: ${{ vars.EXPECTED_SUBSCRIPTION_ID }}
+    steps:
+      - name: (a) Checkout reviewed workflow commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: (b) Download candidate
+        run: |
+          set -euo pipefail
+          if [[ ! "$CANDIDATE_TAG" =~ ^apim007-candidate-[0-9]+-[0-9a-f]{7}$ ]]; then
+            echo "::error::Invalid candidate tag."
+            exit 1
+          fi
+          gh release download "$CANDIDATE_TAG" --repo "$GITHUB_REPOSITORY" --pattern candidate.tar.gz --dir "$RUNNER_TEMP/download"
+
+      - name: (c) Same-run hash check
+        run: |
+          set -euo pipefail
+          actual="$(sha256sum "$RUNNER_TEMP/download/candidate.tar.gz" | cut -d' ' -f1)"
+          if [ "$IS_ROLLBACK" != "true" ] && [ "$actual" != "$EXPECTED_SHA256" ]; then
+            echo "::error::Candidate archive SHA256 does not match the freeze job output."
+            exit 1
+          fi
+          if [ "$actual" != "$PLAN_CANDIDATE_SHA256" ]; then
+            echo "::error::Candidate archive SHA256 does not match the approved plan."
+            exit 1
+          fi
+          echo "ARCHIVE_SHA256=$actual" >> "$GITHUB_ENV"
+
+      - name: (d) Azure login
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: (d) Assert tenant and subscription
+        run: |
+          set -euo pipefail
+          : "${EXPECTED_TENANT_ID:?EXPECTED_TENANT_ID is not set}"
+          : "${EXPECTED_SUBSCRIPTION_ID:?EXPECTED_SUBSCRIPTION_ID is not set}"
+          tenant="$(az account show --query tenantId -o tsv)"
+          subscription="$(az account show --query id -o tsv)"
+          if [ "$tenant" != "$EXPECTED_TENANT_ID" ] || [ "$subscription" != "$EXPECTED_SUBSCRIPTION_ID" ]; then
+            echo "::error::Signed-in tenant or subscription does not match the environment variables."
+            exit 1
+          fi
+
+      - name: Target manifest
+        shell: pwsh
+        run: |
+          $result = & ./scripts/apim-007/Get-Apim007TargetManifest.ps1 -Environment $env:TARGET_ENV -OutputPath (Join-Path $env:RUNNER_TEMP 'manifest.json')
+          if ($result.Sha256 -ne $env:PLAN_MANIFEST_SHA256) { throw 'Prod target manifest changed since plan-prod; re-run the release for a new approval.' }
+          $m = Get-Content -Raw -LiteralPath $result.Path | ConvertFrom-Json
+          $values = [ordered]@{
+            MANIFEST_PATH   = $result.Path
+            MANIFEST_SHA256 = $result.Sha256
+            APIM_NAME       = $m.apim.name
+            GATEWAY_URL     = $m.apim.gatewayUrl
+            BACKEND_RG      = ($m.backends.resourceGroupId -split '/')[-1]
+            WEATHER_APP     = $m.backends.apps.weather.name
+            SOAP_APP        = $m.backends.apps.'software-version'.name
+            WEATHER_URL     = $m.backends.apps.weather.httpsBaseUrl
+            SOAP_BASE_URL   = $m.backends.apps.'software-version'.httpsBaseUrl
+          }
+          foreach ($key in $values.Keys) {
+            if ([string]$values[$key] -notmatch '^[A-Za-z0-9:/._\-]+$') { throw "Manifest value $key is invalid." }
+            "$key=$($values[$key])" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          }
+
+      - name: Read dev release state
+        shell: pwsh
+        run: |
+          $otherName = az deployment group show --resource-group $env:OTHER_APIM_RG --name "apim007-apim-$($env:OTHER_ENV)" --query properties.outputs.apimName.value -o tsv --only-show-errors
+          if ($LASTEXITCODE -ne 0 -or $otherName -notmatch '^[A-Za-z0-9\-]+$') { throw 'Cannot resolve the dev APIM name.' }
+          "OTHER_APIM_NAME=$otherName" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          $null = & ./scripts/apim-007/Get-Apim007ReleaseState.ps1 -ResourceGroup $env:OTHER_APIM_RG -ServiceName $otherName -Environment $env:OTHER_ENV `
+            -OutputPath (Join-Path $env:RUNNER_TEMP "state-$($env:OTHER_ENV).json")
+
+      - name: (e) Resolve trusted candidate hash
+        shell: pwsh
+        run: |
+          $trusted = $env:EXPECTED_SHA256
+          if ($env:IS_ROLLBACK -eq 'true') {
+            $null = & ./scripts/apim-007/Get-Apim007ReleaseState.ps1 -ResourceGroup $env:APIM_RG -ServiceName $env:APIM_NAME -Environment $env:TARGET_ENV `
+              -CandidateTag $env:CANDIDATE_TAG -CandidateSha256 $env:ARCHIVE_SHA256 -IsRollback `
+              -AdditionalHistoryStatePath (Join-Path $env:RUNNER_TEMP "state-$($env:OTHER_ENV).json") -Gate
+            $trusted = $env:ARCHIVE_SHA256
+          }
+          if ($trusted -notmatch '^[0-9a-f]{64}$') { throw 'No trusted candidate hash.' }
+          "TRUSTED_SHA256=$trusted" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: (f) Verify candidate
+        shell: pwsh
+        run: |
+          $candidate = & ./scripts/apim-007/Test-Apim007Candidate.ps1 -ArchivePath (Join-Path $env:RUNNER_TEMP 'download/candidate.tar.gz') `
+            -ExpectedSha256 $env:TRUSTED_SHA256 -ExtractPath (Join-Path $env:RUNNER_TEMP 'candidate')
+          if ($candidate.WeatherImage -ne $env:PLAN_WEATHER_IMAGE -or $candidate.SoapImage -ne $env:PLAN_SOAP_IMAGE) { throw 'Candidate images differ from the approved plan.' }
+          if ($candidate.ApiVersion -notmatch '^\d{4}-\d{2}-\d{2}(-preview)?$') { throw 'Candidate API version is invalid.' }
+          $build = [Convert]::ToInt32($candidate.SourceSha.Substring(0, 4), 16) % 65535
+          @(
+            "CAND_DIR=$($candidate.CandidatePath)",
+            "CAND_SOURCE_SHA=$($candidate.SourceSha)",
+            "CAND_API_VERSION=$($candidate.ApiVersion)",
+            "WEATHER_IMAGE=$($candidate.WeatherImage)",
+            "SOAP_IMAGE=$($candidate.SoapImage)",
+            "APP_VERSION=1.0.$build.0"
+          ) | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: (g) Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+
+      - name: (g) Install APIops CLI from the candidate lockfile
+        run: |
+          set -euo pipefail
+          cd "$CAND_DIR/tools/apiops-cli"
+          pwsh -NoProfile -File "$GITHUB_WORKSPACE/scripts/apim-007/Test-Apim007LockfileProvenance.ps1" -LockfilePath package-lock.json
+          npm ci --ignore-scripts --no-audit --no-fund
+          expected="$(jq -r '.apiopsCliVersion' "$CAND_DIR/candidate-manifest.json")"
+          test -x node_modules/.bin/apiops
+          actual="$(node_modules/.bin/apiops --version | tr -d '[:space:]')"
+          if [ "$actual" != "$expected" ]; then
+            echo "::error::apiops version '$actual' does not equal the candidate pin $expected"
+            exit 1
+          fi
+          echo "APIOPS=$CAND_DIR/tools/apiops-cli/node_modules/.bin/apiops" >> "$GITHUB_ENV"
+
+      - name: Recheck overrides against the plan
+        shell: pwsh
+        run: |
+          $overrides = & (Join-Path $env:CAND_DIR 'scripts/apim-007/New-Apim007Overrides.ps1') -ManifestPath $env:MANIFEST_PATH `
+            -InventoryPath (Join-Path $env:CAND_DIR 'configuration.007.expected-inventory.json') -OutputPath (Join-Path $env:RUNNER_TEMP 'overrides.json')
+          if ($overrides.Sha256 -ne $env:PLAN_OVERRIDE_SHA256) { throw 'Prod overrides changed since plan-prod; re-run the release for a new approval.' }
+          @("OVERRIDES_FILE=$($overrides.Path)", "OVERRIDES_SHA256=$($overrides.Sha256)") | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Release gates
+        shell: pwsh
+        run: |
+          $null = & ./scripts/apim-007/Get-Apim007ReleaseState.ps1 -ResourceGroup $env:OTHER_APIM_RG -ServiceName $env:OTHER_APIM_NAME -Environment $env:OTHER_ENV `
+            -CandidateTag $env:CANDIDATE_TAG -CandidateSha256 $env:TRUSTED_SHA256 -RequireCleanCandidate -Gate
+          $null = & ./scripts/apim-007/Get-Apim007ReleaseState.ps1 -ResourceGroup $env:APIM_RG -ServiceName $env:APIM_NAME -Environment $env:TARGET_ENV `
+            -CandidateTag $env:CANDIDATE_TAG -CandidateSha256 $env:TRUSTED_SHA256 -IsRollback:($env:IS_ROLLBACK -eq 'true') `
+            -AdditionalHistoryStatePath (Join-Path $env:RUNNER_TEMP "state-$($env:OTHER_ENV).json") -Gate
+
+      - name: Mark deploying
+        shell: pwsh
+        run: |
+          'STATE_WRITTEN=true' | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          $null = & ./scripts/apim-007/Set-Apim007ReleaseState.ps1 -ResourceGroup $env:APIM_RG -ServiceName $env:APIM_NAME -Status deploying `
+            -CandidateTag $env:CANDIDATE_TAG -CandidateSha256 $env:TRUSTED_SHA256 -SourceSha $env:CAND_SOURCE_SHA
+
+      - name: Roll out candidate images
+        run: |
+          set -euo pipefail
+          for pair in "$WEATHER_APP|$WEATHER_IMAGE" "$SOAP_APP|$SOAP_IMAGE"; do
+            app="${pair%%|*}"
+            image="${pair#*|}"
+            az webapp config set --resource-group "$BACKEND_RG" --name "$app" --linux-fx-version "DOCKER|$image" --output none
+            az webapp restart --resource-group "$BACKEND_RG" --name "$app" --output none
+          done
+          for url in "$WEATHER_URL/api/Version" "$SOAP_BASE_URL/api/Version"; do
+            ready=false
+            for _ in $(seq 1 40); do
+              if curl -fsS --max-time 20 "$url" 2> /dev/null | grep -qF "$APP_VERSION"; then ready=true; break; fi
+              sleep 15
+            done
+            if [ "$ready" != "true" ]; then
+              echo "::error::$url did not report version $APP_VERSION."
+              exit 1
+            fi
+          done
+          curl -fsS --max-time 20 -o /dev/null "$SOAP_BASE_URL$SOAP_SERVICE_PATH?wsdl"
+
+      - name: Observed backend receipt
+        run: |
+          set -euo pipefail
+          for pair in "$WEATHER_APP|$WEATHER_IMAGE" "$SOAP_APP|$SOAP_IMAGE"; do
+            app="${pair%%|*}"
+            image="${pair#*|}"
+            observed="$(az webapp config show --resource-group "$BACKEND_RG" --name "$app" --query linuxFxVersion -o tsv)"
+            if [ "$observed" != "DOCKER|$image" ]; then
+              echo "::error::$app runs '$observed', not the approved candidate image."
+              exit 1
+            fi
+          done
+
+      - name: Direct backend tests
+        shell: pwsh
+        run: |
+          $null = & (Join-Path $env:CAND_DIR 'scripts/apim-007/Test-Apim007Backend.ps1') -WeatherBaseUrl $env:WEATHER_URL `
+            -SoapServiceUrl "$($env:SOAP_BASE_URL)$($env:SOAP_SERVICE_PATH)" `
+            -WsdlPath (Join-Path $env:CAND_DIR 'artifacts.007/apis/software-version/specification.wsdl') -ExpectedVersion $env:APP_VERSION
+
+      - name: Protected-state baseline
+        shell: pwsh
+        run: |
+          $null = & (Join-Path $env:CAND_DIR 'scripts/apim-007/Test-Apim007ServiceState.ps1') -ResourceGroup $env:APIM_RG -ServiceName $env:APIM_NAME -Mode Capture `
+            -BaselinePath (Join-Path $env:RUNNER_TEMP 'service-baseline.json')
+
+      - name: APIops dry run, publish and extract
+        run: |
+          set -euo pipefail
+          test -x "$APIOPS"
+          unset COMMIT_ID
+          export AZURE_API_VERSION="$CAND_API_VERSION"
+          "$APIOPS" --subscription-id "$EXPECTED_SUBSCRIPTION_ID" publish \
+            --resource-group "$APIM_RG" --service-name "$APIM_NAME" \
+            --source "$CAND_DIR/artifacts.007" --overrides "$OVERRIDES_FILE" \
+            --filter "$CAND_DIR/configuration.007.ownership.yaml" --no-transitive --dry-run
+          "$APIOPS" --subscription-id "$EXPECTED_SUBSCRIPTION_ID" publish \
+            --resource-group "$APIM_RG" --service-name "$APIM_NAME" \
+            --source "$CAND_DIR/artifacts.007" --overrides "$OVERRIDES_FILE" \
+            --filter "$CAND_DIR/configuration.007.ownership.yaml" --no-transitive
+          "$APIOPS" --subscription-id "$EXPECTED_SUBSCRIPTION_ID" extract \
+            --resource-group "$APIM_RG" --service-name "$APIM_NAME" \
+            --output "$RUNNER_TEMP/verify-1" \
+            --filter "$CAND_DIR/configuration.007.ownership.yaml" --no-transitive
+
+      - name: Extraction comparison and service state
+        shell: pwsh
+        run: |
+          $scripts = Join-Path $env:CAND_DIR 'scripts/apim-007'
+          $null = & (Join-Path $scripts 'Compare-Apim007Extraction.ps1') -ExtractionPath (Join-Path $env:RUNNER_TEMP 'verify-1') `
+            -BundlePath (Join-Path $env:CAND_DIR 'artifacts.007') -InventoryPath (Join-Path $env:CAND_DIR 'configuration.007.expected-inventory.json') `
+            -OverridesPath $env:OVERRIDES_FILE -GatewayUrl $env:GATEWAY_URL
+          $null = & (Join-Path $scripts 'Test-Apim007ServiceState.ps1') -ResourceGroup $env:APIM_RG -ServiceName $env:APIM_NAME -Mode Verify `
+            -BaselinePath (Join-Path $env:RUNNER_TEMP 'service-baseline.json')
+
+      - name: Gateway tests
+        shell: pwsh
+        run: |
+          $null = & (Join-Path $env:CAND_DIR 'scripts/apim-007/Test-Apim007Gateway.ps1') -ManifestPath $env:MANIFEST_PATH `
+            -WsdlPath (Join-Path $env:CAND_DIR 'artifacts.007/apis/software-version/specification.wsdl') -ExpectedVersion $env:APP_VERSION `
+            -PolicyPath (Join-Path $env:CAND_DIR 'artifacts.007/apis/weather/policy.xml')
+
+      - name: Second publish and gateway test
+        shell: pwsh
+        run: |
+          $env:AZURE_API_VERSION = $env:CAND_API_VERSION
+          Remove-Item Env:COMMIT_ID -ErrorAction SilentlyContinue
+          & $env:APIOPS --subscription-id $env:EXPECTED_SUBSCRIPTION_ID publish --resource-group $env:APIM_RG --service-name $env:APIM_NAME `
+            --source (Join-Path $env:CAND_DIR 'artifacts.007') --overrides $env:OVERRIDES_FILE `
+            --filter (Join-Path $env:CAND_DIR 'configuration.007.ownership.yaml') --no-transitive
+          if ($LASTEXITCODE -ne 0) { throw "Second publish failed (exit $LASTEXITCODE)." }
+          $null = & (Join-Path $env:CAND_DIR 'scripts/apim-007/Test-Apim007Gateway.ps1') -ManifestPath $env:MANIFEST_PATH `
+            -WsdlPath (Join-Path $env:CAND_DIR 'artifacts.007/apis/software-version/specification.wsdl') -ExpectedVersion $env:APP_VERSION `
+            -PolicyPath (Join-Path $env:CAND_DIR 'artifacts.007/apis/weather/policy.xml')
+
+      - name: Mark clean
+        shell: pwsh
+        run: |
+          $null = & ./scripts/apim-007/Set-Apim007ReleaseState.ps1 -ResourceGroup $env:APIM_RG -ServiceName $env:APIM_NAME -Status clean `
+            -CandidateTag $env:CANDIDATE_TAG -CandidateSha256 $env:TRUSTED_SHA256 -SourceSha $env:CAND_SOURCE_SHA
+
+      - name: Receipt
+        shell: pwsh
+        run: |
+          $receipt = [ordered]@{
+            environment      = "$($env:TARGET_ENV)-007"
+            candidateTag     = $env:CANDIDATE_TAG
+            candidateSha256  = $env:TRUSTED_SHA256
+            isRollback       = ($env:IS_ROLLBACK -eq 'true')
+            sourceSha        = $env:CAND_SOURCE_SHA
+            appVersion       = $env:APP_VERSION
+            weatherImage     = $env:WEATHER_IMAGE
+            soapImage        = $env:SOAP_IMAGE
+            apimName         = $env:APIM_NAME
+            gatewayUrl       = $env:GATEWAY_URL
+            manifestSha256   = $env:MANIFEST_SHA256
+            overridesSha256  = $env:OVERRIDES_SHA256
+            apiVersion       = $env:CAND_API_VERSION
+            runId            = $env:GITHUB_RUN_ID
+            runAttempt       = $env:GITHUB_RUN_ATTEMPT
+            completedUtc     = [datetime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')
+          }
+          $path = Join-Path $env:RUNNER_TEMP 'receipt/receipt.json'
+          $null = New-Item -ItemType Directory -Path (Split-Path -Parent $path) -Force
+          [IO.File]::WriteAllText($path, ($receipt | ConvertTo-Json), [Text.UTF8Encoding]::new($false))
+          $lines = @("## APIM 007 $($env:TARGET_ENV) release receipt", '', '| Item | Value |', '| --- | --- |')
+          $lines += foreach ($key in $receipt.Keys) { "| $key | $($receipt[$key]) |" }
+          $lines | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+
+      - name: Upload receipt
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: receipt-prod-007
+          path: ${{ runner.temp }}/receipt/receipt.json
+          if-no-files-found: error
+
+      - name: Mark dirty on failure or cancellation
+        if: ${{ (failure() || cancelled()) && env.STATE_WRITTEN == 'true' }}
+        shell: pwsh
+        run: |
+          $null = & ./scripts/apim-007/Set-Apim007ReleaseState.ps1 -ResourceGroup $env:APIM_RG -ServiceName $env:APIM_NAME -Status dirty -OnlyIfOwnedDeploying
