@@ -1,0 +1,166 @@
+site_name: APIOps 007 Labs
+site_description: Bilingual (EN/FR) hands-on labs - promote Azure API Management configuration from dev to prod with the APIops CLI, extraction GitOps and an AI gateway.
+site_url: https://devopsabcs-engineering.github.io/APIM_apim-landing-zone-accelerator/
+repo_url: https://github.com/devopsabcs-engineering/APIM_apim-landing-zone-accelerator
+repo_name: devopsabcs-engineering/APIM_apim-landing-zone-accelerator
+edit_uri: edit/main/site-007/docs/
+copyright: Copyright &copy; devopsabcs-engineering - MIT
+strict: true
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+  anchors: warn
+
+theme:
+  name: material
+  custom_dir: overrides
+  language: en
+  font: false
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+    - content.tabs.link
+    - toc.follow
+
+extra_css:
+  - stylesheets/apiops-lab.css
+extra_javascript:
+  - javascripts/lang-pref.js
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+plugins:
+  - search
+  - glightbox:
+      touchNavigation: true
+      loop: false
+      effect: zoom
+      zoomable: true
+      draggable: false
+      auto_caption: false
+  # docs/en and docs/fr hold the translated pages. The root locale "eo" only holds
+  # the language picker (docs/index.md) so /en/ and /fr/ publish side by side.
+  - i18n:
+      docs_structure: folder
+      fallback_to_default: true
+      languages:
+        - locale: eo
+          default: true
+          build: true
+          name: Language picker
+          site_name: APIOps 007 Labs
+          nav:
+            - index.md
+        - locale: en
+          build: true
+          name: English
+          site_name: APIOps 007 Labs
+          nav_translations: {}
+        - locale: fr
+          build: true
+          name: Français
+          site_name: Ateliers APIOps 007
+          site_description: Ateliers pratiques bilingues (EN/FR) - promouvez la configuration Azure API Management du développement à la production avec l'APIops CLI, le GitOps par extraction et une passerelle IA.
+          theme:
+            palette:
+              - toggle:
+                  name: Passer au mode sombre
+              - toggle:
+                  name: Passer au mode clair
+          admonition_translations:
+            note: Remarque
+            abstract: Résumé
+            info: Information
+            tip: Astuce
+            success: Réussite
+            question: Question
+            warning: Avertissement
+            failure: Échec
+            danger: Danger
+            bug: Bogue
+            example: Exemple
+            quote: Citation
+          nav_translations:
+            Home: Accueil
+            Labs: Ateliers
+            Reference: Référence
+
+extra:
+  generator: false
+  alternate:
+    - name: English
+      link: en/
+      lang: en
+    - name: Français
+      link: fr/
+      lang: fr
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/devopsabcs-engineering/APIM_apim-landing-zone-accelerator
+      name: GitHub
+
+nav:
+  - Home: index.md
+  - Labs:
+      - labs/index.md
+      - labs/lab-00-setup.md
+      - labs/lab-01-infrastructure.md
+      - labs/lab-02-bundle.md
+      - labs/lab-03-baseline-release.md
+      - labs/lab-04-promotion-a-to-b.md
+      - labs/lab-05-extraction-gitops.md
+      - labs/lab-06-rollback.md
+      - labs/lab-07-ai-infrastructure.md
+      - labs/lab-08-ai-release.md
+      - labs/lab-09-ai-promotion-showback.md
+      - labs/lab-10-teardown.md
+  - Reference:
+      - evidence.md
+      - glossary.md
+      - troubleshooting.md
+      - about.md

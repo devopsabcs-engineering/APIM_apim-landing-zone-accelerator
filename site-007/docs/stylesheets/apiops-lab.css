@@ -1,0 +1,521 @@
+/* APIOps 007 Labs visual kit (adapted from the AI-SDLC Labs kit)
+   Tokens are mapped onto Material for MkDocs variables for BOTH the light ("default")
+   and dark ("slate") schemes.
+
+   Icon rule: emoji only. An emoji either sits next to visible text (then mark it
+   aria-hidden="true") or stands alone (then give it role="img" aria-label="...").
+   Tints use color-mix(), never var(--x)22 hex-alpha concatenation. */
+
+/* ---------- 1. Tokens ---------- */
+
+:root {
+  --md-text-font: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial;
+  --md-code-font: "Cascadia Code", ui-monospace, "SFMono-Regular", Menlo, Consolas;
+
+  /* phase accents (identical in both schemes) */
+  --ai-idea: #0ea5e9;
+  --ai-plan: #6366f1;
+  --ai-build: #f59e0b;
+  --ai-test: #0d9488;
+  --ai-sign: #a855f7;
+  --ai-deploy: #ef4444;
+  --ai-prod: #16a34a;
+  --ai-orch: #f43f5e;
+  --ai-human: #fbbf24;
+
+  --ai-radius: 16px;
+  --ai-radius-sm: 10px;
+  --ai-gradient: linear-gradient(90deg, var(--ai-idea), var(--ai-plan), var(--ai-sign), var(--ai-deploy));
+}
+
+/* Light scheme: darker "stroke" shades keep text readable on white. */
+[data-md-color-scheme="default"] {
+  --ai-bg: #ffffff;
+  --ai-panel: #f8fafc;
+  --ai-panel-2: #f1f5f9;
+  --ai-line: #cbd5e1;
+  --ai-ink: #0f172a;
+  --ai-muted: #475569;
+
+  --ai-idea-ink: #0369a1;
+  --ai-plan-ink: #4338ca;
+  --ai-build-ink: #b45309;
+  --ai-test-ink: #0f766e;
+  --ai-sign-ink: #7e22ce;
+  --ai-deploy-ink: #b91c1c;
+  --ai-prod-ink: #15803d;
+  --ai-orch-ink: #be123c;
+  --ai-human-ink: #92400e;
+
+  --md-primary-fg-color: #0b1020;
+  --md-primary-fg-color--light: #131a2e;
+  --md-primary-fg-color--dark: #000000;
+  --md-primary-bg-color: #eef2ff;
+  --md-primary-bg-color--light: #c7d0ea;
+  --md-accent-fg-color: #4f46e5;
+  --md-accent-fg-color--transparent: rgba(79, 70, 229, 0.1);
+  --md-accent-bg-color: #ffffff;
+
+  --md-default-bg-color: var(--ai-bg);
+  --md-default-fg-color: var(--ai-ink);
+  --md-default-fg-color--light: #334155;
+  --md-default-fg-color--lighter: #64748b;
+  --md-default-fg-color--lightest: #e2e8f0;
+  --md-typeset-color: var(--ai-ink);
+  --md-typeset-a-color: #4338ca;
+  --md-code-bg-color: #f1f5f9;
+  --md-code-fg-color: #0f172a;
+  --md-admonition-bg-color: var(--ai-panel);
+  --md-footer-bg-color: #0b1020;
+  --md-footer-bg-color--dark: #000000;
+  --md-footer-fg-color: #eef2ff;
+  --md-footer-fg-color--light: #c7d0ea;
+  --md-footer-fg-color--lighter: #93a0c0;
+}
+
+/* Dark scheme: the presentation palette. */
+[data-md-color-scheme="slate"] {
+  --ai-bg: #0b1020;
+  --ai-panel: #131a2e;
+  --ai-panel-2: #1a2440;
+  --ai-line: #26304a;
+  --ai-ink: #eef2ff;
+  --ai-muted: #93a0c0;
+
+  --ai-idea-ink: #7dd3fc;
+  --ai-plan-ink: #a5b4fc;
+  --ai-build-ink: #fcd34d;
+  --ai-test-ink: #5eead4;
+  --ai-sign-ink: #d8b4fe;
+  --ai-deploy-ink: #fca5a5;
+  --ai-prod-ink: #86efac;
+  --ai-orch-ink: #fda4af;
+  --ai-human-ink: #fde68a;
+
+  --md-primary-fg-color: #0b1020;
+  --md-primary-fg-color--light: #131a2e;
+  --md-primary-fg-color--dark: #000000;
+  --md-primary-bg-color: #eef2ff;
+  --md-primary-bg-color--light: #c7d0ea;
+  --md-accent-fg-color: #c7d2fe;
+  --md-accent-fg-color--transparent: rgba(165, 180, 252, 0.12);
+  --md-accent-bg-color: #0b1020;
+
+  --md-default-bg-color: var(--ai-bg);
+  --md-default-bg-color--light: rgba(11, 16, 32, 0.54);
+  --md-default-bg-color--lighter: rgba(11, 16, 32, 0.26);
+  --md-default-bg-color--lightest: rgba(11, 16, 32, 0.07);
+  --md-default-fg-color: var(--ai-ink);
+  --md-default-fg-color--light: #c7d0ea;
+  --md-default-fg-color--lighter: #93a0c0;
+  --md-default-fg-color--lightest: #26304a;
+  --md-typeset-color: var(--ai-ink);
+  --md-typeset-a-color: #a5b4fc;
+  --md-code-bg-color: #0f1730;
+  --md-code-fg-color: #e6ecff;
+  --md-admonition-bg-color: var(--ai-panel);
+  --md-footer-bg-color: #0b1020;
+  --md-footer-bg-color--dark: #060a16;
+}
+
+/* Phase modifiers: set --accent (fill/border) and --accent-ink (text). */
+.phase-idea { --accent: var(--ai-idea); --accent-ink: var(--ai-idea-ink); }
+.phase-plan { --accent: var(--ai-plan); --accent-ink: var(--ai-plan-ink); }
+.phase-build { --accent: var(--ai-build); --accent-ink: var(--ai-build-ink); }
+.phase-test { --accent: var(--ai-test); --accent-ink: var(--ai-test-ink); }
+.phase-sign { --accent: var(--ai-sign); --accent-ink: var(--ai-sign-ink); }
+.phase-deploy { --accent: var(--ai-deploy); --accent-ink: var(--ai-deploy-ink); }
+.phase-prod { --accent: var(--ai-prod); --accent-ink: var(--ai-prod-ink); }
+.phase-orch { --accent: var(--ai-orch); --accent-ink: var(--ai-orch-ink); }
+.phase-human { --accent: var(--ai-human); --accent-ink: var(--ai-human-ink); }
+
+/* Zero-specificity defaults so a .phase-* modifier always wins. */
+:where(.chip, .phase-card, .agent-card, .agent-avatar) {
+  --accent: var(--ai-plan);
+  --accent-ink: var(--ai-plan-ink);
+}
+
+/* ---------- 2. Base polish ---------- */
+
+.md-typeset h1,
+.md-typeset h2 {
+  letter-spacing: -0.02em;
+}
+
+.md-header {
+  border-bottom: 3px solid transparent;
+  border-image: var(--ai-gradient) 1;
+}
+
+:is(.md-typeset a, .md-button, .md-nav__link, .md-search__input, .md-header__button, .md-footer__link, .phase-card, .agent-card):focus-visible {
+  outline: 3px solid var(--ai-idea);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.md-typeset code.cmd {
+  background: var(--ai-panel-2);
+  border: 1px solid var(--ai-line);
+  border-radius: 7px;
+  padding: 0.1em 0.45em;
+}
+
+/* ---------- 3. Chips ---------- */
+
+.chip,
+.gate-chip,
+.ai-chip,
+.human-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  margin: 0 0.4em 0.4em 0;
+  padding: 0.2em 0.7em;
+  border: 1px solid var(--accent);
+  border-radius: var(--ai-radius-sm);
+  background: var(--ai-panel);
+  color: var(--accent-ink);
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.gate-chip { --accent: var(--ai-test); --accent-ink: var(--ai-test-ink); font-family: var(--md-code-font), monospace; }
+.ai-chip { --accent: var(--ai-plan); --accent-ink: var(--ai-plan-ink); }
+.human-chip { --accent: var(--ai-human); --accent-ink: var(--ai-human-ink); }
+
+.gate-chip::before {
+  content: "";
+  width: 0.5em;
+  height: 0.5em;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+/* ---------- 4. Phase card and flow strip ---------- */
+
+.phase-card {
+  position: relative;
+  padding: 0.9rem 0.95rem;
+  border: 1px solid var(--ai-line);
+  border-top: 3px solid var(--accent);
+  border-radius: 12px;
+  background: var(--ai-panel);
+  color: var(--ai-ink);
+}
+
+.phase-card .ico { display: block; font-size: 1.5rem; line-height: 1.2; }
+.phase-card .tag {
+  display: inline-block;
+  margin: 0.3rem 0;
+  padding: 0.1em 0.6em;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #0b1020;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.phase-card strong { display: block; font-size: 1rem; }
+.phase-card .gate { display: block; margin-top: 0.35rem; color: var(--ai-muted); font-size: 0.75rem; font-weight: 600; }
+
+.md-typeset ol.flow-strip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(8.5rem, 1fr);
+  gap: 1.6rem;
+  margin: 1.2rem 0;
+  padding: 0.6rem 0.3rem 1rem;
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+}
+
+.md-typeset .flow-strip > li {
+  position: relative;
+  margin: 0;
+  scroll-snap-align: center;
+}
+
+.md-typeset .flow-strip > li:not(:last-child)::after {
+  content: "\2192";
+  content: "\2192" / "";
+  position: absolute;
+  top: 50%;
+  right: -1.4rem;
+  width: 1.2rem;
+  color: var(--ai-muted);
+  font-weight: 700;
+  text-align: center;
+  transform: translateY(-50%);
+}
+
+.md-typeset .flow-strip > li.phase-card { padding: 0.9rem 0.95rem; }
+.md-typeset .flow-strip > li.is-current { box-shadow: 0 0 0 2px var(--accent); }
+
+/* ---------- 5. Agent avatar and grid ---------- */
+
+.md-typeset ul.agent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 0.8rem;
+  margin: 1rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+.md-typeset .agent-grid > li { margin: 0; }
+
+.agent-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+  height: 100%;
+  padding: 0.8rem;
+  border: 1px solid var(--ai-line);
+  border-radius: 12px;
+  background: var(--ai-panel);
+}
+
+.agent-card strong { display: block; line-height: 1.3; }
+.agent-card .role { display: block; margin-top: 0.15rem; color: var(--ai-muted); font-size: 0.78rem; line-height: 1.4; }
+.agent-card code { font-size: 0.7rem; }
+
+.agent-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid var(--accent);
+  border-radius: 11px;
+  background: var(--ai-panel-2);
+  font-size: 1.25rem;
+}
+
+/* ---------- 6. Hero ---------- */
+
+.hero {
+  margin: 0 0 2rem;
+  padding: 2rem 1.5rem;
+  border: 1px solid var(--ai-line);
+  border-radius: 20px;
+  background: var(--ai-panel);
+}
+.hero .headerlink { display: none; }
+
+.md-typeset .hero h1 {
+  margin: 0.2rem 0 0.6rem;
+  font-size: clamp(1.9rem, 4.5vw, 3rem);
+  font-weight: 800;
+  line-height: 1.1;
+  background: var(--ai-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+[data-md-color-scheme="default"] .md-typeset .hero h1 {
+  /* darker stops keep the gradient legible on a light panel */
+  background-image: linear-gradient(90deg, #0369a1, #4338ca, #7e22ce, #b91c1c);
+}
+
+.hero .eyebrow {
+  display: inline-block;
+  margin: 0;
+  padding: 0.15em 0.8em;
+  border: 1px solid var(--ai-line);
+  border-radius: 999px;
+  color: var(--ai-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.hero .lead { max-width: 54ch; color: var(--ai-muted); font-size: 1.05rem; }
+
+/* ---------- 7. Lab meta table ---------- */
+
+.lab-meta table {
+  width: 100%;
+  border: 1px solid var(--ai-line);
+  border-radius: var(--ai-radius-sm);
+  background: var(--ai-panel);
+  overflow: hidden;
+}
+
+.lab-meta table:not([class]) { display: table; }
+.lab-meta th { background: var(--ai-panel-2); font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; }
+.lab-meta td:first-child { width: 11rem; font-weight: 700; }
+
+.md-typeset .lab-meta :is(th, td) { border-color: var(--ai-line); }
+
+/* ---------- 8. Screenshot frame (works with glightbox) ---------- */
+
+.screenshot-frame {
+  margin: 1.5rem 0;
+  border: 1px solid var(--ai-line);
+  border-radius: 14px;
+  background: var(--ai-panel);
+  box-shadow: 0 18px 40px -22px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}
+
+.screenshot-frame::before {
+  /* decorative window dots */
+  content: "";
+  display: block;
+  height: 2rem;
+  border-bottom: 1px solid var(--ai-line);
+  background:
+    radial-gradient(circle at 1rem 50%, #ff5f57 0 0.3rem, transparent 0.32rem),
+    radial-gradient(circle at 2.1rem 50%, #febc2e 0 0.3rem, transparent 0.32rem),
+    radial-gradient(circle at 3.2rem 50%, #28c840 0 0.3rem, transparent 0.32rem),
+    var(--ai-panel-2);
+}
+
+.screenshot-frame p { margin: 0; }
+.screenshot-frame img { display: block; width: 100%; height: auto; margin: 0; }
+
+.screenshot-frame figcaption {
+  margin: 0;
+  padding: 0.6rem 0.9rem;
+  border-top: 1px solid var(--ai-line);
+  color: var(--ai-muted);
+  font-size: 0.78rem;
+  text-align: left;
+}
+
+.screenshot-frame a.glightbox { display: block; }
+
+/* Animated SVG diagrams: no window chrome, centered, dark canvas from the SVG itself. */
+.anim-frame {
+  margin: 1.5rem 0;
+  border: 1px solid var(--ai-line);
+  border-radius: 14px;
+  overflow: hidden;
+  background: #0b1020;
+}
+.anim-frame p { margin: 0; }
+.anim-frame img { display: block; width: 100%; height: auto; margin: 0; }
+.anim-frame figcaption {
+  margin: 0;
+  padding: 0.6rem 0.9rem;
+  border-top: 1px solid var(--ai-line);
+  background: var(--ai-panel);
+  color: var(--ai-muted);
+  font-size: 0.75rem;
+}
+
+/* ---------- 9. Callouts (admonition variants) ---------- */
+
+.md-typeset :is(.admonition, details):is(.cost, .checkpoint, .human, .loop, .gate, .wip, .evidence) {
+  border-left-width: 0.3rem;
+  border-radius: var(--ai-radius-sm);
+}
+
+.md-typeset :is(.admonition, details).cost { border-color: var(--ai-build); }
+.md-typeset :is(.admonition, details).checkpoint { border-color: var(--ai-prod); }
+.md-typeset :is(.admonition, details).human { border-color: var(--ai-human); }
+.md-typeset :is(.admonition, details).loop { border-color: var(--ai-deploy); border-style: dashed; border-left-style: solid; }
+.md-typeset :is(.admonition, details).gate { border-color: var(--ai-test); }
+.md-typeset :is(.admonition, details).wip { border-color: var(--ai-sign); }
+.md-typeset :is(.admonition, details).evidence { border-color: var(--ai-idea); }
+
+.md-typeset :is(.cost, .checkpoint, .human, .loop, .gate, .wip, .evidence) > :is(.admonition-title, summary)::before {
+  -webkit-mask-image: none;
+  mask-image: none;
+  background-color: transparent;
+  font-size: 1.1em;
+  line-height: 1;
+}
+
+.md-typeset .cost > :is(.admonition-title, summary)::before { content: "\1F4B0"; }
+.md-typeset .checkpoint > :is(.admonition-title, summary)::before { content: "\1F3C1"; }
+.md-typeset .human > :is(.admonition-title, summary)::before { content: "\1F464"; }
+.md-typeset .loop > :is(.admonition-title, summary)::before { content: "\21A9"; }
+.md-typeset .gate > :is(.admonition-title, summary)::before { content: "\1F6A6"; }
+.md-typeset .wip > :is(.admonition-title, summary)::before { content: "\1F6A7"; }
+.md-typeset .evidence > :is(.admonition-title, summary)::before { content: "\1F9FE"; }
+
+/* Animated diagrams and screenshots */
+.md-typeset figure.anim,
+.md-typeset figure.shot { margin: 1.25rem auto; max-width: 100%; }
+.md-typeset figure.anim img { width: 100%; border-radius: var(--ai-radius); border: 1px solid var(--ai-line); background: #0b1020; }
+.md-typeset figure.shot img { border-radius: var(--ai-radius-sm); border: 1px solid var(--ai-line); box-shadow: 0 6px 24px rgba(2, 6, 23, 0.18); }
+.md-typeset figure figcaption { color: var(--ai-muted); font-size: 0.75rem; max-width: none; }
+
+/* ---------- 10. Path cards ("two ways to learn") ---------- */
+
+.path-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+/* ---------- 11. color-mix() enhancement with plain fallbacks above ---------- */
+
+@supports (color: color-mix(in srgb, red 10%, blue)) {
+  .chip,
+  .gate-chip,
+  .ai-chip,
+  .human-chip {
+    background: color-mix(in srgb, var(--accent) 13%, var(--ai-bg));
+    border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  }
+
+  .phase-card,
+  .agent-card {
+    background: color-mix(in srgb, var(--accent) 6%, var(--ai-panel));
+  }
+
+  .agent-avatar {
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+    border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+
+  .md-typeset .flow-strip > li.is-current {
+    background: color-mix(in srgb, var(--accent) 16%, var(--ai-panel));
+  }
+
+  .md-typeset :is(.admonition, details):is(.cost, .checkpoint, .human, .loop, .gate, .wip) {
+    background: color-mix(in srgb, var(--md-typeset-color) 3%, var(--ai-bg));
+  }
+}
+
+/* ---------- 12. Motion and small screens ---------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  .phase-card,
+  .agent-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .phase-card:hover,
+  .agent-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 30px -16px var(--accent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (max-width: 44.9375em) {
+  .hero { padding: 1.25rem 1rem; }
+  .lab-meta td:first-child { width: auto; }
+}

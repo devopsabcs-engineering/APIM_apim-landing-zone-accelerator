@@ -1,0 +1,85 @@
+name: Pages APIM 007 labs
+
+# Builds the bilingual APIOps 007 lab site (site-007/) and publishes it to GitHub Pages.
+# Pull requests only build and check; pushes to main and manual runs also deploy.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'site-007/**'
+      - '.github/workflows/pages-apim-007.yml'
+  pull_request:
+    paths:
+      - 'site-007/**'
+      - '.github/workflows/pages-apim-007.yml'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: pages-apim-007-${{ github.event_name == 'pull_request' && github.event.pull_request.number || 'deploy' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    name: Build and check the site
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: site-007
+    env:
+      NO_MKDOCS_2_WARNING: 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: site-007/requirements.txt
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Check EN/FR parity
+        run: python scripts/check_parity.py
+
+      - name: Check images and alt text
+        run: python scripts/check_images.py
+
+      - name: Build the site (strict)
+        run: python -m mkdocs build --strict
+
+      - name: Configure Pages
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+      - name: Upload Pages artifact
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site-007/site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: [build]
+    if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
