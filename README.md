@@ -44,7 +44,7 @@ GitHub Actions
 |----------|-----|-------------|---------|
 | 005 | Premium (Classic v1) | Dev + Prod | Legacy with VNet, workspaces |
 | 006 | BasicV2 | Dev + Prod | Modern, cost-efficient |
-| 007 | BasicV2 | Dev + Prod | APIops CLI promotion lab with an AI gateway (token limits, content safety, token metrics) ([runbook](docs/apim-007-apiops-cli.md)) |
+| 007 | BasicV2 | Dev + Prod | APIops CLI promotion lab with an AI gateway (token limits, content safety, token metrics) ([runbook](docs/apim-007-apiops-cli.md), [bilingual labs](https://devopsabcs-engineering.github.io/APIM_apim-landing-zone-accelerator/)) |
 
 ## Quick Start
 

@@ -1,0 +1,5 @@
+site/
+.preview/
+node_modules/
+__pycache__/
+.venv/
