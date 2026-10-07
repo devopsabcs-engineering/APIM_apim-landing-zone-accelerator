@@ -12,8 +12,20 @@ keywords:
 
 ## Status
 
-> [!IMPORTANT]
-> Runtime acceptance has not been executed. The 007 templates, workflows and scripts are implemented and checked statically, but no 007 Azure resources exist yet and none of the runtime gates in this runbook has passed against Azure. Record evidence in this runbook as each step of the demo script completes.
+> [!NOTE]
+> Baseline A is deployed and validated in dev-007 and prod-007 (2026-10-07). The A-to-B change, rollback, extraction, failure tests and teardown rehearsal in the demo script have not been run yet.
+
+| Evidence                   | Value                                                                                       |
+|----------------------------|---------------------------------------------------------------------------------------------|
+| Contract capture run       | `37554025334`                                                                               |
+| Baseline A release run     | `37610973282` (all jobs passed, prod approved by `emmanuelknafo`)                           |
+| Candidate source SHA       | `51da660` (app version `1.0.20954.0`)                                                       |
+| dev-007 gateway            | `https://apim-dev-007-uovzcyp6yypu2.azure-api.net`, `x-demo-environment: dev-007`           |
+| prod-007 gateway           | `https://apim-prod-007-p4afmw2tk5j4m.azure-api.net`, `x-demo-environment: prod-007`         |
+| Release header             | `x-demo-release: baseline-a` in both environments                                           |
+| Prod self-review           | `prevent_self_review=false` (solo presenter, reduced control)                               |
+
+Issues found and fixed during the first runtime runs: leftover native exit codes after tolerated `az` not-found lookups, `approvalRequired` rejected on a product without subscriptions, and server defaults in the extraction comparison (`isAgent`, omitted `http` API type, the built-in `administrators` product group).
 
 ## Purpose
 
@@ -154,7 +166,7 @@ Run each step only after explicit approval; each one creates billable resources 
     -ProdReviewers <github-login> -WhatIf
 ```
 
-The `Initial` stage registers resource providers, checks Basic v2 availability, creates the five tagged resource groups, one subscription budget filtered on `apimDemo=007`, the user-assigned identities with one federated credential each, ABAC-constrained role assignments and the nine GitHub environments. It enables "Allow GitHub Actions to create and approve pull requests", attempts to enable immutable releases, records `APIM007_PREVENT_SELF_REVIEW` and finally sets `APIM007_ENABLED=true`. The `PostRegistry` stage grants the dev and prod infra identities an AcrPull-only RBAC Administrator assignment on the registry and publishes `REGISTRY_NAME`, `REGISTRY_LOGIN_SERVER` and `REGISTRY_ID`.
+The `Initial` stage registers resource providers, checks Basic v2 availability, creates the five tagged resource groups, one subscription budget filtered on `apimDemo=007`, the user-assigned identities with one federated credential each, ABAC-constrained role assignments and the nine GitHub environments. It tries to enable "Allow GitHub Actions to create and approve pull requests" (only a warning when organization or enterprise policy blocks it), attempts to enable immutable releases, records `APIM007_PREVENT_SELF_REVIEW` and finally sets `APIM007_ENABLED=true`. The `PostRegistry` stage grants the dev and prod infra identities an AcrPull-only RBAC Administrator assignment on the registry and publishes `REGISTRY_NAME`, `REGISTRY_LOGIN_SERVER` and `REGISTRY_ID`.
 
 The script refuses to continue when a `rg-apim-demo-007-*` resource group exists without the `apimDemo=007` tag, and it never deletes resources. After `target=dev` and `target=prod`, both environments run the bootstrap image and the workflow summary lists the target manifest.
 
@@ -180,7 +192,7 @@ Each environment holds the secrets `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` and `AZU
 
 ## Contract capture
 
-`artifacts.007/` does not yet contain `apis/weather/specification.json` or `apis/software-version/specification.wsdl`. They must come from the real images, not from hand edits.
+`apis/weather/specification.json` and `apis/software-version/specification.wsdl` in `artifacts.007/` must come from the real images, not from hand edits. Repeat this procedure whenever a backend contract changes.
 
 1. Dispatch `release-apiops-007.yml` with `capture_contracts_only=true`.
 2. Only `build-candidate` runs. It builds both images without credentials, runs them locally, fetches `/swagger/v1/swagger.json` and `/SoftwareVersionService.asmx?wsdl`, normalizes them, runs direct backend tests and uploads the `captured-contracts` artifact (14-day retention).
@@ -277,7 +289,7 @@ The job refuses to run unless the dev release state is `clean` and the bundle, o
 1. Edit one policy header on a dev-007 API in the portal.
 2. Dispatch `extract-apiops-007.yml`.
 3. The job extracts with the ownership filter, scans for credential-like content, uploads the raw extraction as the `dev-007-extraction` artifact (evidence only, never committed), compares it with the bundle and projects only allowed policy edits.
-4. With no drift, the summary reports "No drift". Otherwise the job runs Pester and the `Candidate` bundle check, then opens a pull request on `apim007/extract-<run_id>` limited to the changed policy files.
+4. With no drift, the summary reports "No drift". Otherwise the job runs Pester and the `Candidate` bundle check, uploads the projected policies as the `projected-policies` artifact, then opens a pull request on `apim007/extract-<run_id>` limited to the changed policy files. In this repository the enterprise policy blocks `GITHUB_TOKEN` from creating pull requests, so the step pushes the branch and then fails softly; open the pull request from that branch manually.
 5. Pull requests created with `GITHUB_TOKEN` do not trigger workflows, so the pull request body states that checks ran in the extraction job. Close the pull request, or merge it as a new candidate that repeats dev validation before prod approval.
 
 Endpoint, operation or schema drift fails the comparison instead of being normalized away.
