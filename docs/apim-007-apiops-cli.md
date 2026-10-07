@@ -1,7 +1,7 @@
 ---
 title: APIM 007 APIops CLI promotion runbook
 description: Runbook for the isolated dev-007 and prod-007 Basic v2 API Management lab that promotes one frozen APIops CLI candidate from dev to prod with approval, rollback, extraction-to-PR and teardown
-ms.date: 2026-10-06
+ms.date: 2026-10-07
 ms.topic: how-to
 keywords:
   - api management
@@ -52,10 +52,10 @@ Every release produces one frozen candidate: the environment-neutral bundle in `
 
 ### What the lab does not claim
 
-* It is an anonymous lab, not secured production. API and product subscription enforcement is disabled and no subscription keys exist.
-* The backends are public and anonymous, so callers can bypass APIM and call the App Service hosts directly.
+* It is an anonymous lab, not secured production. The Weather and SoftwareVersion APIs have subscription enforcement disabled and no subscription keys. Only the AI gateway API requires keys, through the `team-retail` and `team-finance` products.
+* The backends are public and anonymous, so callers can bypass APIM and call the App Service hosts directly. The AI accounts are not anonymous: local (key) authentication is disabled and only managed identities with data roles can call them.
 * Routing evidence is limited. The `x-demo-backend-host` response header plus the comparison of extracted service and backend URLs with the target manifest show where APIM sends requests. Headers alone do not prove backend isolation, and no correlated per-app request evidence is collected.
-* Do not introduce sensitive data, paid AI endpoints or production traffic. Enforcing keys or private backend access requires a separate security design.
+* Do not introduce sensitive data or production traffic. The AI gateway calls a paid Azure OpenAI deployment; tests send short prompts with small `max_tokens`. Private networking for the AI accounts requires a separate security design.
 
 ## Architecture
 
@@ -98,9 +98,10 @@ The APIM name is `apim-<env>-007-<uniqueString(resource group ID)>`, so a re-cre
 
 | Path                                        | Role                                                                             |
 |---------------------------------------------|----------------------------------------------------------------------------------|
-| `artifacts.007/`                            | Native, environment-neutral bundle: 2 APIs, 2 backends, 1 product, 1 named value |
+| `artifacts.007/`                            | Native, environment-neutral bundle: 3 APIs, 4 backends, 3 products, named values |
 | `configuration.007.ownership.yaml`          | Ownership filter passed to every publish and extract (LF, hash-pinned)           |
 | `configuration.007.expected-inventory.json` | Independent expected inventory used by bundle, override and extraction checks    |
+| `configuration.007.ai-settings.json`        | Per-environment AI token limits, safety threshold and blocklist fixture          |
 | `tools/apiops-cli/`                         | Exact CLI pin, committed lockfile, `.nvmrc` (Node 22)                            |
 | `infra/apim-demo-007/`                      | Bicep for the registry, APIM and backends, plus `bootstrap-image.json`           |
 | `scripts/apim-007/`                         | Release, validation and state scripts with Pester tests                          |
@@ -117,14 +118,17 @@ The release scripts under `scripts/apim-007/` have these purposes:
 * `Get-Apim007ReleaseState.ps1` and `Set-Apim007ReleaseState.ps1` read, gate and write the release state named value.
 * `Test-Apim007Backend.ps1` and `Test-Apim007Gateway.ps1` run direct backend tests and gateway tests with header assertions.
 * `Compare-Apim007Extraction.ps1` compares a fresh extraction with the bundle and projects allowed policy edits.
-* `Test-Apim007ServiceState.ps1` fingerprints protected service properties before publishing and verifies them afterwards.
+* `Test-Apim007ServiceState.ps1` fingerprints protected service properties (instrumentation key, logger, metrics diagnostic) before publishing and verifies them and every product's API links afterwards.
+* `Set-Apim007SafetyBlocklist.ps1` creates the content safety blocklist and its fixture term (infra workflow).
+* `Set-Apim007TeamSubscriptions.ps1` creates one product-scoped subscription per AI team; keys never leave APIM.
+* `Test-Apim007AiGateway.ps1` runs the AI gateway tests and the token metric check.
 
 ### Workflows
 
 | Workflow                 | Trigger                                                       | GitHub environments                                        | Purpose                                                                         |
 |--------------------------|---------------------------------------------------------------|------------------------------------------------------------|---------------------------------------------------------------------------------|
 | `validate-apim-007.yml`  | Pull requests touching 007 paths, manual                      | None                                                       | Legacy path guard, SHA pins, forbidden patterns, Bicep, tooling, Pester, bundle |
-| `infra-apim-007.yml`     | Manual, `target` = `shared`, `dev` or `prod`                  | `apim-007-shared-infra`, `dev-007-infra`, `prod-007-infra` | Hosting-only provisioning and AcrPull grants                                    |
+| `infra-apim-007.yml`     | Manual, `target` = `shared`, `dev` or `prod`                  | `apim-007-shared-infra`, `dev-007-infra`, `prod-007-infra` | Hosting and AI provisioning, AcrPull grants, content safety blocklist           |
 | `release-apiops-007.yml` | Push to `main` on 007 bundle, tooling or script paths; manual | `apim-007-build`, `dev-007`, `prod-007-plan`, `prod-007`   | Build, freeze, dev deploy, prod plan, approved prod deploy, rollback            |
 | `extract-apiops-007.yml` | Manual                                                        | `dev-007`                                                  | Dev extraction projected into a policy-only pull request                        |
 | `teardown-apim-007.yml`  | Manual, `environment` and `confirm` inputs                    | `dev-007-teardown`, `prod-007-teardown`                    | Exact-ID removal of one environment                                             |
@@ -242,6 +246,69 @@ Expect `x-demo-environment` to show the target environment, `x-demo-release` to 
 8. Roll forward by dispatching `release-apiops-007.yml` from `main` without inputs, approve and show `candidate-b` in both environments.
 9. Run the [failure and integrity tests](#failure-and-integrity-tests), then the dev teardown rehearsal in [Teardown](#teardown).
 
+## AI gateway
+
+The AI gateway adds an Azure OpenAI chat API to the same promotion flow. The policies, products and named values live in the bundle and promote like any other API; only the values differ per environment.
+
+### AI resources
+
+`infra-apim-007.yml` deploys `infra/apim-demo-007/ai.bicep` as `apim007-ai-<env>` into `rg-apim-demo-007-<env>-apim` (location `canadaeast`):
+
+* An AIServices account with the deployment `chat` (`gpt-4o` 2024-11-20, Standard, capacity 10, no automatic version upgrade).
+* A ContentSafety account.
+* Both accounts disable local authentication. The APIM system-assigned identity gets Cognitive Services OpenAI User on the AIServices account and Cognitive Services User on the ContentSafety account. The infra identity gets Cognitive Services User on the ContentSafety account to write the blocklist.
+
+The infra identity's RBAC Administrator condition on the APIM group allows only those two data roles for service principals, in addition to the release roles. Re-run the setup script `Initial` stage once before the first AI provisioning so the condition is in place.
+
+After the deployment, `Set-Apim007SafetyBlocklist.ps1` creates the blocklist `apim007-demo` with the fixture term from `configuration.007.ai-settings.json`.
+
+### AI bundle
+
+| Item                                      | Purpose                                                                                              |
+|-------------------------------------------|------------------------------------------------------------------------------------------------------|
+| `apis/ai-gateway`                         | `POST /ai/chat/completions`, key required in the `api-key` header                                     |
+| API policy                                | Strips the key, managed identity to `ai-foundry`, `llm-content-safety`, `llm-emit-token-metric`       |
+| `backends/ai-foundry`                     | Chat deployment URL (override)                                                                       |
+| `backends/ai-content-safety`              | Content safety endpoint (override) with managed identity credentials                                 |
+| `products/team-retail`, `team-finance`    | `llm-token-limit` per subscription: tokens per minute and a daily quota from named values            |
+| `ai-team-*`, `ai-safety-*` named values   | Sentinel `UNCONFIGURED` in the bundle; overrides fill them from `configuration.007.ai-settings.json` |
+
+The client passes `api-version` in the query string. The policy does not set it, because the extractor redacts literal `<value>` elements of `set-query-parameter` and the extraction comparison would fail.
+
+`New-Apim007Overrides.ps1` reads the AI section of the target manifest (derived from `apim007-ai-<env>`) and the AI settings, validates each value against a strict pattern and fails closed when the AI deployment is missing.
+
+### Release behavior
+
+After the extraction comparison, `deploy-dev` and `deploy-prod` run "AI gateway subscriptions and tests":
+
+1. `Set-Apim007TeamSubscriptions.ps1` creates `sub-team-retail` and `sub-team-finance` scoped to their products. Subscriptions are created by script, never stored in the bundle.
+2. `Test-Apim007AiGateway.ps1` reads the keys through ARM `listSecrets`, masks them and runs:
+   * T1: no key returns 401.
+   * T2: `team-retail` returns 200 with token usage, the `x-demo-*` headers and `remaining-tokens`.
+   * T3: a `team-finance` burst returns 429 with `Retry-After` within 10 calls.
+   * T4: the blocklist fixture term returns 403 with `x-content-safety-decision: blocked`.
+   * T5: token metrics (`Total Tokens`, `Prompt Tokens`, `Completion Tokens`) arrive in the `AppMetrics` table (warning only).
+
+The evidence goes into the receipt as `aiEvidence`. `plan-prod` lists the chat model, safety threshold and per-team prod limits for the approver. Rolling back to a candidate without the AI gateway skips the step and leaves the AI entities in place.
+
+### AI A-to-B demo
+
+1. Show `x-demo-release: baseline-ai` on the AI API in both environments.
+2. In a pull request, change the AI policy `x-demo-release` literal to `ai-b` and lower a prod quota in `configuration.007.ai-settings.json`. Merge it.
+3. While prod waits for approval, show dev returning `ai-b`, and show the new prod limit in the `plan-prod` summary.
+4. Approve and show prod returning `ai-b`.
+
+### Showback
+
+Query token use per product in the environment's Log Analytics workspace:
+
+```kusto
+AppMetrics
+| where TimeGenerated > ago(1d)
+| where Name == 'Total Tokens'
+| summarize tokens = sum(Sum) by product = tostring(Properties['Product ID']), bin(TimeGenerated, 1h)
+```
+
 ## Release state
 
 Each APIM service holds a non-secret named value `apim007-release-state`. It is outside the ownership filter, so publishing and extraction never touch it. Only release jobs write it, and only from the reviewed workflow checkout.
@@ -289,7 +356,7 @@ az apim nv show --resource-group rg-apim-demo-007-dev-apim --service-name <apim-
 
 ## Extraction to pull request
 
-`extract-apiops-007.yml` is manual and dev-only. It projects an approved dev portal edit of an API policy into `artifacts.007/apis/*/policy.xml` and opens a pull request.
+`extract-apiops-007.yml` is manual and dev-only. It projects an approved dev portal edit of an API or product policy into `artifacts.007/apis/*/policy.xml` or `artifacts.007/products/*/policy.xml` and opens a pull request. Product policies are projected only for products whose inventory entry sets `"policy": true` (the AI team products).
 
 The job refuses to run unless the dev release state is `clean` and the bundle, ownership filter, inventory, tooling and release scripts at the recorded source SHA are content-equal to `main` (documentation-only merges do not block). The failure message is "dev is not running main; release main first". This prevents an extraction pull request from reverting a newer `main` after a dev rollback.
 
@@ -327,10 +394,18 @@ All writes to one environment share a concurrency group (`apim-007-dev-writes` o
 `teardown-apim-007.yml` removes one environment's APIM and backend hosting.
 
 1. Dispatch it with `environment=dev` (or `prod`) and `confirm=delete-apim-007-dev` (or `delete-apim-007-prod`). Prod teardown requires reviewer approval.
-2. The job derives the exact IDs of both apps, the App Service plan, APIM, Application Insights and the Log Analytics workspace from the fixed deployments, verifies each one carries `apimDemo=007` and the matching `environment` tag in the expected resource group, removes them by ID and verifies they are gone.
+2. The job derives the exact IDs of both apps, the App Service plan, APIM, Application Insights, the Log Analytics workspace and, when `apim007-ai-<env>` exists, the two AI accounts from the fixed deployments, verifies each one carries `apimDemo=007` and the matching `environment` tag in the expected resource group, removes them by ID and verifies they are gone.
 3. Resource groups, release role assignments, identities, the budget and the shared registry are kept. Legacy 005 and 006 resources are never selected.
 
 The summary lists follow-up actions for the Owner.
+
+### Soft-deleted AI accounts
+
+Removed AI accounts stay soft-deleted for 48 hours and block re-creation of the same names. To re-provision sooner, the Owner removes the records manually for each account listed in the teardown summary:
+
+```powershell
+az cognitiveservices account purge --location canadaeast --resource-group rg-apim-demo-007-<env>-apim --name <account>
+```
 
 ### Soft-deleted APIM handling
 
