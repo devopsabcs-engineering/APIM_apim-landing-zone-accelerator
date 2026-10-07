@@ -6,7 +6,8 @@ Captures or verifies live 007 APIM state that APIops must not change.
 .DESCRIPTION
 Capture: records SHA256 fingerprints of the canonical ARM properties of the Bicep-owned
 named value `instrumentationKey` and logger `apimlogger` (read with `az rest`; values are
-never printed). Verify: product `demo` has no group links and exactly the expected API links,
+never printed). Verify: product `demo` has no group links other than the built-in
+`administrators` group and exactly the expected API links,
 and the protected fingerprints are unchanged.
 
 .PARAMETER ResourceGroup
@@ -133,7 +134,8 @@ function Test-Apim007ServiceStateMain {
         if (-not $baseline.ContainsKey($resource) -or $baseline[$resource] -ne $fingerprints[$resource]) { $failures.Add("Protected resource '$resource' changed.") }
     }
     $productUrl = "https://management.azure.com$serviceId/products/$ProductName"
-    $groups = @(Get-Apim007ArmListName -Url "$productUrl/groups?api-version=$ApiVersion")
+    # APIM links the built-in administrators group to every new product.
+    $groups = @(Get-Apim007ArmListName -Url "$productUrl/groups?api-version=$ApiVersion" | Where-Object { $_ -ne 'administrators' })
     if ($groups.Count -gt 0) { $failures.Add("Product '$ProductName' has group links: $($groups -join ', ').") }
     $apis = @(Get-Apim007ArmListName -Url "$productUrl/apis?api-version=$ApiVersion" | Sort-Object)
     $expected = @($ExpectedApis | Sort-Object)

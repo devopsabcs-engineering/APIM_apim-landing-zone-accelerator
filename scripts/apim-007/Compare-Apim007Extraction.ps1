@@ -7,7 +7,7 @@ Semantically compares a fresh APIops CLI extraction with the bundle, inventory a
 Exact mappings: API serviceUrl, backend url and named-value value must equal the overrides;
 OpenAPI servers and WSDL addresses must equal the override URL or <gateway>/<api path>.
 Generated operations (and any extracted specification) must match the inventory operations.
-Product API links must equal the inventory and product groups must be empty. Generated files
+Product API links must equal the inventory and product groups must be empty (except the built-in administrators group). Generated files
 under apis/*/operations and apis/*/schemas are tolerated; specification files in other formats
 are validated for presence and ignored. Policies are compared after XML whitespace normalization.
 
@@ -47,7 +47,7 @@ $ErrorActionPreference = 'Stop'
 
 $script:Apim007IgnoredProperties = @{
     apis        = @('apiRevision', 'apiRevisionDescription', 'isCurrent', 'isOnline', 'authenticationSettings', 'subscriptionKeyParameterNames',
-        'provisioningState', 'apiVersion', 'apiVersionDescription', 'apiVersionSetId', 'apiType', 'description', 'contact', 'license', 'termsOfServiceUrl')
+        'provisioningState', 'apiVersion', 'apiVersionDescription', 'apiVersionSetId', 'apiType', 'description', 'contact', 'license', 'termsOfServiceUrl', 'isAgent')
     backends    = @('provisioningState')
     namedValues = @('provisioningState', 'tags', 'keyVault')
     products    = @('provisioningState', 'terms', 'subscriptionsLimit')
@@ -126,6 +126,8 @@ function Compare-Apim007Property {
         if (-not $Actual.Contains($key)) {
             if ($effective[$key] -is [bool] -and -not $effective[$key]) { continue }
             if (Test-Apim007EmptyValue $effective[$key]) { continue }
+            # APIM omits the default API type on read.
+            if ($key -ceq 'type' -and $effective[$key] -ceq 'http') { continue }
             $Drift.Add("$Context property '$key' is missing.")
         }
         elseif ((ConvertTo-Apim007CanonicalJson $effective[$key]) -cne (ConvertTo-Apim007CanonicalJson $Actual[$key])) {
@@ -356,6 +358,8 @@ function Compare-Apim007ExtractionCore {
         }
         $groupsPath = Join-Path $directory 'groups.json'
         $groups = if (Test-Path -LiteralPath $groupsPath) { @(Read-Apim007JsonFile -Path $groupsPath) | Where-Object { $null -ne $_ } } else { @() }
+        # APIM links the built-in administrators group to every new product.
+        $groups = @($groups | Where-Object { $name = if ($_ -is [System.Collections.IDictionary]) { [string]$_.name } else { [string]$_ }; $name -ne 'administrators' })
         if (@($groups).Count -gt 0 -or @($productInventory.groups).Count -gt 0) { $drift.Add("$context has product group links; expected none.") }
     }
 
