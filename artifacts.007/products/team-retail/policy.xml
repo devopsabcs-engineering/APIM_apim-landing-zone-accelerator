@@ -1,9 +1,18 @@
 <policies>
-<inbound>
-<base />
-<llm-token-limit counter-key="@(context.Subscription.Id)" tokens-per-minute="{{ai-team-retail-tpm}}" token-quota="{{ai-team-retail-daily-quota}}" token-quota-period="Daily" estimate-prompt-tokens="false" retry-after-header-name="Retry-After" remaining-tokens-header-name="remaining-tokens" remaining-quota-tokens-header-name="remaining-quota-tokens" tokens-consumed-header-name="tokens-consumed" />
-</inbound>
-<backend><base /></backend>
-<outbound><base /></outbound>
-<on-error><base /></on-error>
+	<inbound>
+		<base />
+		<llm-token-limit counter-key="@(context.Subscription.Id)" tokens-per-minute="{{ai-team-retail-tpm}}" token-quota="{{ai-team-retail-daily-quota}}" token-quota-period="Daily" estimate-prompt-tokens="false" retry-after-header-name="Retry-After" remaining-tokens-header-name="remaining-tokens" remaining-quota-tokens-header-name="remaining-quota-tokens" tokens-consumed-header-name="tokens-consumed" />
+	</inbound>
+	<backend>
+		<base />
+	</backend>
+	<outbound>
+		<base />
+		<set-header name="x-demo-team" exists-action="override">
+			<value>retail</value>
+		</set-header>
+	</outbound>
+	<on-error>
+		<base />
+	</on-error>
 </policies>
