@@ -40,13 +40,14 @@ param(
     [string]$BaselinePath,
     [string]$ProductName = 'demo',
     [string[]]$ExpectedApis = @('software-version', 'weather'),
+    [string]$InventoryPath,
     [string]$ApiVersion = '2024-06-01-preview'
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$script:Apim007ProtectedResources = @('namedValues/instrumentationKey', 'loggers/apimlogger')
+$script:Apim007ProtectedResources = @('namedValues/instrumentationKey', 'loggers/apimlogger', 'diagnostics/applicationinsights')
 
 function Invoke-Az {
     param([Parameter(Mandatory)][string[]]$Arguments, [switch]$AllowNotFound)
@@ -118,6 +119,7 @@ function Test-Apim007ServiceStateMain {
         [Parameter(Mandatory)][string]$BaselinePath,
         [string]$ProductName = 'demo',
         [string[]]$ExpectedApis = @('software-version', 'weather'),
+        [string]$InventoryPath,
         [string]$ApiVersion = '2024-06-01-preview'
     )
     $serviceId = Get-Apim007ServiceId -ResourceGroup $ResourceGroup -ServiceName $ServiceName
@@ -133,13 +135,21 @@ function Test-Apim007ServiceStateMain {
     foreach ($resource in $fingerprints.Keys) {
         if (-not $baseline.ContainsKey($resource) -or $baseline[$resource] -ne $fingerprints[$resource]) { $failures.Add("Protected resource '$resource' changed.") }
     }
-    $productUrl = "https://management.azure.com$serviceId/products/$ProductName"
-    # APIM links the built-in administrators group to every new product.
-    $groups = @(Get-Apim007ArmListName -Url "$productUrl/groups?api-version=$ApiVersion" | Where-Object { $_ -ne 'administrators' })
-    if ($groups.Count -gt 0) { $failures.Add("Product '$ProductName' has group links: $($groups -join ', ').") }
-    $apis = @(Get-Apim007ArmListName -Url "$productUrl/apis?api-version=$ApiVersion" | Sort-Object)
-    $expected = @($ExpectedApis | Sort-Object)
-    if (($apis -join ',') -ne ($expected -join ',')) { $failures.Add("Product '$ProductName' API links are [$($apis -join ', ')]; expected [$($expected -join ', ')].") }
+    $products = [ordered]@{ $ProductName = $ExpectedApis }
+    if ($InventoryPath) {
+        $inventory = Get-Content -Raw -LiteralPath $InventoryPath | ConvertFrom-Json -AsHashtable
+        $products = [ordered]@{}
+        foreach ($name in $inventory.resources.products.Keys) { $products[$name] = @($inventory.resources.products[$name].apis) }
+    }
+    foreach ($product in $products.Keys) {
+        $productUrl = "https://management.azure.com$serviceId/products/$product"
+        # APIM links the built-in administrators group to every new product.
+        $groups = @(Get-Apim007ArmListName -Url "$productUrl/groups?api-version=$ApiVersion" | Where-Object { $_ -ne 'administrators' })
+        if ($groups.Count -gt 0) { $failures.Add("Product '$product' has group links: $($groups -join ', ').") }
+        $apis = @(Get-Apim007ArmListName -Url "$productUrl/apis?api-version=$ApiVersion" | Sort-Object)
+        $expected = @($products[$product] | Sort-Object)
+        if (($apis -join ',') -ne ($expected -join ',')) { $failures.Add("Product '$product' API links are [$($apis -join ', ')]; expected [$($expected -join ', ')].") }
+    }
 
     if ($failures.Count -gt 0) { throw ("Service state verification failed:`n - " + ($failures -join "`n - ")) }
     Write-Information -MessageData 'Service state verification passed.' -InformationAction Continue

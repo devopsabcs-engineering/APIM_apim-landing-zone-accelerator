@@ -6,7 +6,8 @@ Regenerates the hosting-only 007 target manifest from fixed deployment records.
 .DESCRIPTION
 Reads `apim007-apim-<env>` and `apim007-backends-<env>` with `az deployment group show`
 (never list-first, never artifacts), validates tenant, subscription, tags, HTTPS URLs and
-host separation, then writes canonical compressed JSON and returns its SHA256.
+host separation, then writes canonical compressed JSON and returns its SHA256. When the
+AI deployment `apim007-ai-<env>` exists in the APIM resource group, an `ai` section is added.
 
 .PARAMETER Environment
 dev or prod.
@@ -90,11 +91,44 @@ function Get-Apim007DeploymentOutput {
 }
 
 function Get-Apim007Deployment {
-    param([string]$ResourceGroup, [string]$Name)
-    $json = Invoke-Az -Arguments @('deployment', 'group', 'show', '--resource-group', $ResourceGroup, '--name', $Name, '--output', 'json')
+    param([string]$ResourceGroup, [string]$Name, [switch]$Optional)
+    $json = Invoke-Az -Arguments @('deployment', 'group', 'show', '--resource-group', $ResourceGroup, '--name', $Name, '--output', 'json') -AllowNotFound:$Optional
+    if ($Optional -and -not $json) { return $null }
     $deployment = $json | ConvertFrom-Json
     if ($deployment.properties.provisioningState -ne 'Succeeded') { throw "Deployment '$Name' is not Succeeded." }
     return $deployment
+}
+
+function Get-Apim007AiSection {
+    param($Deployment, [string]$Environment, [string]$ApimResourceGroupId, [string]$SubscriptionId, [string]$GatewayHost)
+    $aiServicesId = Get-Apim007DeploymentOutput -Deployment $Deployment -Name 'aiServicesId'
+    $contentSafetyId = Get-Apim007DeploymentOutput -Deployment $Deployment -Name 'contentSafetyId'
+    $chatDeploymentName = Get-Apim007DeploymentOutput -Deployment $Deployment -Name 'chatDeploymentName'
+    if ($chatDeploymentName -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$') { throw 'AI chat deployment name is invalid.' }
+    $aiUri = Assert-Apim007HttpsUrl -Url (Get-Apim007DeploymentOutput -Deployment $Deployment -Name 'aiServicesEndpoint') -Context 'AI Services endpoint'
+    $safetyUri = Assert-Apim007HttpsUrl -Url (Get-Apim007DeploymentOutput -Deployment $Deployment -Name 'contentSafetyEndpoint') -Context 'Content Safety endpoint'
+    if ($aiUri.Host -notmatch '^[a-z0-9-]+\.openai\.azure\.com$') { throw "AI Services host '$($aiUri.Host)' is not an Azure OpenAI endpoint." }
+    if ($safetyUri.Host -notmatch '^[a-z0-9-]+\.cognitiveservices\.azure\.com$') { throw "Content Safety host '$($safetyUri.Host)' is not a Cognitive Services endpoint." }
+    foreach ($id in $aiServicesId, $contentSafetyId) {
+        Assert-Apim007SubscriptionScope -ResourceId $id -SubscriptionId $SubscriptionId
+        if (-not $id.StartsWith("$ApimResourceGroupId/providers/Microsoft.CognitiveServices/accounts/", [StringComparison]::OrdinalIgnoreCase)) {
+            throw "AI resource '$id' is not a Cognitive Services account in the APIM resource group."
+        }
+        Assert-Apim007ResourceTag -ResourceId $id -Environment $Environment
+    }
+    if ($aiUri.Host -eq $GatewayHost -or $safetyUri.Host -eq $GatewayHost) { throw 'AI endpoint host equals the APIM gateway host.' }
+    return [ordered]@{
+        deploymentName     = $Deployment.name
+        correlationId      = [string]$Deployment.properties.correlationId
+        aiServicesId       = $aiServicesId
+        aiServicesHost     = $aiUri.Host
+        chatDeploymentName = $chatDeploymentName
+        chatUrl            = "https://$($aiUri.Host)/openai/deployments/$chatDeploymentName"
+        chatModel          = Get-Apim007DeploymentOutput -Deployment $Deployment -Name 'chatModel'
+        contentSafetyId    = $contentSafetyId
+        contentSafetyHost  = $safetyUri.Host
+        contentSafetyUrl   = "https://$($safetyUri.Host)"
+    }
 }
 
 function Assert-Apim007ResourceTag {
@@ -158,7 +192,9 @@ function New-Apim007TargetManifest {
     }
     if ($apps['weather'].defaultHostName -eq $apps['software-version'].defaultHostName) { throw 'Backend apps share a host name.' }
 
-    return [ordered]@{
+    $aiDeployment = Get-Apim007Deployment -ResourceGroup $ApimResourceGroup -Name "apim007-ai-$Environment" -Optional
+
+    $manifest = [ordered]@{
         schemaVersion  = 1
         environment    = $Environment
         tenantId       = $account.tenantId
@@ -179,6 +215,11 @@ function New-Apim007TargetManifest {
             apps            = $apps
         }
     }
+    if ($aiDeployment) {
+        $manifest['ai'] = Get-Apim007AiSection -Deployment $aiDeployment -Environment $Environment -ApimResourceGroupId $apimResourceGroupId `
+            -SubscriptionId $ExpectedSubscriptionId -GatewayHost $gatewayUri.Host
+    }
+    return $manifest
 }
 
 function Get-Apim007TargetManifestMain {

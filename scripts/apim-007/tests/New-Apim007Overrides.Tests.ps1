@@ -120,6 +120,7 @@ Describe 'Get-Apim007TargetManifest' {
         Mock Invoke-Az -ParameterFilter { $Arguments[0] -eq 'account' } -MockWith { "{`"tenantId`":`"$script:Tenant`",`"id`":`"$script:Sub`"}" }
         Mock Invoke-Az -ParameterFilter { $Arguments[0] -eq 'deployment' -and $Arguments -contains 'apim007-apim-dev' } -MockWith { $script:ApimDeployment }
         Mock Invoke-Az -ParameterFilter { $Arguments[0] -eq 'deployment' -and $Arguments -contains 'apim007-backends-dev' } -MockWith { $script:BackendDeployment }
+        Mock Invoke-Az -ParameterFilter { $Arguments[0] -eq 'deployment' -and $Arguments -contains 'apim007-ai-dev' } -MockWith { $null }
         Mock Invoke-Az -ParameterFilter { $Arguments[0] -eq 'resource' } -MockWith { $script:Tags }
     }
 
@@ -132,7 +133,8 @@ Describe 'Get-Apim007TargetManifest' {
         $manifest.backends.apps.'software-version'.httpsBaseUrl | Should -Be 'https://app-apim007-soap-dev.azurewebsites.net'
         $document = New-Apim007OverrideDocument -Manifest $manifest -Inventory (Get-TestInventory)
         $document.namedValues[0].properties.value | Should -Be 'dev-007'
-        Should -Invoke Invoke-Az -ParameterFilter { $Arguments[0] -eq 'deployment' -and $Arguments -contains 'show' } -Times 2 -Exactly
+        Should -Invoke Invoke-Az -ParameterFilter { $Arguments[0] -eq 'deployment' -and $Arguments -contains 'show' } -Times 3 -Exactly
+        $manifest.PSObject.Properties['ai'] | Should -BeNullOrEmpty
     }
 
     It 'rejects a tenant mismatch' {

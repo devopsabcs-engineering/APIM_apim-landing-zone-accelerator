@@ -61,7 +61,34 @@ function Read-Apim007Inventory {
     Assert-Apim007RelativePath -Path $inventory.bundleRoot -Context 'Inventory bundleRoot'
     Assert-Apim007RelativePath -Path $inventory.ownershipFilter.path -Context 'Inventory ownershipFilter'
     if ($inventory.ownershipFilter.sha256 -notmatch '^[A-Fa-f0-9]{64}$') { throw 'Inventory ownershipFilter.sha256 is not a SHA256 value.' }
+    if ($inventory.ContainsKey('aiSettings')) { Assert-Apim007RelativePath -Path $inventory.aiSettings.path -Context 'Inventory aiSettings' }
     return $inventory
+}
+
+function Get-Apim007AiSettingsFinding {
+    param([Parameter(Mandatory)][string]$SettingsPath, [Parameter(Mandatory)][hashtable]$Inventory)
+    $findings = [System.Collections.Generic.List[string]]::new()
+    if (-not (Test-Path -LiteralPath $SettingsPath -PathType Leaf)) { $findings.Add('AI settings file is missing.'); return , $findings.ToArray() }
+    try { $settings = Get-Content -Raw -LiteralPath $SettingsPath | ConvertFrom-Json -AsHashtable }
+    catch { $findings.Add('AI settings file does not parse.'); return , $findings.ToArray() }
+    if ($settings.schemaVersion -ne 1) { $findings.Add('AI settings schemaVersion is not 1.') }
+    if ([string]$settings.blocklistName -notmatch '^[a-z0-9][a-z0-9-]{2,63}$') { $findings.Add('AI settings blocklistName is invalid.') }
+    if ([string]::IsNullOrWhiteSpace([string]$settings.blocklistFixtureTerm)) { $findings.Add('AI settings blocklistFixtureTerm is empty.') }
+    $namedValues = @($Inventory.resources.namedValues)
+    foreach ($environment in 'dev', 'prod') {
+        $values = if ($settings.environments -is [hashtable]) { $settings.environments[$environment] } else { $null }
+        if (-not $values) { $findings.Add("AI settings have no '$environment' environment."); continue }
+        if ([string]$values.safetyThreshold -notmatch '^[0-7]$') { $findings.Add("AI settings $environment safetyThreshold must be 0-7.") }
+        foreach ($team in @($values.teams.Keys)) {
+            if ($Inventory.resources.products -isnot [hashtable] -or -not $Inventory.resources.products.ContainsKey($team)) { $findings.Add("AI settings team '$team' is not an inventory product.") }
+            foreach ($suffix in 'tpm', 'daily-quota') {
+                if ("ai-$team-$suffix" -notin $namedValues) { $findings.Add("Named value 'ai-$team-$suffix' is not in the inventory.") }
+            }
+            $limits = $values.teams[$team]
+            if ([int64]$limits.tokensPerMinute -le 0 -or [int64]$limits.dailyTokenQuota -lt [int64]$limits.tokensPerMinute) { $findings.Add("AI settings $environment team '$team' limits are invalid.") }
+        }
+    }
+    return , $findings.ToArray()
 }
 
 function Get-Apim007RelativePath {
@@ -207,6 +234,10 @@ function Test-Apim007BundleMain {
     if (-not $FilterPath) { $FilterPath = Join-Path $inventoryDirectory $inventory.ownershipFilter.path }
 
     $findings = Get-Apim007BundleFinding -BundlePath $BundlePath -Inventory $inventory -FilterPath $FilterPath -Mode $Mode
+    if ($inventory.ContainsKey('aiSettings')) {
+        $aiFindings = Get-Apim007AiSettingsFinding -SettingsPath (Join-Path $inventoryDirectory $inventory.aiSettings.path) -Inventory $inventory
+        $findings = [string[]]@($findings) + [string[]]@($aiFindings)
+    }
     if ($findings.Count -gt 0) {
         throw ("Bundle validation failed ({0} finding(s)):`n - {1}" -f $findings.Count, ($findings -join "`n - "))
     }
