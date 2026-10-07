@@ -94,7 +94,7 @@ jobs:
           $apimOutputs = (Get-AzJson @('deployment', 'group', 'show', '--resource-group', $env:APIM_RG, '--name', "apim007-apim-$($env:TARGET_ENV)")).properties.outputs
           $appInsightsId = [string]$apimOutputs.applicationInsightsId.value
           $workspaceId = [string](Get-AzJson @('resource', 'show', '--ids', $appInsightsId)).properties.WorkspaceResourceId
-          $planIds = @(foreach ($app in $m.backends.apps.PSObject.Properties.Value) { [string](Get-AzJson @('resource', 'show', '--ids', $app.id)).properties.serverFarmId }) | Sort-Object -Unique
+          $planIds = @(@(foreach ($app in $m.backends.apps.PSObject.Properties.Value) { [string](Get-AzJson @('resource', 'show', '--ids', $app.id)).properties.serverFarmId }) | Sort-Object -Unique)
           if (@($planIds).Count -ne 1) { throw 'Backend apps do not share exactly one App Service plan.' }
 
           $ordered = [System.Collections.Generic.List[object]]::new()
