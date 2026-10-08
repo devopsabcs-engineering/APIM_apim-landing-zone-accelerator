@@ -88,7 +88,7 @@ Pop-Location
 The CLI is pinned to `@azure-tools/apiops-cli` **1.0.4** with a committed lockfile. Workflows never download it on the fly. Check the versions:
 
 ```powershell
-az version --query '"azure-cli"' -o tsv; gh --version | Select-Object -First 1; node --version
+(az version -o json | ConvertFrom-Json).'azure-cli'; gh --version | Select-Object -First 1; node --version
 $PSVersionTable.PSVersion.ToString(); & ./tools/apiops-cli/node_modules/.bin/apiops.cmd --version
 ```
 
