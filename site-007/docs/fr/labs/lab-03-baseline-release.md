@@ -1,6 +1,6 @@
 ---
 title: "Atelier 3 : Première version - candidat, dev, approbation, prod"
-description: Fusionnez dans main, regardez le workflow de publication figer un candidat immuable, le déployer et le tester en dev, planifier la prod, approuver, puis déployer le candidat identique en prod.
+description: Lancez la première publication, regardez le workflow figer un candidat immuable, le déployer et le tester en dev, planifier la prod, approuver, puis déployer le candidat identique en prod.
 ---
 
 # Atelier 3 : Première version - candidat, dev, approbation, prod
@@ -39,9 +39,12 @@ Une fusion dans `main` qui touche le paquet, la configuration, l'outillage ou le
 
 ## Étapes
 
-### Étape 1 : Fusionner et suivre la publication
+### Étape 1 : Lancer la première publication et la suivre
+
+Dans un dépôt neuf, rien n'a encore été fusionné : lancez donc la première publication à la main. Elle construit un candidat à partir du paquet de `main`, où chaque API renvoie `x-demo-release: baseline-a` (`baseline-ai` pour la passerelle IA). À partir de l'atelier 4, la fusion d'une demande de tirage lance la publication pour vous.
 
 ```powershell
+gh workflow run release-apiops-007.yml --repo $Repo --ref main
 gh run list --repo $Repo --workflow release-apiops-007.yml --limit 14
 ```
 

@@ -1,6 +1,6 @@
 ---
 title: "Lab 3: First release - candidate, dev, approval, prod"
-description: Merge to main, watch the release workflow freeze an immutable candidate, deploy and test it in dev, plan prod, approve, and deploy the identical candidate to prod.
+description: Start the first release, watch the workflow freeze an immutable candidate, deploy and test it in dev, plan prod, approve, and deploy the identical candidate to prod.
 ---
 
 # Lab 3: First release - candidate, dev, approval, prod
@@ -39,9 +39,12 @@ By the end of this lab, you will be able to:
 
 ## Steps
 
-### Step 1: Merge and watch the release
+### Step 1: Start the first release and watch it
+
+On a fresh repository nothing has been merged yet, so start the first release by hand. It builds a candidate from the bundle on `main`, where every API returns `x-demo-release: baseline-a` (`baseline-ai` for the AI gateway). From Lab 4 on, merging a pull request starts the release for you.
 
 ```powershell
+gh workflow run release-apiops-007.yml --repo $Repo --ref main
 gh run list --repo $Repo --workflow release-apiops-007.yml --limit 14
 ```
 
