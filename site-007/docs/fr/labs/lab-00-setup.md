@@ -88,7 +88,7 @@ Pop-Location
 La CLI est épinglée à `@azure-tools/apiops-cli` **1.0.4** avec un fichier de verrouillage versionné. Les workflows ne la téléchargent jamais à la volée. Vérifiez les versions :
 
 ```powershell
-az version --query '"azure-cli"' -o tsv; gh --version | Select-Object -First 1; node --version
+(az version -o json | ConvertFrom-Json).'azure-cli'; gh --version | Select-Object -First 1; node --version
 $PSVersionTable.PSVersion.ToString(); & ./tools/apiops-cli/node_modules/.bin/apiops.cmd --version
 ```
 

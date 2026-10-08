@@ -13,7 +13,7 @@ function Get-ReleaseState([string]$rg, [string]$name) {
 
 $Shots = [ordered]@{
     'lab-00/00-01-tool-versions' = @(
-        @{ Show = 'az version --query ''"azure-cli"'' -o tsv; gh --version | Select-Object -First 1; node --version'; Run = { az version --query '"azure-cli"' -o tsv; gh --version | Select-Object -First 1; node --version } }
+        @{ Show = '(az version -o json | ConvertFrom-Json).''azure-cli''; gh --version | Select-Object -First 1; node --version'; Run = { (az version -o json | ConvertFrom-Json).'azure-cli'; gh --version | Select-Object -First 1; node --version } }
         @{ Show = '$PSVersionTable.PSVersion.ToString(); & ./tools/apiops-cli/node_modules/.bin/apiops.cmd --version'; Run = { $PSVersionTable.PSVersion.ToString(); & $Apiops --version } }
     )
     'lab-00/00-02-resource-groups' = @(
