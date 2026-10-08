@@ -41,5 +41,6 @@ description: Fixes for the problems met in the recorded APIOps 007 run - workflo
 | Symptom | Cause and fix |
 |---------|---------------|
 | `apiops` not found | Run `npm ci --ignore-scripts` in `tools/apiops-cli` and use `./tools/apiops-cli/node_modules/.bin/apiops.cmd`. |
+| `npm warn EBADENGINE` with `required: { node: '>=22 <23' }` | Your Node.js is not version 22. Install `OpenJS.NodeJS.22`, remove or switch away from the other version, then run `npm ci` again. See [Lab 0, step 1](labs/lab-00-setup.md#step-1-install-and-check-the-tools). |
 | `az` fails on parentheses on Windows | `az.cmd` is a batch shim; quote JMESPath queries, or sort and filter in PowerShell. |
 | Accents display as garbage | Set `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8`. |

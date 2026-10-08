@@ -43,11 +43,14 @@ Aucun workflow ne peut créer ses propres identités ni ses permissions. Un Prop
 ```powershell
 winget install --id Microsoft.AzureCLI -e
 winget install --id GitHub.cli -e
-winget install --id OpenJS.NodeJS.LTS -e
+winget install --id OpenJS.NodeJS.22 -e
 winget install --id Microsoft.PowerShell -e
 ```
 
 Ouvrez un nouveau terminal PowerShell 7 pour charger le nouveau `PATH`.
+
+!!! warning "Utilisez Node.js 22"
+    Les workflows s'exécutent sur Node.js 22, et `tools/apiops-cli` n'accepte que la version 22. `OpenJS.NodeJS.LTS` installe maintenant une version plus récente. Si `node --version` ne commence pas par `v22`, `npm ci` affiche l'avertissement `EBADENGINE`. Trouvez l'autre Node.js avec `winget list --name Node.js`, supprimez-le avec `winget uninstall --id <id>` (ou changez de version avec un gestionnaire de versions), puis ouvrez un nouveau terminal et vérifiez de nouveau.
 
 ### Étape 2 : Copier le dépôt et définir vos variables de session
 
@@ -95,7 +98,7 @@ $PSVersionTable.PSVersion.ToString(); & ./tools/apiops-cli/node_modules/.bin/api
 </figure>
 
 !!! success "Résultat attendu"
-    Cinq lignes de version, et `1.0.4` pour l'APIops CLI.
+    Cinq lignes de version, `v22` pour Node.js et `1.0.4` pour l'APIops CLI. `npm ci` n'affiche aucun avertissement `EBADENGINE`.
 
 ### Étape 4 : Prévisualiser la configuration avec -WhatIf
 

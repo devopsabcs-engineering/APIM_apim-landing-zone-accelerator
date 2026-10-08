@@ -41,5 +41,6 @@ description: Solutions aux problèmes rencontrés dans l'exécution enregistrée
 | Symptôme | Cause et solution |
 |---------|---------------|
 | `apiops` introuvable | Exécutez `npm ci --ignore-scripts` dans `tools/apiops-cli` et utilisez `./tools/apiops-cli/node_modules/.bin/apiops.cmd`. |
+| `npm warn EBADENGINE` avec `required: { node: '>=22 <23' }` | Votre Node.js n'est pas en version 22. Installez `OpenJS.NodeJS.22`, supprimez l'autre version ou changez de version, puis relancez `npm ci`. Voir l'[atelier 0, étape 1](labs/lab-00-setup.md#etape-1-installer-et-verifier-les-outils). |
 | `az` échoue sur des parenthèses sous Windows | `az.cmd` est un script batch; mettez les requêtes JMESPath entre guillemets, ou triez et filtrez en PowerShell. |
 | Les accents s'affichent mal | Définissez `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8`. |
