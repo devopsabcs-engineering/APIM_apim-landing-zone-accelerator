@@ -24,6 +24,9 @@ description: Install the tools, copy the repository, and run the setup script th
 
 No workflow can create its own identities or permissions. One Owner runs a setup script once; after that, every change goes through Git and GitHub Actions with narrow, federated identities and no secrets.
 
+!!! tip "Starting over"
+    If you ran the labs before, reset Azure first with [Lab 10, step 4](lab-10-teardown.md#step-4-reset-azure-to-a-clean-slate) and check that it leaves no 007 names. Then follow this lab as written.
+
 ## Learning objectives
 
 By the end of this lab, you will be able to:
