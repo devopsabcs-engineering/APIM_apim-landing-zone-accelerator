@@ -43,11 +43,14 @@ By the end of this lab, you will be able to:
 ```powershell
 winget install --id Microsoft.AzureCLI -e
 winget install --id GitHub.cli -e
-winget install --id OpenJS.NodeJS.LTS -e
+winget install --id OpenJS.NodeJS.22 -e
 winget install --id Microsoft.PowerShell -e
 ```
 
 Open a new PowerShell 7 terminal so the new `PATH` is loaded.
+
+!!! warning "Use Node.js 22"
+    The workflows run on Node.js 22, and `tools/apiops-cli` accepts only version 22. `OpenJS.NodeJS.LTS` now installs a newer version. If `node --version` does not start with `v22`, `npm ci` warns `EBADENGINE`. Find the other Node.js with `winget list --name Node.js`, remove it with `winget uninstall --id <id>` (or switch with a version manager), then open a new terminal and check again.
 
 ### Step 2: Copy the repository and set your session variables
 
@@ -95,7 +98,7 @@ $PSVersionTable.PSVersion.ToString(); & ./tools/apiops-cli/node_modules/.bin/api
 </figure>
 
 !!! success "Expected result"
-    Five version lines, and `1.0.4` for the APIops CLI.
+    Five version lines, `v22` for Node.js and `1.0.4` for the APIops CLI. `npm ci` prints no `EBADENGINE` warning.
 
 ### Step 4: Preview the setup with -WhatIf
 
