@@ -1,6 +1,6 @@
 ---
 title: "Atelier 10 : Démantèlement et nettoyage"
-description: Supprimez API Management, les backends, la surveillance et les comptes IA d'un environnement par ID de ressource exact, vérifiez que rien d'autre n'a été touché et gérez les ressources supprimées de façon réversible.
+description: Supprimez un ou deux environnements par ID de ressource exact, gérez les ressources supprimées de façon réversible, remettez Azure à zéro et recommencez les ateliers depuis l'atelier 0.
 ---
 
 # Atelier 10 : Démantèlement et nettoyage
@@ -30,6 +30,7 @@ Le démantèlement ne supprime jamais de groupe de ressources et n'utilise jamai
 * Démanteler un environnement avec une confirmation explicite.
 * Lire l'inventaire supprimé et la liste de suivi pour le Propriétaire.
 * Récupérer après la suppression réversible d'API Management et des comptes IA.
+* Remettre l'abonnement et le dépôt à zéro, puis recommencer depuis l'atelier 0.
 
 ## Étapes
 
@@ -74,11 +75,73 @@ az cognitiveservices account purge --location canadaeast --resource-group rg-api
 
 Restaurez ensuite l'environnement avec `infra-apim-007.yml` (`target=dev`) et une version depuis `main`.
 
-### Étape 4 : Tout nettoyer à la fin
+### Étape 4 : Remettre Azure à zéro
 
-1. Démantelez les deux environnements (`environment=all`).
-2. Supprimez les cinq groupes de ressources `rg-apim-demo-007-*` dans le portail (cela supprime aussi les identités et le registre).
-3. Supprimez le budget et les neuf environnements GitHub.
+Faites-le à la fin, ou avant de recommencer les ateliers depuis le début. Seul le Propriétaire peut exécuter ces commandes; aucun workflow n'en a les droits, par conception. Respectez l'ordre : les enregistrements supprimés de façon réversible doivent être retirés pendant que leurs groupes de ressources existent encore.
+
+1. Démantelez les deux environnements et approuvez le travail de prod sur `prod-007-teardown` :
+
+    ```powershell
+    gh workflow run teardown-apim-007.yml --repo $Repo -f environment=all -f confirm=delete-apim-007-all
+    ```
+
+2. Purgez les services API Management et les comptes IA supprimés de façon réversible :
+
+    ```powershell
+    az apim deletedservice list -o json | ConvertFrom-Json | Where-Object name -like 'apim-*-007-*' |
+        ForEach-Object { az apim deletedservice purge --service-name $_.name --location $Location -o none }
+    az cognitiveservices account list-deleted -o json | ConvertFrom-Json | Where-Object name -like '*-apim007-*' |
+        ForEach-Object { az cognitiveservices account purge --name $_.name --location $_.location --resource-group ($_.id -split '/')[8] -o none }
+    ```
+
+3. Supprimez définitivement les espaces de travail Log Analytics. Le démantèlement les laisse en suppression réversible pendant 14 jours, et un nouvel espace du même nom ramènerait les anciennes données. Récupérez chacun, puis supprimez-le avec `--force` :
+
+    ```powershell
+    az monitor log-analytics workspace list-deleted-workspaces -o json | ConvertFrom-Json | Where-Object name -like 'log-apim-*-007-*' |
+        ForEach-Object {
+            $rg = ($_.id -split '/')[4]
+            az monitor log-analytics workspace recover -g $rg -n $_.name -o none
+            az monitor log-analytics workspace delete -g $rg -n $_.name --force true -y -o none
+        }
+    ```
+
+4. Supprimez les cinq groupes de ressources et le budget. La suppression des groupes retire aussi les identités, leurs informations d'identification fédérées, le registre et les attributions de rôles limitées à ces groupes. Comptez de 10 à 30 minutes :
+
+    ```powershell
+    az group list --tag apimDemo=007 --query "[].name" -o tsv | ForEach-Object { az group delete -n $_ --yes --no-wait }
+    az consumption budget delete --budget-name budget-apim-demo-007
+    ```
+
+5. Supprimez les neuf environnements GitHub et les deux variables du dépôt :
+
+    ```powershell
+    'apim-007-build', 'apim-007-shared-infra', 'dev-007', 'dev-007-infra', 'dev-007-teardown',
+    'prod-007', 'prod-007-infra', 'prod-007-plan', 'prod-007-teardown' |
+        ForEach-Object { gh api -X DELETE "repos/$Repo/environments/$_" }
+    gh variable delete APIM007_ENABLED --repo $Repo
+    gh variable delete APIM007_PREVENT_SELF_REVIEW --repo $Repo
+    ```
+
+6. Vérifiez qu'il ne reste rien. Une fois les suppressions de groupes terminées, aucune commande ne renvoie de nom 007 :
+
+    ```powershell
+    az group list --tag apimDemo=007 --query "[].name" -o tsv
+    az apim deletedservice list --query "[].name" -o tsv
+    az cognitiveservices account list-deleted --query "[].name" -o tsv
+    az monitor log-analytics workspace list-deleted-workspaces --query "[].name" -o tsv
+    gh api "repos/$Repo/environments?per_page=100" --jq '.environments[].name | select(test("007"))'
+    ```
+
+La remise à zéro conserve le site GitHub Pages, les versions GitHub et les branches d'extraction. L'historique des versions résidait dans API Management : les anciennes versions ne peuvent donc pas servir à un retour arrière sur les nouveaux services.
+
+### Étape 5 : Recommencer depuis l'atelier 0
+
+Les noms des ressources dérivent des groupes de ressources : la nouvelle exécution réutilise donc les mêmes noms. C'est pourquoi l'étape 4 purge d'abord les enregistrements supprimés de façon réversible.
+
+1. [Atelier 0](lab-00-setup.md), étapes 4 à 6 : exécutez `-Stage Initial` avec `-WhatIf`, puis appliquez-le avec une nouvelle date `-ExpiresOn`. Il recrée les groupes de ressources, les identités, les rôles, le budget, les environnements GitHub et les variables.
+2. [Atelier 1](lab-01-infrastructure.md), étape 2 : exécutez le workflow d'infrastructure avec `target=shared`, puis `-Stage PostRegistry` avec le nom du registre indiqué dans le résumé de l'exécution.
+3. [Atelier 1](lab-01-infrastructure.md), étape 3 : provisionnez le dev, puis la prod.
+4. Poursuivez avec l'[atelier 2](lab-02-bundle.md) et les suivants.
 
 !!! checkpoint "Point de contrôle"
-    *Verify removal* a réussi, et la passerelle de l'autre environnement répond toujours.
+    *Verify removal* a réussi, et la passerelle de l'autre environnement répond toujours. Après une remise à zéro complète, les vérifications de l'étape 4 ne renvoient aucun nom 007.

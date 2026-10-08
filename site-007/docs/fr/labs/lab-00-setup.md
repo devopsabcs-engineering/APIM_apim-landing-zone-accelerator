@@ -24,6 +24,9 @@ description: Installez les outils, copiez le dépôt et exécutez le script de c
 
 Aucun workflow ne peut créer ses propres identités ni ses permissions. Un Propriétaire exécute un script de configuration une seule fois; ensuite, tout changement passe par Git et GitHub Actions, avec des identités fédérées étroites et sans secret.
 
+!!! tip "Recommencer"
+    Si vous avez déjà fait les ateliers, remettez d'abord Azure à zéro avec l'[atelier 10, étape 4](lab-10-teardown.md#etape-4-remettre-azure-a-zero) et vérifiez qu'il ne reste aucun nom 007. Suivez ensuite cet atelier tel quel.
+
 ## Objectifs d'apprentissage
 
 À la fin de cet atelier, vous saurez :
