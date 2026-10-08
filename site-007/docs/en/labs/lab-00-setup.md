@@ -72,7 +72,10 @@ $SubscriptionId = '<subscription-id>'
 $TenantId       = '<tenant-id>'
 $Location       = 'canadacentral'
 $Reviewer       = '<github-login-of-the-prod-approver>'
+$AlertEmail     = '<email-for-budget-alerts>'
 ```
+
+`$Reviewer` is a GitHub **login** such as `octocat`, not an email address. To use your own, run `gh api user --jq .login` once you have signed in (Step 3). `$AlertEmail` receives the budget alerts. Remove the angle brackets: the setup script rejects any value that still contains `<` or `>`.
 
 ### Step 3: Sign in and install the APIops CLI
 
@@ -107,7 +110,7 @@ The setup script is idempotent and never deletes anything. Always preview first:
 ```powershell
 ./scripts/apim-007-setup/Initialize-Apim007Environment.ps1 -Stage Initial `
     -SubscriptionId $SubscriptionId -TenantId $TenantId -Location $Location `
-    -GitHubRepository $Repo -BudgetAmount 150 -BudgetAlertEmail '<you@example.com>' `
+    -GitHubRepository $Repo -BudgetAmount 150 -BudgetAlertEmail $AlertEmail `
     -ExpiresOn (Get-Date).AddDays(30).ToString('yyyy-MM-dd') -ProdReviewers $Reviewer -WhatIf
 ```
 
@@ -123,7 +126,7 @@ Run the same command without `-WhatIf`. If you present alone and must approve yo
 ```powershell
 ./scripts/apim-007-setup/Initialize-Apim007Environment.ps1 -Stage Initial `
     -SubscriptionId $SubscriptionId -TenantId $TenantId -Location $Location `
-    -GitHubRepository $Repo -BudgetAmount 150 -BudgetAlertEmail '<you@example.com>' `
+    -GitHubRepository $Repo -BudgetAmount 150 -BudgetAlertEmail $AlertEmail `
     -ExpiresOn (Get-Date).AddDays(30).ToString('yyyy-MM-dd') -ProdReviewers $Reviewer
 ```
 

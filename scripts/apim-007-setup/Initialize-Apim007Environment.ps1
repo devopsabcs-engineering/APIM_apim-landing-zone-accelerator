@@ -287,10 +287,11 @@ function Assert-StageParameters {
     if ($Stage -eq 'Initial') {
         $missing = @()
         if ($BudgetAmount -le 0) { $missing += '-BudgetAmount (> 0)' }
-        if ($BudgetAlertEmail -notmatch '^[^@\s]+@[^@\s]+\.[^@\s]+$') { $missing += '-BudgetAlertEmail' }
+        if ($BudgetAlertEmail -notmatch '^[^@\s<>]+@[^@\s<>]+\.[^@\s<>]+$') { $missing += '-BudgetAlertEmail (a real address, without angle brackets)' }
         if ($null -eq $ExpiresOn -or $ExpiresOn -eq [datetime]::MinValue) { $missing += '-ExpiresOn' }
         elseif ($ExpiresOn.Date -le (Get-Date).Date) { $missing += '-ExpiresOn (future date)' }
         if (-not $ProdReviewers -or $ProdReviewers.Count -eq 0) { $missing += '-ProdReviewers' }
+        elseif ($ProdReviewers | Where-Object { $_ -notmatch '^[A-Za-z0-9-]+(/[A-Za-z0-9._-]+)?$' }) { $missing += '-ProdReviewers (GitHub logins or org/team, not email addresses)' }
         if ($missing) { throw "Stage Initial requires: $($missing -join ', ')" }
     }
     else {
