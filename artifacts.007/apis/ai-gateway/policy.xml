@@ -24,7 +24,7 @@
 </llm-emit-token-metric>
 </inbound>
 <backend><base /></backend>
-<outbound><base /><set-header name="x-demo-environment" exists-action="override"><value>{{demo-environment}}</value></set-header><set-header name="x-demo-release" exists-action="override"><value>ai-b</value></set-header><set-header name="x-demo-backend-host" exists-action="override"><value>@(context.Request.Url.Host)</value></set-header></outbound>
+<outbound><base /><set-header name="x-demo-environment" exists-action="override"><value>{{demo-environment}}</value></set-header><set-header name="x-demo-release" exists-action="override"><value>baseline-ai</value></set-header><set-header name="x-demo-backend-host" exists-action="override"><value>@(context.Request.Url.Host)</value></set-header></outbound>
 <on-error>
 <base />
 <choose>
