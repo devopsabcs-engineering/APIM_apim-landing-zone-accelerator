@@ -96,14 +96,59 @@ $j.apis | ForEach-Object { "$($_.name) -> $($_.properties.serviceUrl)" }
 <figcaption>Substitutions pour la prod : chaque valeur est vérifiée selon un motif strict, et le condensé du fichier est consigné dans le plan.</figcaption>
 </figure>
 
-### Étape 5 : Ouvrir une demande de tirage
+### Étape 5 : Ouvrir une demande de tirage d'essai
 
-Changez un détail (par exemple un en-tête de stratégie) sur une branche, poussez-la et ouvrez une demande de tirage. `validate-apim-007.yml` s'exécute sans aucun identifiant Azure :
+Cette demande de tirage sert seulement à voir les vérifications : vous la fermez sans la fusionner. Une fusion dans `main` qui touche `artifacts.007/` lance une version, et la première version, c'est l'atelier 3.
+
+L'exemple ajoute un en-tête de réponse, `x-demo-lab: lab-2`, à l'API Weather :
+
+| Élément | Exemple |
+|---------|---------|
+| Branche | `feature/1234-lab2-weather-header` (remplacez `1234` par l'ID de votre élément de travail) |
+| Fichier | `artifacts.007/apis/weather/policy.xml` |
+| Changement | Un `set-header` dans `<outbound>`, juste avant l'en-tête `x-demo-backend-host` |
+
+L'élément à ajouter :
+
+```xml
+<set-header name="x-demo-lab" exists-action="override"><value>lab-2</value></set-header>
+```
+
+Créez la branche et faites la modification (à la main dans VS Code, ou avec ces commandes) :
+
+```powershell
+git switch main; git pull
+git switch -c feature/1234-lab2-weather-header
+$p = 'artifacts.007/apis/weather/policy.xml'
+(Get-Content $p -Raw).Replace('<set-header name="x-demo-backend-host"',
+    '<set-header name="x-demo-lab" exists-action="override"><value>lab-2</value></set-header><set-header name="x-demo-backend-host"') |
+    Set-Content $p -NoNewline
+git diff
+```
+
+La stratégie garde chaque section sur une ligne : `git diff` montre donc une seule ligne `<outbound>` modifiée. Vérifiez le paquet localement, puis validez, poussez et ouvrez la demande de tirage :
+
+```powershell
+./scripts/apim-007/Test-Apim007Bundle.ps1 -BundlePath artifacts.007 -InventoryPath configuration.007.expected-inventory.json -Mode Candidate
+git commit -am "chore(artifacts): practice x-demo-lab header AB#1234"
+git push -u origin HEAD
+gh pr create --repo $Repo --base main --title "Lab 2: practice x-demo-lab header" --body "Practice pull request for Lab 2. Do not merge."
+gh pr checks feature/1234-lab2-weather-header --repo $Repo --watch
+```
+
+`validate-apim-007.yml` s'exécute sans aucun identifiant Azure :
 
 <figure class="screenshot-frame" markdown>
 ![Page de demande de tirage GitHub avec les vérifications Validate APIM 007 réussies : gardes, build Bicep, outillage APIops CLI, Pester et validation du paquet](../../assets/img/lab-02/02-05-gh-pr-checks.png)
 <figcaption>La demande de tirage n° 30 (le paquet IA) avec toutes les vérifications au vert.</figcaption>
 </figure>
 
+Quand toutes les vérifications réussissent, fermez la demande de tirage sans la fusionner. Cela supprime aussi la branche :
+
+```powershell
+gh pr close feature/1234-lab2-weather-header --repo $Repo --delete-branch
+git switch main
+```
+
 !!! checkpoint "Point de contrôle"
-    `Bundle validation passed`, Pester ne signale aucun échec, et `overrides-prod.json` ne liste que des URL de prod.
+    `Bundle validation passed`, Pester ne signale aucun échec, `overrides-prod.json` ne liste que des URL de prod, et la demande de tirage d'essai a montré des vérifications au vert et est fermée sans fusion.

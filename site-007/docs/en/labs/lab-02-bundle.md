@@ -96,14 +96,59 @@ $j.apis | ForEach-Object { "$($_.name) -> $($_.properties.serviceUrl)" }
 <figcaption>Overrides for prod: each value is checked against a strict pattern, and the file hash is recorded in the plan.</figcaption>
 </figure>
 
-### Step 5: Open a pull request
+### Step 5: Open a practice pull request
 
-Change something small (for example a policy header) on a branch, push it and open a pull request. `validate-apim-007.yml` runs without any Azure credentials:
+This pull request only shows the validation checks, so you close it without merging. A merge to `main` that touches `artifacts.007/` starts a release, and the first release is Lab 3.
+
+The example adds one response header, `x-demo-lab: lab-2`, to the Weather API:
+
+| Item | Example |
+|------|---------|
+| Branch | `feature/1234-lab2-weather-header` (replace `1234` with your work item ID) |
+| File | `artifacts.007/apis/weather/policy.xml` |
+| Change | One `set-header` in `<outbound>`, just before the `x-demo-backend-host` header |
+
+The element to add:
+
+```xml
+<set-header name="x-demo-lab" exists-action="override"><value>lab-2</value></set-header>
+```
+
+Create the branch and make the edit (by hand in VS Code, or with these commands):
+
+```powershell
+git switch main; git pull
+git switch -c feature/1234-lab2-weather-header
+$p = 'artifacts.007/apis/weather/policy.xml'
+(Get-Content $p -Raw).Replace('<set-header name="x-demo-backend-host"',
+    '<set-header name="x-demo-lab" exists-action="override"><value>lab-2</value></set-header><set-header name="x-demo-backend-host"') |
+    Set-Content $p -NoNewline
+git diff
+```
+
+The policy keeps each section on one line, so `git diff` shows one changed `<outbound>` line. Check the bundle locally, then commit, push and open the pull request:
+
+```powershell
+./scripts/apim-007/Test-Apim007Bundle.ps1 -BundlePath artifacts.007 -InventoryPath configuration.007.expected-inventory.json -Mode Candidate
+git commit -am "chore(artifacts): practice x-demo-lab header AB#1234"
+git push -u origin HEAD
+gh pr create --repo $Repo --base main --title "Lab 2: practice x-demo-lab header" --body "Practice pull request for Lab 2. Do not merge."
+gh pr checks feature/1234-lab2-weather-header --repo $Repo --watch
+```
+
+`validate-apim-007.yml` runs without any Azure credentials:
 
 <figure class="screenshot-frame" markdown>
 ![GitHub pull request page with the Validate APIM 007 checks passing: guards, Bicep build, APIops CLI tooling, Pester and bundle validation](../../assets/img/lab-02/02-05-gh-pr-checks.png)
 <figcaption>Pull request #30 (the AI bundle) with all validation checks green.</figcaption>
 </figure>
 
+When every check passes, close the pull request without merging. This also deletes the branch:
+
+```powershell
+gh pr close feature/1234-lab2-weather-header --repo $Repo --delete-branch
+git switch main
+```
+
 !!! checkpoint "Checkpoint"
-    `Bundle validation passed`, Pester reports no failures, and `overrides-prod.json` lists prod URLs only.
+    `Bundle validation passed`, Pester reports no failures, `overrides-prod.json` lists prod URLs only, and the practice pull request showed green checks and is closed without merging.
