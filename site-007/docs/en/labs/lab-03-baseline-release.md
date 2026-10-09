@@ -77,8 +77,13 @@ gh run list --repo $Repo --workflow release-apiops-007.yml --limit 14
 
 ```powershell
 gh release list --repo $Repo --limit 10
-gh release view apim007-candidate-19-73c913d --repo $Repo --json tagName,isImmutable,assets --jq '{tag: .tagName, immutable: .isImmutable, assets: [.assets[].name]}'
+[long]$ReleaseRunId = Read-Host 'Run ID printed by the workflow dispatch in step 1'
+$releaseRun = gh api "repos/$Repo/actions/runs/$ReleaseRunId" | ConvertFrom-Json
+$BaselineTag = "apim007-candidate-$($releaseRun.run_number)-$($releaseRun.head_sha.Substring(0, 7))"
+gh release view $BaselineTag --repo $Repo --json tagName,isImmutable,assets --jq '{tag: .tagName, immutable: .isImmutable, assets: [.assets[].name]}'
 ```
+
+Keep `$ReleaseRunId` for this approval and save `$BaselineTag` for Lab 6. If the release asset is not available yet, wait for *Freeze candidate* to finish.
 
 <figure class="screenshot-frame" markdown>
 ![PowerShell window listing candidate prereleases and showing one candidate with immutable true and two assets](../../assets/img/lab-03/03-02-candidates.png)
@@ -97,10 +102,14 @@ When `Plan prod-007` succeeds, the run waits on the `prod-007` environment. Read
 Approve in the GitHub UI (**Review deployments**), or from PowerShell:
 
 ```powershell
-$runId = gh run list --repo $Repo --workflow release-apiops-007.yml --limit 1 --json databaseId --jq '.[0].databaseId'
-$envId = gh api repos/$Repo/environments/prod-007 --jq '.id'
-gh api -X POST repos/$Repo/actions/runs/$runId/pending_deployments -F "environment_ids[]=$envId" -f state=approved -f comment='Plan reviewed'
+$pending = gh api "repos/$Repo/actions/runs/$ReleaseRunId/pending_deployments" | ConvertFrom-Json
+$prod = @($pending | Where-Object { $_.environment.name -eq 'prod-007' })
+if ($prod.Count -ne 1 -or -not $prod[0].current_user_can_approve) { throw 'Prod is not awaiting your review, or self-review is blocked.' }
+@{ environment_ids = @([long]$prod[0].environment.id); state = 'approved'; comment = 'Plan reviewed' } |
+    ConvertTo-Json -Compress | gh api -X POST "repos/$Repo/actions/runs/$ReleaseRunId/pending_deployments" --input -
 ```
+
+For a solo lab, configure `-PreventSelfReview $false` in Lab 0 first. The API does not bypass required reviewers or the self-review rule.
 
 <figure class="screenshot-frame" markdown>
 ![GitHub environments settings listing the 007 environments; prod-007 has two protection rules](../../assets/img/lab-03/03-09-gh-prod-environment.png)
@@ -129,7 +138,8 @@ gh api repos/$Repo/actions/runs/37660072964/approvals --jq '.[] | {environment: 
 Each APIM service stores a non-secret named value `apim007-release-state` with the deployed candidate, its hash, the status and a history of clean candidates:
 
 ```powershell
-az apim nv show -g rg-apim-demo-007-prod-apim -n <prod-apim-name> --named-value-id apim007-release-state --query value -o tsv | ConvertFrom-Json
+$ProdApim = (Get-Content $env:TEMP/manifest-prod.json | ConvertFrom-Json).apim.name
+az apim nv show -g rg-apim-demo-007-prod-apim -n $ProdApim --named-value-id apim007-release-state --query value -o tsv | ConvertFrom-Json
 ```
 
 <figure class="screenshot-frame" markdown>

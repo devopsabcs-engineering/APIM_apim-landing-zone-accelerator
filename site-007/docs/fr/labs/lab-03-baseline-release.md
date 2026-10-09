@@ -77,8 +77,13 @@ gh run list --repo $Repo --workflow release-apiops-007.yml --limit 14
 
 ```powershell
 gh release list --repo $Repo --limit 10
-gh release view apim007-candidate-19-73c913d --repo $Repo --json tagName,isImmutable,assets --jq '{tag: .tagName, immutable: .isImmutable, assets: [.assets[].name]}'
+[long]$ReleaseRunId = Read-Host 'Run ID printed by the workflow dispatch in step 1'
+$releaseRun = gh api "repos/$Repo/actions/runs/$ReleaseRunId" | ConvertFrom-Json
+$BaselineTag = "apim007-candidate-$($releaseRun.run_number)-$($releaseRun.head_sha.Substring(0, 7))"
+gh release view $BaselineTag --repo $Repo --json tagName,isImmutable,assets --jq '{tag: .tagName, immutable: .isImmutable, assets: [.assets[].name]}'
 ```
+
+Conservez `$ReleaseRunId` pour cette approbation et enregistrez `$BaselineTag` pour l'atelier 6. Si la ressource de version n'est pas encore disponible, attendez la fin de *Freeze candidate*.
 
 <figure class="screenshot-frame" markdown>
 ![Fenêtre PowerShell listant les préversions candidates et montrant un candidat immuable avec deux ressources](../../assets/img/lab-03/03-02-candidates.png)
@@ -97,10 +102,14 @@ Quand `Plan prod-007` réussit, l'exécution attend sur l'environnement `prod-00
 Approuvez dans l'interface GitHub (**Review deployments**) ou depuis PowerShell :
 
 ```powershell
-$runId = gh run list --repo $Repo --workflow release-apiops-007.yml --limit 1 --json databaseId --jq '.[0].databaseId'
-$envId = gh api repos/$Repo/environments/prod-007 --jq '.id'
-gh api -X POST repos/$Repo/actions/runs/$runId/pending_deployments -F "environment_ids[]=$envId" -f state=approved -f comment='Plan revu'
+$pending = gh api "repos/$Repo/actions/runs/$ReleaseRunId/pending_deployments" | ConvertFrom-Json
+$prod = @($pending | Where-Object { $_.environment.name -eq 'prod-007' })
+if ($prod.Count -ne 1 -or -not $prod[0].current_user_can_approve) { throw 'Prod is not awaiting your review, or self-review is blocked.' }
+@{ environment_ids = @([long]$prod[0].environment.id); state = 'approved'; comment = 'Plan reviewed' } |
+    ConvertTo-Json -Compress | gh api -X POST "repos/$Repo/actions/runs/$ReleaseRunId/pending_deployments" --input -
 ```
+
+Pour un atelier en solo, configurez d'abord `-PreventSelfReview $false` dans l'atelier 0. L'API ne contourne pas les réviseurs obligatoires ni l'interdiction de s'approuver soi-même.
 
 <figure class="screenshot-frame" markdown>
 ![Paramètres des environnements GitHub listant les environnements 007; prod-007 a deux règles de protection](../../assets/img/lab-03/03-09-gh-prod-environment.png)
@@ -129,7 +138,8 @@ gh api repos/$Repo/actions/runs/37660072964/approvals --jq '.[] | {environment: 
 Chaque service APIM conserve une valeur nommée non secrète `apim007-release-state` avec le candidat déployé, son condensé, le statut et l'historique des candidats propres :
 
 ```powershell
-az apim nv show -g rg-apim-demo-007-prod-apim -n <prod-apim-name> --named-value-id apim007-release-state --query value -o tsv | ConvertFrom-Json
+$ProdApim = (Get-Content $env:TEMP/manifest-prod.json | ConvertFrom-Json).apim.name
+az apim nv show -g rg-apim-demo-007-prod-apim -n $ProdApim --named-value-id apim007-release-state --query value -o tsv | ConvertFrom-Json
 ```
 
 <figure class="screenshot-frame" markdown>

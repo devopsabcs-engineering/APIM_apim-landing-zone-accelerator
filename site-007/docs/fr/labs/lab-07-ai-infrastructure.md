@@ -40,16 +40,17 @@ La passerelle IA place API Management devant Azure OpenAI. Les clients ne voient
 
 ### Étape 1 : Autoriser l'identité d'infrastructure à accorder les rôles de données IA
 
-Le Bicep IA accorde deux rôles de données à l'identité managée d'APIM. La condition RBAC Administrator de l'identité d'infrastructure doit les autoriser. Relancez la configuration une fois (elle met la condition à jour sur place) :
+Le workflow d'infrastructure actuel a déjà déployé les comptes IA dans l'atelier 1, et le script de configuration actuel inclut déjà les rôles de données IA. Cette relance est idempotente : elle vérifie les conditions existantes et met à jour les anciennes configurations au besoin. Le Bicep IA accorde deux rôles de données à l'identité managée d'APIM, que la condition RBAC Administrator de l'identité d'infrastructure doit autoriser.
 
 ```powershell
 ./scripts/apim-007-setup/Initialize-Apim007Environment.ps1 -Stage Initial `
     -SubscriptionId $SubscriptionId -TenantId $TenantId -Location $Location `
-    -GitHubRepository $Repo -BudgetAmount 150 -BudgetAlertEmail '<you@example.com>' `
-    -ExpiresOn (Get-Date).AddDays(30).ToString('yyyy-MM-dd') -ProdReviewers $Reviewer -WhatIf
+    -GitHubRepository $Repo -BudgetAmount 150 -BudgetAlertEmail $AlertEmail `
+    -ExpiresOn (Get-Date).AddDays(30).ToString('yyyy-MM-dd') -ProdReviewers $Reviewer `
+    -PreventSelfReview $PreventSelfReview -WhatIf
 ```
 
-Revoyez les deux lignes *Update role assignment condition*, puis relancez sans `-WhatIf`.
+Revoyez les conditions des attributions de rôles, puis relancez sans `-WhatIf`. Avec la configuration actuelle, les conditions peuvent déjà être correctes; une ligne de mise à jour n'est pas obligatoire. Réutilisez la valeur `$PreventSelfReview` de l'atelier 0 pour ne pas bloquer de nouveau vos approbations en solo.
 
 ### Étape 2 : Revoir le Bicep IA
 

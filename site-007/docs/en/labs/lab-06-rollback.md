@@ -35,8 +35,11 @@ By the end of this lab, you will be able to:
 
 ### Step 1: Roll back to the baseline candidate
 
+Use `$BaselineTag` saved from your own Lab 3 release, not the historical tag shown in the screenshots. Old releases are not trusted after a full Azure reset because their release-state history is gone.
+
 ```powershell
-gh workflow run release-apiops-007.yml --repo $Repo -f rollback_candidate_tag=apim007-candidate-6-51da660
+if (-not $BaselineTag) { throw 'Set BaselineTag to the tag saved in Lab 3.' }
+gh workflow run release-apiops-007.yml --repo $Repo -f "rollback_candidate_tag=$BaselineTag"
 ```
 
 The build, push and freeze jobs are skipped. `Deploy dev-007` checks that the tag and its SHA256 appear in a release-state history, then deploys. Approve prod as usual. Both gateways return `baseline-a` again.
