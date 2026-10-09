@@ -73,9 +73,12 @@ $TenantId       = '<tenant-id>'
 $Location       = 'canadacentral'
 $Reviewer       = '<github-login-of-the-prod-approver>'
 $AlertEmail     = '<email-for-budget-alerts>'
+$PreventSelfReview = $true
 ```
 
 `$Reviewer` is a GitHub **login** such as `octocat`, not an email address. To use your own, run `gh api user --jq .login` once you have signed in (Step 3). `$AlertEmail` receives the budget alerts. Remove the angle brackets: the setup script rejects any value that still contains `<` or `>`.
+
+For a solo lab where you must approve your own deployments, set `$PreventSelfReview = $false` before previewing and applying setup. This is reduced control, not a production recommendation. Keep that same value for subsequent setup reruns, including Lab 7.
 
 ### Step 3: Sign in and install the APIops CLI
 
@@ -111,7 +114,8 @@ The setup script is idempotent and never deletes anything. Always preview first:
 ./scripts/apim-007-setup/Initialize-Apim007Environment.ps1 -Stage Initial `
     -SubscriptionId $SubscriptionId -TenantId $TenantId -Location $Location `
     -GitHubRepository $Repo -BudgetAmount 150 -BudgetAlertEmail $AlertEmail `
-    -ExpiresOn (Get-Date).AddDays(30).ToString('yyyy-MM-dd') -ProdReviewers $Reviewer -WhatIf
+    -ExpiresOn (Get-Date).AddDays(30).ToString('yyyy-MM-dd') -ProdReviewers $Reviewer `
+    -PreventSelfReview $PreventSelfReview -WhatIf
 ```
 
 Review the cost table, the budget, the role assignments and their ABAC conditions, and the GitHub environment protections.
@@ -121,13 +125,14 @@ Review the cost table, the budget, the role assignments and their ABAC condition
 
 ### Step 5: Apply the setup
 
-Run the same command without `-WhatIf`. If you present alone and must approve your own prod releases, add `-PreventSelfReview $false` and say so when you present: it is a reduced control.
+Run the same command without `-WhatIf`. Say so when presenting if you chose `$PreventSelfReview = $false`: a single person can approve their own prod releases.
 
 ```powershell
 ./scripts/apim-007-setup/Initialize-Apim007Environment.ps1 -Stage Initial `
     -SubscriptionId $SubscriptionId -TenantId $TenantId -Location $Location `
     -GitHubRepository $Repo -BudgetAmount 150 -BudgetAlertEmail $AlertEmail `
-    -ExpiresOn (Get-Date).AddDays(30).ToString('yyyy-MM-dd') -ProdReviewers $Reviewer
+    -ExpiresOn (Get-Date).AddDays(30).ToString('yyyy-MM-dd') -ProdReviewers $Reviewer `
+    -PreventSelfReview $PreventSelfReview
 ```
 
 ### Step 6: Check the resource groups, identities and environments

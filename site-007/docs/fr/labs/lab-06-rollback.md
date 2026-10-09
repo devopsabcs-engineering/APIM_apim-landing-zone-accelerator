@@ -35,8 +35,11 @@ Le retour arrière est une version normale d'un candidat plus ancien : mêmes te
 
 ### Étape 1 : Revenir au candidat de référence
 
+Utilisez `$BaselineTag` enregistré depuis votre propre publication de l'atelier 3, pas l'étiquette historique des captures. Les anciennes versions ne sont plus fiables après une remise à zéro complète d'Azure : leur historique d'état de version a disparu.
+
 ```powershell
-gh workflow run release-apiops-007.yml --repo $Repo -f rollback_candidate_tag=apim007-candidate-6-51da660
+if (-not $BaselineTag) { throw 'Set BaselineTag to the tag saved in Lab 3.' }
+gh workflow run release-apiops-007.yml --repo $Repo -f "rollback_candidate_tag=$BaselineTag"
 ```
 
 Les travaux de construction, de poussée et de gel sont sautés. `Deploy dev-007` vérifie que l'étiquette et son SHA256 figurent dans un historique d'état de version, puis déploie. Approuvez la prod comme d'habitude. Les deux passerelles renvoient de nouveau `baseline-a`.

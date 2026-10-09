@@ -73,9 +73,12 @@ $TenantId       = '<tenant-id>'
 $Location       = 'canadacentral'
 $Reviewer       = '<github-login-of-the-prod-approver>'
 $AlertEmail     = '<email-for-budget-alerts>'
+$PreventSelfReview = $true
 ```
 
 `$Reviewer` est un **identifiant** GitHub comme `octocat`, pas une adresse courriel. Pour utiliser le vôtre, exécutez `gh api user --jq .login` une fois connecté (étape 3). `$AlertEmail` reçoit les alertes du budget. Retirez les chevrons : le script de configuration refuse toute valeur qui contient encore `<` ou `>`.
+
+Pour un atelier en solo où vous devez approuver vos propres déploiements, définissez `$PreventSelfReview = $false` avant la prévisualisation et l'application. C'est un contrôle réduit, pas une recommandation pour la production. Gardez cette valeur pour les relances de configuration, y compris l'atelier 7.
 
 ### Étape 3 : Se connecter et installer l'APIops CLI
 
@@ -111,7 +114,8 @@ Le script de configuration est idempotent et ne supprime jamais rien. Prévisual
 ./scripts/apim-007-setup/Initialize-Apim007Environment.ps1 -Stage Initial `
     -SubscriptionId $SubscriptionId -TenantId $TenantId -Location $Location `
     -GitHubRepository $Repo -BudgetAmount 150 -BudgetAlertEmail $AlertEmail `
-    -ExpiresOn (Get-Date).AddDays(30).ToString('yyyy-MM-dd') -ProdReviewers $Reviewer -WhatIf
+    -ExpiresOn (Get-Date).AddDays(30).ToString('yyyy-MM-dd') -ProdReviewers $Reviewer `
+    -PreventSelfReview $PreventSelfReview -WhatIf
 ```
 
 Revoyez le tableau des coûts, le budget, les attributions de rôles et leurs conditions ABAC, ainsi que les protections des environnements GitHub.
@@ -121,13 +125,14 @@ Revoyez le tableau des coûts, le budget, les attributions de rôles et leurs co
 
 ### Étape 5 : Appliquer la configuration
 
-Exécutez la même commande sans `-WhatIf`. Si vous présentez seul et devez approuver vos propres versions en prod, ajoutez `-PreventSelfReview $false` et dites-le lors de la présentation : c'est un contrôle réduit.
+Exécutez la même commande sans `-WhatIf`. Lors de la présentation, dites-le si vous avez choisi `$PreventSelfReview = $false` : une seule personne peut approuver ses propres versions en prod.
 
 ```powershell
 ./scripts/apim-007-setup/Initialize-Apim007Environment.ps1 -Stage Initial `
     -SubscriptionId $SubscriptionId -TenantId $TenantId -Location $Location `
     -GitHubRepository $Repo -BudgetAmount 150 -BudgetAlertEmail $AlertEmail `
-    -ExpiresOn (Get-Date).AddDays(30).ToString('yyyy-MM-dd') -ProdReviewers $Reviewer
+    -ExpiresOn (Get-Date).AddDays(30).ToString('yyyy-MM-dd') -ProdReviewers $Reviewer `
+    -PreventSelfReview $PreventSelfReview
 ```
 
 ### Étape 6 : Vérifier les groupes de ressources, les identités et les environnements

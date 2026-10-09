@@ -38,7 +38,11 @@ By the end of this lab, you will be able to:
 Every API policy sets three response headers: `x-demo-environment`, `x-demo-release` and `x-demo-backend-host`.
 
 ```powershell
-$Gateways = '<dev-apim-name>', '<prod-apim-name>'
+$env:EXPECTED_TENANT_ID = $TenantId
+$env:EXPECTED_SUBSCRIPTION_ID = $SubscriptionId
+$null = ./scripts/apim-007/Get-Apim007TargetManifest.ps1 -Environment dev -OutputPath $env:TEMP/manifest-dev.json
+$Gateways = (Get-Content $env:TEMP/manifest-dev.json | ConvertFrom-Json).apim.name,
+    (Get-Content $env:TEMP/manifest-prod.json | ConvertFrom-Json).apim.name
 foreach ($g in $Gateways) {
     "== $g"
     (Invoke-WebRequest "https://$g.azure-api.net/weather/api/Version" -SkipHttpErrorCheck).Headers.GetEnumerator() |
@@ -53,14 +57,30 @@ foreach ($g in $Gateways) {
 
 ### Step 2: Change A to B through a pull request
 
+Use the numeric ID of your actual ADO User Story or Bug. For example, ID `1234` produces `feature/1234-candidate-b`; do not type angle-bracket placeholders. Start with a clean worktree. Stop immediately if a Git command fails.
+
 ```powershell
-git switch -c feature/<work-item>-candidate-b
+[int]$WorkItemId = Read-Host 'ADO User Story or Bug ID'
+if ($WorkItemId -le 0) { throw 'A real work item ID is required.' }
+if (git status --porcelain) { throw 'Commit or preserve your existing changes first.' }
+git switch main
+if ($LASTEXITCODE) { throw 'Could not switch to main.' }
+git pull --ff-only
+if ($LASTEXITCODE) { throw 'Could not update main.' }
+$Branch = "feature/$WorkItemId-candidate-b"
+git switch -c $Branch
+if ($LASTEXITCODE) { throw 'Branch creation failed; do not continue on main.' }
 foreach ($p in 'artifacts.007/apis/weather/policy.xml', 'artifacts.007/apis/software-version/policy.xml') {
-    (Get-Content $p -Raw).Replace('<value>baseline-a</value>', '<value>candidate-b</value>') | Set-Content $p -NoNewline
+    $policy = Get-Content $p -Raw
+    if (-not $policy.Contains('<value>baseline-a</value>')) { throw "No baseline-a in $p; inspect the starting state." }
+    $policy.Replace('<value>baseline-a</value>', '<value>candidate-b</value>') | Set-Content $p -NoNewline
 }
-git commit -am "feat(artifacts): promote candidate-b AB#<work-item>"
-git push -u origin HEAD
-gh pr create --repo $Repo --fill
+git add -- artifacts.007/apis/weather/policy.xml artifacts.007/apis/software-version/policy.xml
+git commit -m "feat: promote candidate-b AB#$WorkItemId"
+if ($LASTEXITCODE) { throw 'Commit failed.' }
+git push -u origin $Branch
+if ($LASTEXITCODE) { throw 'Push failed.' }
+gh pr create --repo $Repo --base main --head $Branch --fill
 ```
 
 Merge the pull request when the checks pass. The release starts automatically.

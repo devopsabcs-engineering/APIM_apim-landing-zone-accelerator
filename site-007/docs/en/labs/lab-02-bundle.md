@@ -116,9 +116,19 @@ The element to add:
 
 Create the branch and make the edit (by hand in VS Code, or with these commands):
 
+Enter your actual numeric work item ID when prompted. The `1234` above is an example, not an ID to reuse. If branch creation fails, stop; do not commit on `main`.
+
 ```powershell
-git switch main; git pull
-git switch -c feature/1234-lab2-weather-header
+[int]$WorkItemId = Read-Host 'ADO User Story or Bug ID'
+if ($WorkItemId -le 0) { throw 'A real work item ID is required.' }
+if (git status --porcelain) { throw 'Commit or preserve your existing changes first.' }
+git switch main
+if ($LASTEXITCODE) { throw 'Could not switch to main.' }
+git pull --ff-only
+if ($LASTEXITCODE) { throw 'Could not update main.' }
+$Branch = "feature/$WorkItemId-lab2-weather-header"
+git switch -c $Branch
+if ($LASTEXITCODE) { throw 'Branch creation failed; do not continue on main.' }
 $p = 'artifacts.007/apis/weather/policy.xml'
 (Get-Content $p -Raw).Replace('<set-header name="x-demo-backend-host"',
     '<set-header name="x-demo-lab" exists-action="override"><value>lab-2</value></set-header><set-header name="x-demo-backend-host"') |
@@ -130,10 +140,13 @@ The policy keeps each section on one line, so `git diff` shows one changed `<out
 
 ```powershell
 ./scripts/apim-007/Test-Apim007Bundle.ps1 -BundlePath artifacts.007 -InventoryPath configuration.007.expected-inventory.json -Mode Candidate
-git commit -am "chore(artifacts): practice x-demo-lab header AB#1234"
-git push -u origin HEAD
-gh pr create --repo $Repo --base main --title "Lab 2: practice x-demo-lab header" --body "Practice pull request for Lab 2. Do not merge."
-gh pr checks feature/1234-lab2-weather-header --repo $Repo --watch
+git add -- artifacts.007/apis/weather/policy.xml
+git commit -m "chore: practice x-demo-lab header AB#$WorkItemId"
+if ($LASTEXITCODE) { throw 'Commit failed.' }
+git push -u origin $Branch
+if ($LASTEXITCODE) { throw 'Push failed.' }
+gh pr create --repo $Repo --base main --head $Branch --title "Lab 2: practice x-demo-lab header" --body "Practice pull request for Lab 2. Do not merge."
+gh pr checks $Branch --repo $Repo --watch
 ```
 
 `validate-apim-007.yml` runs without any Azure credentials:
@@ -146,7 +159,7 @@ gh pr checks feature/1234-lab2-weather-header --repo $Repo --watch
 When every check passes, close the pull request without merging. This also deletes the branch:
 
 ```powershell
-gh pr close feature/1234-lab2-weather-header --repo $Repo --delete-branch
+gh pr close $Branch --repo $Repo --delete-branch
 git switch main
 ```
 

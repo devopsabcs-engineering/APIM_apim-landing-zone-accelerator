@@ -35,17 +35,33 @@ By the end of this lab, you will be able to:
 
 ### Step 1: Change the release header and a prod quota
 
+Use your actual numeric work item ID. Stop immediately if branch creation fails; never continue with these edits on `main`.
+
 ```powershell
-git switch -c feature/<work-item>-ai-b
+[int]$WorkItemId = Read-Host 'ADO User Story or Bug ID'
+if ($WorkItemId -le 0) { throw 'A real work item ID is required.' }
+if (git status --porcelain) { throw 'Commit or preserve your existing changes first.' }
+git switch main
+if ($LASTEXITCODE) { throw 'Could not switch to main.' }
+git pull --ff-only
+if ($LASTEXITCODE) { throw 'Could not update main.' }
+$Branch = "feature/$WorkItemId-ai-b"
+git switch -c $Branch
+if ($LASTEXITCODE) { throw 'Branch creation failed; do not continue on main.' }
 $p = 'artifacts.007/apis/ai-gateway/policy.xml'
-(Get-Content $p -Raw).Replace('<value>baseline-ai</value>', '<value>ai-b</value>') | Set-Content $p -NoNewline
+$policy = Get-Content $p -Raw
+if (-not $policy.Contains('<value>baseline-ai</value>')) { throw 'No baseline-ai marker; inspect the starting state.' }
+$policy.Replace('<value>baseline-ai</value>', '<value>ai-b</value>') | Set-Content $p -NoNewline
 $s = 'configuration.007.ai-settings.json'
 $j = Get-Content $s -Raw | ConvertFrom-Json
 $j.environments.prod.teams.'team-retail'.dailyTokenQuota = 40000
 $j | ConvertTo-Json -Depth 6 | Set-Content $s
-git commit -am "feat(artifacts): promote ai-b and lower the prod retail quota AB#<work-item>"
-git push -u origin HEAD
-gh pr create --repo $Repo --fill
+git add -- artifacts.007/apis/ai-gateway/policy.xml configuration.007.ai-settings.json
+git commit -m "feat: promote ai-b and lower the prod retail quota AB#$WorkItemId"
+if ($LASTEXITCODE) { throw 'Commit failed.' }
+git push -u origin $Branch
+if ($LASTEXITCODE) { throw 'Push failed.' }
+gh pr create --repo $Repo --base main --head $Branch --fill
 ```
 
 Merge after validation. The `Plan prod-007` summary lists the chat model, the safety threshold and each team's prod limits, including the new `40000`.
@@ -55,7 +71,10 @@ Merge after validation. The `Plan prod-007` summary lists the chat model, the sa
 The probe reads the `team-retail` key through ARM and never prints it:
 
 ```powershell
-$targets = @{ dev = @('rg-apim-demo-007-dev-apim', '<dev-apim-name>'); prod = @('rg-apim-demo-007-prod-apim', '<prod-apim-name>') }
+$targets = @{
+    dev = @('rg-apim-demo-007-dev-apim', (Get-Content $env:TEMP/manifest-dev.json | ConvertFrom-Json).apim.name)
+    prod = @('rg-apim-demo-007-prod-apim', (Get-Content $env:TEMP/manifest-prod.json | ConvertFrom-Json).apim.name)
+}
 foreach ($e in 'dev', 'prod') {
     $rg, $name = $targets[$e]
     $id  = az apim show -g $rg -n $name --query id -o tsv

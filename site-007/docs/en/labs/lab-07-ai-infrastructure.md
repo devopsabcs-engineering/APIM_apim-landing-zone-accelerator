@@ -40,16 +40,17 @@ By the end of this lab, you will be able to:
 
 ### Step 1: Allow the infra identity to grant the AI data roles
 
-The AI Bicep grants the APIM managed identity two data roles. The infra identity's RBAC Administrator condition must allow them. Re-run the setup once (it updates the condition in place):
+The current infra workflow already deployed the AI accounts in Lab 1, and the current setup script already includes the AI data roles. This rerun is idempotent: it checks existing conditions and updates older setups if needed. The AI Bicep grants the APIM managed identity two data roles, which the infra identity's RBAC Administrator condition must allow.
 
 ```powershell
 ./scripts/apim-007-setup/Initialize-Apim007Environment.ps1 -Stage Initial `
     -SubscriptionId $SubscriptionId -TenantId $TenantId -Location $Location `
-    -GitHubRepository $Repo -BudgetAmount 150 -BudgetAlertEmail '<you@example.com>' `
-    -ExpiresOn (Get-Date).AddDays(30).ToString('yyyy-MM-dd') -ProdReviewers $Reviewer -WhatIf
+    -GitHubRepository $Repo -BudgetAmount 150 -BudgetAlertEmail $AlertEmail `
+    -ExpiresOn (Get-Date).AddDays(30).ToString('yyyy-MM-dd') -ProdReviewers $Reviewer `
+    -PreventSelfReview $PreventSelfReview -WhatIf
 ```
 
-Review the two *Update role assignment condition* lines, then run it again without `-WhatIf`.
+Review the role assignment conditions, then run it again without `-WhatIf`. With current setup, conditions can already be correct; an update line is not required. Reuse the Lab 0 `$PreventSelfReview` value so you do not accidentally block your solo approvals again.
 
 ### Step 2: Review the AI Bicep
 
