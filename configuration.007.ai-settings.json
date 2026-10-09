@@ -13,7 +13,7 @@
     "prod": {
       "safetyThreshold": 4,
       "teams": {
-        "team-retail": { "tokensPerMinute": 5000, "dailyTokenQuota": 40000 },
+        "team-retail": { "tokensPerMinute": 5000, "dailyTokenQuota": 50000 },
         "team-finance": { "tokensPerMinute": 500, "dailyTokenQuota": 20000 }
       }
     }
