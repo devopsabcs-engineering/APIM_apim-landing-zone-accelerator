@@ -59,7 +59,7 @@ gh workflow run release-apiops-007.yml --repo $Repo -f rollback_candidate_tag=ap
 ```
 
 !!! success "Expected result"
-    `Deploy dev-007` fails at the trusted-hash step, **before** marking anything as deploying. Prod jobs are skipped.
+    A nonexistent tag fails in `Resolve candidate`, before any deployment. An existing release whose tag/hash is absent from the fresh trusted history fails in `Deploy dev-007` at the trusted-hash step. Both refusals happen before marking anything as deploying, and prod is skipped. Keep the failure run ID for your evidence.
 
 ### Step 4: Simulate a failing dev gate
 

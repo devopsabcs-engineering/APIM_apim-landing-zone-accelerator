@@ -35,7 +35,7 @@ By the end of this lab, you will be able to:
 
 ### Step 1: Make an edit in the dev portal
 
-In the Azure portal, open the dev API Management service, then **Products** > **team-retail** > **Policies** (or **APIs** > **Weather** > **All operations** > **Policies**). Add a response header in the outbound section:
+In the Azure portal, open the dev API Management service, then **APIs** > **Products** > **Team Retail** (product ID `team-retail`). Expand the product's menu to find its policy editor; labels vary by portal version. Alternatively use **APIs** > **Weather** > **All operations** > **Policies**. Add a response header in the outbound section:
 
 ```xml
 <set-header name="x-demo-team" exists-action="override">
@@ -44,6 +44,47 @@ In the Azure portal, open the dev API Management service, then **Products** > **
 ```
 
 Save.
+
+!!! warning "Owner ARM fallback if the portal editor will not load"
+    Do not report a portal save as successful if it failed. The following equivalent dev-only ARM edit preserves the existing inbound quota policy and requires confirmation. Record that you used the fallback. Never replace the whole policy with a minimal example.
+
+```powershell
+$manifest = Get-Content $env:TEMP/manifest-dev.json -Raw | ConvertFrom-Json
+$context = az account show -o json | ConvertFrom-Json
+if ($manifest.environment -ne 'dev' -or $context.id -ne $manifest.subscriptionId -or $context.tenantId -ne $manifest.tenantId) { throw 'Wrong dev context.' }
+$service = az apim show -g rg-apim-demo-007-dev-apim -n $manifest.apim.name -o json | ConvertFrom-Json
+if ($service.tags.apimDemo -ne '007' -or $service.tags.environment -ne 'dev') { throw 'Wrong ownership tags.' }
+$state = az apim nv show -g rg-apim-demo-007-dev-apim -n $manifest.apim.name --named-value-id apim007-release-state --query value -o tsv | ConvertFrom-Json
+if ($state.status -ne 'clean') { throw 'Release dev main first.' }
+$uri = "https://management.azure.com$($manifest.apim.id)/products/team-retail/policies/policy?api-version=2024-06-01-preview&format=rawxml"
+$token = az account get-access-token --resource https://management.azure.com/ --query accessToken -o tsv
+try {
+    $headers = @{ Authorization = "Bearer $token" }
+    $response = Invoke-WebRequest -Uri $uri -Headers $headers
+    $policy = [xml](($response.Content | ConvertFrom-Json).properties.value)
+    $beforeInbound = $policy.policies.inbound.OuterXml
+    if ($policy.SelectSingleNode("/policies/outbound/set-header[@name='x-demo-team']")) { throw 'Header already exists; inspect it first.' }
+    $header = $policy.CreateElement('set-header')
+    $header.SetAttribute('name', 'x-demo-team')
+    $header.SetAttribute('exists-action', 'override')
+    $value = $policy.CreateElement('value')
+    $value.InnerText = 'retail'
+    $null = $header.AppendChild($value)
+    $null = $policy.policies.outbound.AppendChild($header)
+    if ($policy.policies.inbound.OuterXml -ne $beforeInbound) { throw 'Quota policy changed.' }
+    $etag = @($response.Headers.ETag)[0]
+    if (-not $etag) { throw 'Policy ETag missing.' }
+    if ((Read-Host 'Type apply-dev-retail-header to confirm') -ne 'apply-dev-retail-header') { throw 'Cancelled.' }
+    $headers['If-Match'] = [string]$etag
+    $body = @{ properties = @{ format = 'rawxml'; value = $policy.OuterXml } } | ConvertTo-Json -Depth 4 -Compress
+    $null = Invoke-RestMethod -Method Put -Uri $uri -Headers $headers -ContentType application/json -Body $body
+    $saved = Invoke-RestMethod -Uri $uri -Headers @{ Authorization = "Bearer $token" }
+    $savedPolicy = [xml]$saved.properties.value
+    if ($savedPolicy.SelectSingleNode("/policies/outbound/set-header[@name='x-demo-team']/value").InnerText -ne 'retail') { throw 'Read-back failed.' }
+    'Dev-only header update verified; prod was not changed.'
+}
+finally { Remove-Variable token, headers -ErrorAction SilentlyContinue }
+```
 
 ### Step 2: Run the extraction
 

@@ -59,7 +59,7 @@ gh workflow run release-apiops-007.yml --repo $Repo -f rollback_candidate_tag=ap
 ```
 
 !!! success "Résultat attendu"
-    `Deploy dev-007` échoue à l'étape du condensé de confiance, **avant** de marquer quoi que ce soit comme en déploiement. Les travaux de prod sont sautés.
+    Une étiquette inexistante échoue dans `Resolve candidate`, avant tout déploiement. Une version existante dont l'étiquette et le condensé sont absents du nouvel historique de confiance échoue dans `Deploy dev-007`, à l'étape du condensé de confiance. Les deux refus surviennent avant de marquer quoi que ce soit comme en déploiement; la prod est sautée. Conservez l'ID de l'exécution en échec pour vos preuves.
 
 ### Étape 4 : Simuler une barrière dev en échec
 

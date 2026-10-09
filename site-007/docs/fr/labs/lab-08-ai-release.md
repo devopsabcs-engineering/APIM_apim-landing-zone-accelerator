@@ -69,7 +69,7 @@ Get-Content configuration.007.ai-settings.json
 
 ### Étape 3 : Le publier
 
-Fusionnez la demande de tirage du paquet. La publication se déroule comme dans l'[atelier 3](lab-03-baseline-release.md), avec une étape de plus dans chaque travail de déploiement :
+Le paquet actuel inclut déjà l'IA : les publications des ateliers 3 et 4 l'ont déjà publiée et ont exécuté l'étape IA dans les deux environnements. Inspectez votre exécution terminée plutôt que de chercher une nouvelle demande de tirage inexistante. Si vous avez changé le paquet, utilisez la publication normale par demande de tirage de l'[atelier 3](lab-03-baseline-release.md). Chaque travail de déploiement IA effectue :
 
 1. `Set-Apim007TeamSubscriptions.ps1` crée `sub-team-retail` et `sub-team-finance`, limités à leurs produits. Les abonnements ne sont jamais stockés dans le paquet.
 2. `Test-Apim007AiGateway.ps1` lit les clés par ARM, les masque et exécute les tests.
@@ -80,9 +80,20 @@ Fusionnez la demande de tirage du paquet. La publication se déroule comme dans 
 ### Étape 4 : Lire les cinq tests
 
 ```powershell
+$env:EXPECTED_TENANT_ID = $TenantId
+$env:EXPECTED_SUBSCRIPTION_ID = $SubscriptionId
+$null = ./scripts/apim-007/Get-Apim007TargetManifest.ps1 -Environment dev -OutputPath $env:TEMP/manifest-dev.json
+$appInsightsId = az deployment group show -g rg-apim-demo-007-dev-apim -n apim007-apim-dev --query properties.outputs.applicationInsightsId.value -o tsv
+if ($LASTEXITCODE) { throw 'Could not resolve App Insights.' }
+$workspaceResourceId = az resource show --ids $appInsightsId --query properties.WorkspaceResourceId -o tsv
+if ($LASTEXITCODE) { throw 'Could not resolve the workspace resource ID.' }
+$WorkspaceCustomerId = az monitor log-analytics workspace show --ids $workspaceResourceId --query customerId -o tsv
+if ($LASTEXITCODE -or -not $WorkspaceCustomerId) { throw 'Could not resolve the workspace customer GUID.' }
 ./scripts/apim-007/Test-Apim007AiGateway.ps1 -ManifestPath $env:TEMP\manifest-dev.json -SettingsPath configuration.007.ai-settings.json `
-    -PolicyPath artifacts.007/apis/ai-gateway/policy.xml -WorkspaceCustomerId <log-analytics-workspace-id>
+    -PolicyPath artifacts.007/apis/ai-gateway/policy.xml -WorkspaceCustomerId $WorkspaceCustomerId -RequireMetrics
 ```
+
+`WorkspaceCustomerId` est le GUID client de l'espace de travail, pas son ID de ressource ARM. `-RequireMetrics` rend T5 obligatoire pour les preuves; sans cette option, le script peut avertir au lieu d'échouer pendant le délai d'ingestion.
 
 <figure class="screenshot-frame" markdown>
 ![Fenêtre PowerShell montrant les résultats des tests IA en dev : retail 200 avec consommation de jetons, sans clé 401, rafale finance 429, Content Safety 403 bloqué et lignes de métriques de jetons](../../assets/img/lab-08/08-03-ai-tests.png)
