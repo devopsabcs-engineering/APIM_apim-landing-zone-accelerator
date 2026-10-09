@@ -35,7 +35,7 @@ Des gens utilisent encore le portail. Le GitOps par extraction ramène une modif
 
 ### Étape 1 : Faire une modification dans le portail dev
 
-Dans le portail Azure, ouvrez le service API Management de dev, puis **Products** > **team-retail** > **Policies** (ou **APIs** > **Weather** > **All operations** > **Policies**). Ajoutez un en-tête de réponse dans la section outbound :
+Dans le portail Azure, ouvrez le service API Management de dev, puis **APIs** > **Products** > **Team Retail** (ID du produit `team-retail`). Développez le menu du produit pour trouver son éditeur de stratégie; les libellés varient selon la version du portail. Vous pouvez aussi utiliser **APIs** > **Weather** > **All operations** > **Policies**. Ajoutez un en-tête de réponse dans la section outbound :
 
 ```xml
 <set-header name="x-demo-team" exists-action="override">
@@ -44,6 +44,47 @@ Dans le portail Azure, ouvrez le service API Management de dev, puis **Products*
 ```
 
 Enregistrez.
+
+!!! warning "Solution ARM du Propriétaire si l'éditeur du portail ne charge pas"
+    Ne présentez pas une sauvegarde du portail comme réussie si elle a échoué. Cette modification ARM équivalente, limitée au dev, conserve la stratégie de quota inbound et exige une confirmation. Indiquez que vous avez utilisé cette solution. Ne remplacez jamais toute la stratégie par un exemple minimal.
+
+```powershell
+$manifest = Get-Content $env:TEMP/manifest-dev.json -Raw | ConvertFrom-Json
+$context = az account show -o json | ConvertFrom-Json
+if ($manifest.environment -ne 'dev' -or $context.id -ne $manifest.subscriptionId -or $context.tenantId -ne $manifest.tenantId) { throw 'Wrong dev context.' }
+$service = az apim show -g rg-apim-demo-007-dev-apim -n $manifest.apim.name -o json | ConvertFrom-Json
+if ($service.tags.apimDemo -ne '007' -or $service.tags.environment -ne 'dev') { throw 'Wrong ownership tags.' }
+$state = az apim nv show -g rg-apim-demo-007-dev-apim -n $manifest.apim.name --named-value-id apim007-release-state --query value -o tsv | ConvertFrom-Json
+if ($state.status -ne 'clean') { throw 'Release dev main first.' }
+$uri = "https://management.azure.com$($manifest.apim.id)/products/team-retail/policies/policy?api-version=2024-06-01-preview&format=rawxml"
+$token = az account get-access-token --resource https://management.azure.com/ --query accessToken -o tsv
+try {
+    $headers = @{ Authorization = "Bearer $token" }
+    $response = Invoke-WebRequest -Uri $uri -Headers $headers
+    $policy = [xml](($response.Content | ConvertFrom-Json).properties.value)
+    $beforeInbound = $policy.policies.inbound.OuterXml
+    if ($policy.SelectSingleNode("/policies/outbound/set-header[@name='x-demo-team']")) { throw 'Header already exists; inspect it first.' }
+    $header = $policy.CreateElement('set-header')
+    $header.SetAttribute('name', 'x-demo-team')
+    $header.SetAttribute('exists-action', 'override')
+    $value = $policy.CreateElement('value')
+    $value.InnerText = 'retail'
+    $null = $header.AppendChild($value)
+    $null = $policy.policies.outbound.AppendChild($header)
+    if ($policy.policies.inbound.OuterXml -ne $beforeInbound) { throw 'Quota policy changed.' }
+    $etag = @($response.Headers.ETag)[0]
+    if (-not $etag) { throw 'Policy ETag missing.' }
+    if ((Read-Host 'Type apply-dev-retail-header to confirm') -ne 'apply-dev-retail-header') { throw 'Cancelled.' }
+    $headers['If-Match'] = [string]$etag
+    $body = @{ properties = @{ format = 'rawxml'; value = $policy.OuterXml } } | ConvertTo-Json -Depth 4 -Compress
+    $null = Invoke-RestMethod -Method Put -Uri $uri -Headers $headers -ContentType application/json -Body $body
+    $saved = Invoke-RestMethod -Uri $uri -Headers @{ Authorization = "Bearer $token" }
+    $savedPolicy = [xml]$saved.properties.value
+    if ($savedPolicy.SelectSingleNode("/policies/outbound/set-header[@name='x-demo-team']/value").InnerText -ne 'retail') { throw 'Read-back failed.' }
+    'Dev-only header update verified; prod was not changed.'
+}
+finally { Remove-Variable token, headers -ErrorAction SilentlyContinue }
+```
 
 ### Étape 2 : Exécuter l'extraction
 

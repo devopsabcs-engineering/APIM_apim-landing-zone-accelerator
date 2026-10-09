@@ -69,7 +69,7 @@ Get-Content configuration.007.ai-settings.json
 
 ### Step 3: Release it
 
-Merge the bundle pull request. The release runs as in [Lab 3](lab-03-baseline-release.md), with one more step in each deploy job:
+The current bundle already includes AI, so the releases in Labs 3 and 4 already published it and ran the AI step in both environments. Inspect your completed run instead of looking for a nonexistent new bundle PR. If you changed the bundle, use the normal PR release route from [Lab 3](lab-03-baseline-release.md). Each AI deploy job performs:
 
 1. `Set-Apim007TeamSubscriptions.ps1` creates `sub-team-retail` and `sub-team-finance`, scoped to their products. Subscriptions are never stored in the bundle.
 2. `Test-Apim007AiGateway.ps1` reads the keys through ARM, masks them, and runs the tests.
@@ -80,9 +80,20 @@ Merge the bundle pull request. The release runs as in [Lab 3](lab-03-baseline-re
 ### Step 4: Read the five tests
 
 ```powershell
+$env:EXPECTED_TENANT_ID = $TenantId
+$env:EXPECTED_SUBSCRIPTION_ID = $SubscriptionId
+$null = ./scripts/apim-007/Get-Apim007TargetManifest.ps1 -Environment dev -OutputPath $env:TEMP/manifest-dev.json
+$appInsightsId = az deployment group show -g rg-apim-demo-007-dev-apim -n apim007-apim-dev --query properties.outputs.applicationInsightsId.value -o tsv
+if ($LASTEXITCODE) { throw 'Could not resolve App Insights.' }
+$workspaceResourceId = az resource show --ids $appInsightsId --query properties.WorkspaceResourceId -o tsv
+if ($LASTEXITCODE) { throw 'Could not resolve the workspace resource ID.' }
+$WorkspaceCustomerId = az monitor log-analytics workspace show --ids $workspaceResourceId --query customerId -o tsv
+if ($LASTEXITCODE -or -not $WorkspaceCustomerId) { throw 'Could not resolve the workspace customer GUID.' }
 ./scripts/apim-007/Test-Apim007AiGateway.ps1 -ManifestPath $env:TEMP\manifest-dev.json -SettingsPath configuration.007.ai-settings.json `
-    -PolicyPath artifacts.007/apis/ai-gateway/policy.xml -WorkspaceCustomerId <log-analytics-workspace-id>
+    -PolicyPath artifacts.007/apis/ai-gateway/policy.xml -WorkspaceCustomerId $WorkspaceCustomerId -RequireMetrics
 ```
+
+`WorkspaceCustomerId` is the workspace's customer GUID, not its ARM resource ID. `-RequireMetrics` makes T5 a required evidence checkpoint; without it, the script can warn instead of failing while ingestion catches up.
 
 <figure class="screenshot-frame" markdown>
 ![PowerShell window showing the AI test results on dev: retail 200 with token usage, no key 401, finance burst 429, content safety 403 blocked and token metric rows](../../assets/img/lab-08/08-03-ai-tests.png)
