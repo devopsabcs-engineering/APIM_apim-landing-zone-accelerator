@@ -1,0 +1,22 @@
+[
+  {
+    "environment": "dev-007",
+    "checkedUtc": "2026-11-18T02:47:02.8433124Z",
+    "apimName": "apim-dev-007-uovzcyp6yypu2",
+    "weatherDescription": null,
+    "url": "https://apim-dev-007-uovzcyp6yypu2.azure-api.net/weather/api/Version",
+    "statusCode": 200,
+    "releaseHeader": "baseline-a",
+    "appVersion": "1.0.62076.0"
+  },
+  {
+    "environment": "prod-007",
+    "checkedUtc": "2026-11-18T02:47:06.4178271Z",
+    "apimName": "apim-prod-007-p4afmw2tk5j4m",
+    "weatherDescription": null,
+    "url": "https://apim-prod-007-p4afmw2tk5j4m.azure-api.net/weather/api/Version",
+    "statusCode": 200,
+    "releaseHeader": "baseline-a",
+    "appVersion": "1.0.62076.0"
+  }
+]

@@ -1,0 +1,220 @@
+{
+  "schemaVersion": 1,
+  "sourceSha": "f27cffeb2b159f642a70f1cdf07fc272110f42cd",
+  "apiVersion": "2025-09-01-preview",
+  "apiopsCliVersion": "1.0.4",
+  "bundleRoot": "artifacts.007",
+  "inventoryPath": "configuration.007.expected-inventory.json",
+  "ownershipFilterPath": "configuration.007.ownership.yaml",
+  "images": {
+    "weather": "crapimdemo007ouyptmfxyraw2.azurecr.io/apim007-weather@sha256:a1774e4113c7ba6770d9d4b456da97acac385fcb9b8a69d3fb160824aa11fd51",
+    "soap": "crapimdemo007ouyptmfxyraw2.azurecr.io/apim007-soap@sha256:65c4bfaa4d26289f40e22c4b26ac887ed4fe3201314e55ea3bf6d17470a75153"
+  },
+  "contracts": {
+    "artifacts.007/apis/ai-gateway/specification.json": "cb21f41bd64e8cac5668178f085c651206d5ba9dc187a1df789b3538960ffcaa",
+    "artifacts.007/apis/software-version/specification.wsdl": "0b6bf3862b48c25f117a125ffbdc210113264e3f371dac70b864d2353ca47632",
+    "artifacts.007/apis/weather/specification.json": "19695bb5da1b9f0bd9cfb9575766d62f5b200db073601aef617f304829f5d486"
+  },
+  "files": [
+    {
+      "path": "artifacts.007/apis/ai-gateway/apiInformation.json",
+      "sha256": "2e68745ab0a5dd8788084e30f9a2a91f34d073ec0dd4719f8f85f0603feee130"
+    },
+    {
+      "path": "artifacts.007/apis/ai-gateway/policy.xml",
+      "sha256": "e4246589803d2156b611e4596fb88987b95217619c0cc31fd48587a22244bba5"
+    },
+    {
+      "path": "artifacts.007/apis/ai-gateway/specification.json",
+      "sha256": "cb21f41bd64e8cac5668178f085c651206d5ba9dc187a1df789b3538960ffcaa"
+    },
+    {
+      "path": "artifacts.007/apis/software-version/apiInformation.json",
+      "sha256": "f077c480459dc4121dc5a3d720bb029fcb4aa1be772b4a886ffdef648d7e981a"
+    },
+    {
+      "path": "artifacts.007/apis/software-version/policy.xml",
+      "sha256": "eebeb6e27b05c66249550d15f02bf74838b16ff36b94871f2bb45fb33d46caf6"
+    },
+    {
+      "path": "artifacts.007/apis/software-version/specification.wsdl",
+      "sha256": "0b6bf3862b48c25f117a125ffbdc210113264e3f371dac70b864d2353ca47632"
+    },
+    {
+      "path": "artifacts.007/apis/weather/apiInformation.json",
+      "sha256": "3528e47b533b306439bd9d67cb4d3970e0cc9254804602d1e2406e1ea1318e1b"
+    },
+    {
+      "path": "artifacts.007/apis/weather/policy.xml",
+      "sha256": "55d3c81b4db80e8fff4297104ac51ce543dd0e3d1617c681d77ad43f20d8d5bc"
+    },
+    {
+      "path": "artifacts.007/apis/weather/specification.json",
+      "sha256": "19695bb5da1b9f0bd9cfb9575766d62f5b200db073601aef617f304829f5d486"
+    },
+    {
+      "path": "artifacts.007/backends/ai-content-safety/backendInformation.json",
+      "sha256": "76fc7838c87ae0cb83795be3a912eb755fd19914647bf058a7e9d033750023ce"
+    },
+    {
+      "path": "artifacts.007/backends/ai-foundry/backendInformation.json",
+      "sha256": "aa72b32111d4d350e5d72e52d58be2e18eef5b96cd77cefbdcd8b836bf61d5c4"
+    },
+    {
+      "path": "artifacts.007/backends/software-version-backend/backendInformation.json",
+      "sha256": "f9fa3bcdded99ac9cc8ca12371e190dfbd48f9cb9b358a5d3bb3ce1ee2396a7c"
+    },
+    {
+      "path": "artifacts.007/backends/weather-backend/backendInformation.json",
+      "sha256": "1adb534602f477f1c8f371257c4f3c07a15f28fb5d4d7522cfbeb92f024a46f4"
+    },
+    {
+      "path": "artifacts.007/namedValues/ai-safety-blocklist/namedValueInformation.json",
+      "sha256": "e1a40551d9a939e24c001515e77f8bfa7dd88396c4a291617ea49ff30667fcc2"
+    },
+    {
+      "path": "artifacts.007/namedValues/ai-safety-threshold/namedValueInformation.json",
+      "sha256": "ef02560e8e5f4c348c321c32b4d860a2bfe72d516c9ce04782a6633877e143a9"
+    },
+    {
+      "path": "artifacts.007/namedValues/ai-team-finance-daily-quota/namedValueInformation.json",
+      "sha256": "292427b42b2970c90680cbbe857eb1d5fe497d556ca9dfd2ff8096dd401b9c43"
+    },
+    {
+      "path": "artifacts.007/namedValues/ai-team-finance-tpm/namedValueInformation.json",
+      "sha256": "6489f91383fd63556b83cad7d0936616eae78b499252c62b182e7c6ad0b0ad53"
+    },
+    {
+      "path": "artifacts.007/namedValues/ai-team-retail-daily-quota/namedValueInformation.json",
+      "sha256": "a2a90890b70e970abebef68cddc24e6373f82fdd1f0a1735b03e7e12aa93acb2"
+    },
+    {
+      "path": "artifacts.007/namedValues/ai-team-retail-tpm/namedValueInformation.json",
+      "sha256": "fb000a11d78ef3d1e887777e250be528531d47d60898ee1d7cba9921d102e45d"
+    },
+    {
+      "path": "artifacts.007/namedValues/demo-environment/namedValueInformation.json",
+      "sha256": "8d92d315f57bd0173ee49a2c56048d43c2b8950c3d21548a9910f8f5cc94724b"
+    },
+    {
+      "path": "artifacts.007/products/demo/apis.json",
+      "sha256": "105a7c070a390633608754b1ffd0230509ffcfca616cb857fb998df590e474eb"
+    },
+    {
+      "path": "artifacts.007/products/demo/productInformation.json",
+      "sha256": "5606fab260c250cd48479ccd73165e7867849d930485f296b3de4addb5a0b785"
+    },
+    {
+      "path": "artifacts.007/products/team-finance/apis.json",
+      "sha256": "b80eda3ab013129d3d805abd35678dfb85706c9f57e3369d23b186b6e0ef66b4"
+    },
+    {
+      "path": "artifacts.007/products/team-finance/policy.xml",
+      "sha256": "05725708dd27a5ed62093afe00c83673b311ce6e8472e1b6e3f45808722dc4b7"
+    },
+    {
+      "path": "artifacts.007/products/team-finance/productInformation.json",
+      "sha256": "918bab5e0e1faabd9f39bcafe6e0fc5a2ffab8087b3ec14fb8e6fcc280ad3ab2"
+    },
+    {
+      "path": "artifacts.007/products/team-retail/apis.json",
+      "sha256": "b80eda3ab013129d3d805abd35678dfb85706c9f57e3369d23b186b6e0ef66b4"
+    },
+    {
+      "path": "artifacts.007/products/team-retail/policy.xml",
+      "sha256": "29c38030511914270d117490c6c021a72e64b69f07e4a92dc76f4d8e4648ac64"
+    },
+    {
+      "path": "artifacts.007/products/team-retail/productInformation.json",
+      "sha256": "48eeffbdf99dd2f7f7bd5c5d27c1ba141926b72d7217b5fb33ae2d5e373fb95d"
+    },
+    {
+      "path": "configuration.007.ai-settings.json",
+      "sha256": "3a0608c0d50bcc628099f32d77a0fb238d8e4c7237276f03ef6ecc5578af6858"
+    },
+    {
+      "path": "configuration.007.expected-inventory.json",
+      "sha256": "ec1d07e35f8a4ed53ed3817489acd3041a828d3f676f33c65e5d6a4497d67989"
+    },
+    {
+      "path": "configuration.007.ownership.yaml",
+      "sha256": "59918ac2d258b3874d8b35bc2ba6433475c38c70f5994be039a26ba74d222091"
+    },
+    {
+      "path": "scripts/apim-007/Compare-Apim007Extraction.ps1",
+      "sha256": "d950a59018238c38fb94252827962a72fc062e482470920224d05947a99f1aaf"
+    },
+    {
+      "path": "scripts/apim-007/ConvertTo-Apim007NeutralContract.ps1",
+      "sha256": "9d1e77caaacaa60e06b5ae0ad178612b431622c7d003085158d50160a71b961e"
+    },
+    {
+      "path": "scripts/apim-007/Get-Apim007ReleaseState.ps1",
+      "sha256": "91220087b75ec9afdc15bd5e979f691c931058c48ffd05af72adc11fd150ec59"
+    },
+    {
+      "path": "scripts/apim-007/Get-Apim007TargetManifest.ps1",
+      "sha256": "8849c4e81b65fb971352d54286a153fdd91476a23addd7f35667b97f25470989"
+    },
+    {
+      "path": "scripts/apim-007/Get-Apim007WsdlInfo.ps1",
+      "sha256": "e5a07583ee876901bc0267c3f6aa9bd21bef9af35388865082eb9f1dbc482239"
+    },
+    {
+      "path": "scripts/apim-007/New-Apim007Candidate.ps1",
+      "sha256": "75542b9d1ebfde96499fa3fb94e8444c3927d023e8ac9f52787351c66c4c0a72"
+    },
+    {
+      "path": "scripts/apim-007/New-Apim007Overrides.ps1",
+      "sha256": "f0ad13c4e690f50d97a32bd5bf21cc89f7e5eb1604c284637792abe77f3e461f"
+    },
+    {
+      "path": "scripts/apim-007/Set-Apim007ReleaseState.ps1",
+      "sha256": "6dca3e52d99c54144d1a505bc984f0d6fd6235e89c578eae28bb5b3071158ad0"
+    },
+    {
+      "path": "scripts/apim-007/Set-Apim007SafetyBlocklist.ps1",
+      "sha256": "358f625d3eb163d2e0d57a75285237d8c7990350e91e0bbe8aa93193d6541c44"
+    },
+    {
+      "path": "scripts/apim-007/Set-Apim007TeamSubscriptions.ps1",
+      "sha256": "47b516a925e9ce8542192be8e581e9a3158264ad05d6deb3ddc2e9d2336aa289"
+    },
+    {
+      "path": "scripts/apim-007/Test-Apim007AiGateway.ps1",
+      "sha256": "cdce388ef076eee7d386cd6bceb28cb7a0755c8440c1f70ea0a86caa4109a6bc"
+    },
+    {
+      "path": "scripts/apim-007/Test-Apim007Backend.ps1",
+      "sha256": "d27086b08c0e2b24088ba1fdfd00e1531820a620b81cb0f0c7faad99efe57451"
+    },
+    {
+      "path": "scripts/apim-007/Test-Apim007Bundle.ps1",
+      "sha256": "025b6754623b726d153a386d54d85b55a58d79797928a7603e54847b5e0e1bb0"
+    },
+    {
+      "path": "scripts/apim-007/Test-Apim007Candidate.ps1",
+      "sha256": "428faa6a6e8bcb1a40b0e4fcd45ac8791e6a90a888a172ff75c0cbdb080de0f7"
+    },
+    {
+      "path": "scripts/apim-007/Test-Apim007Gateway.ps1",
+      "sha256": "fbd3ed997ee08b53651177cd7c0a4ff45aee73af86bbd1ca07f3d3dcc822fc2d"
+    },
+    {
+      "path": "scripts/apim-007/Test-Apim007LockfileProvenance.ps1",
+      "sha256": "8d9b73e5ca66fd795c0d2cdba5c949c7565c62500d19b8e8ae1608821bca74c8"
+    },
+    {
+      "path": "scripts/apim-007/Test-Apim007ServiceState.ps1",
+      "sha256": "3589c682faa1db531c15fb423cc359e3289d1120ee36962829de429948b1a1ff"
+    },
+    {
+      "path": "tools/apiops-cli/package-lock.json",
+      "sha256": "a4ad0cba3cae560f898ec703645999cd5e228c0ba8c76da11282718c3cde260b"
+    },
+    {
+      "path": "tools/apiops-cli/package.json",
+      "sha256": "cc8fb5cab495c72eec29fdcf51d8ebd2ab9d07ff830e38d5ce28da3789bc64af"
+    }
+  ]
+}

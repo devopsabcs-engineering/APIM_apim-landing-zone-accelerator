@@ -1,0 +1,74 @@
+[
+  {
+    "Deck": "APIOps-007-English",
+    "Slide": 1,
+    "Text": "APIOps",
+    "Height": 91.2,
+    "AvailableHeight": 82.80000305175781,
+    "Width": 258.0,
+    "AvailableWidth": 856.7999877929688
+  },
+  {
+    "Deck": "APIOps-007-English",
+    "Slide": 2,
+    "Text": "APIs, policies, products, backends and named values become reviewable files.",
+    "Height": 61.2,
+    "AvailableHeight": 57.599998474121094,
+    "Width": 254.86,
+    "AvailableWidth": 264.9599914550781
+  },
+  {
+    "Deck": "APIOps-007-English",
+    "Slide": 2,
+    "Text": "A diff explains what changed. Validation and approval decide what ships.",
+    "Height": 61.2,
+    "AvailableHeight": 57.599998474121094,
+    "Width": 267.87503,
+    "AvailableWidth": 264.9599914550781
+  },
+  {
+    "Deck": "APIOps-007-Francais",
+    "Slide": 1,
+    "Text": "APIOps",
+    "Height": 91.2,
+    "AvailableHeight": 82.80000305175781,
+    "Width": 258.0,
+    "AvailableWidth": 856.7999877929688
+  },
+  {
+    "Deck": "APIOps-007-Francais",
+    "Slide": 2,
+    "Text": "API, politiques, produits, backends et valeurs nommées deviennent des fichiers révisables.",
+    "Height": 61.2,
+    "AvailableHeight": 57.599998474121094,
+    "Width": 267.63504,
+    "AvailableWidth": 264.9599914550781
+  },
+  {
+    "Deck": "APIOps-007-Francais",
+    "Slide": 2,
+    "Text": "Le diff explique le changement. Validation et approbation déterminent la livraison.",
+    "Height": 61.2,
+    "AvailableHeight": 57.599998474121094,
+    "Width": 231.28503,
+    "AvailableWidth": 264.9599914550781
+  },
+  {
+    "Deck": "APIOps-007-Francais",
+    "Slide": 2,
+    "Text": "Tester en dev. Promouvoir en prod avec les valeurs propres à chaque environnement.",
+    "Height": 61.2,
+    "AvailableHeight": 57.599998474121094,
+    "Width": 250.76,
+    "AvailableWidth": 264.9599914550781
+  },
+  {
+    "Deck": "APIOps-007-Francais",
+    "Slide": 6,
+    "Text": "PLAN PROD\rLECTURE SEULE",
+    "Height": 43.2,
+    "AvailableHeight": 51.84000015258789,
+    "Width": 135.77496,
+    "AvailableWidth": 133.1999969482422
+  }
+]

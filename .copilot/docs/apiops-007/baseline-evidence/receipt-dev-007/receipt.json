@@ -1,0 +1,19 @@
+{
+  "environment": "dev-007",
+  "candidateTag": "apim007-candidate-31-f27cffe",
+  "candidateSha256": "316d5b552293221fa82412de10e1a9cb995e75d8f080ba16da4cd3766989a70c",
+  "isRollback": false,
+  "sourceSha": "f27cffeb2b159f642a70f1cdf07fc272110f42cd",
+  "appVersion": "1.0.62076.0",
+  "weatherImage": "crapimdemo007ouyptmfxyraw2.azurecr.io/apim007-weather@sha256:a1774e4113c7ba6770d9d4b456da97acac385fcb9b8a69d3fb160824aa11fd51",
+  "soapImage": "crapimdemo007ouyptmfxyraw2.azurecr.io/apim007-soap@sha256:65c4bfaa4d26289f40e22c4b26ac887ed4fe3201314e55ea3bf6d17470a75153",
+  "apimName": "apim-dev-007-uovzcyp6yypu2",
+  "gatewayUrl": "https://apim-dev-007-uovzcyp6yypu2.azure-api.net",
+  "manifestSha256": "6517021cb286ae7b21615a56e2c8dc8d559df1c1ab72c1a44457b79c6386eb99",
+  "overridesSha256": "0831beb22aa376e2b36286545df89a1aba428be3ab76a561409cbe4dfb42568d",
+  "apiVersion": "2025-09-01-preview",
+  "aiEvidence": "retail=200 usage=20; noKey=401; financeBurst=429 after 4 call(s); contentSafety=403 blocked; metrics=none yet",
+  "runId": "44222021165",
+  "runAttempt": "1",
+  "completedUtc": "2026-11-18T02:28:15Z"
+}
