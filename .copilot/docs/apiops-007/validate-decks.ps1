@@ -50,6 +50,6 @@ try {
     if (-not $existingPowerPoint -and $powerPoint.Presentations.Count -eq 0) { $powerPoint.Quit() }
     $null = [Runtime.InteropServices.Marshal]::ReleaseComObject($powerPoint)
 }
-$results | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $Directory 'text-fit-results.json')
+ConvertTo-Json -InputObject @($results.ToArray()) -Depth 5 | Set-Content (Join-Path $Directory 'text-fit-results.json')
 if ($results.Count -gt 0) { $results | Format-Table -Wrap; throw "$($results.Count) text-fit warnings" }
 Write-Output 'PASS: 20 slides rendered in PowerPoint; all text fits its bounding box.'
