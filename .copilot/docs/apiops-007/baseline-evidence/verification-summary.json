@@ -1,0 +1,23 @@
+{
+  "checkedUtc": "2026-11-18T02:47:38.8612033Z",
+  "candidateTag": "apim007-candidate-31-f27cffe",
+  "candidateSha256": "316d5b552293221fa82412de10e1a9cb995e75d8f080ba16da4cd3766989a70c",
+  "sourceSha": "f27cffeb2b159f642a70f1cdf07fc272110f42cd",
+  "receiptsMatch": true,
+  "productionMatchesApprovedPlan": true,
+  "rollbackChecks": [
+    {
+      "environment": "dev",
+      "status": "clean",
+      "rollbackEligible": true,
+      "reason": "dev gate allowed (state clean)."
+    },
+    {
+      "environment": "prod",
+      "status": "clean",
+      "rollbackEligible": true,
+      "reason": "prod gate allowed (state clean)."
+    }
+  ],
+  "rollbackExecuted": false
+}
